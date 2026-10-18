@@ -332,11 +332,17 @@ function apiBase(): string {
 
 const timeoutMs = 20_000
 
+interface JsonResponse {
+  data: unknown
+  status: number
+}
+
 async function request(
   path: string,
   body?: SearchRequest,
   signal?: AbortSignal,
-): Promise<unknown> {
+  allowUnavailable = false,
+): Promise<JsonResponse> {
   const base = apiBase()
   if (signal?.aborted) throw new ApiError('aborted')
   const controller = new AbortController()
@@ -361,8 +367,8 @@ async function request(
       redirect: 'error',
       referrerPolicy: 'same-origin',
     })
-    if (signal?.aborted) throw new ApiError('aborted')
-    if (!response.ok) {
+    if (controller.signal.aborted) throw new ApiError('aborted')
+    if (!response.ok && !(allowUnavailable && response.status === 503)) {
       if (response.status === 404)
         throw new ApiError('not_ready', response.status)
       if (response.status === 422)
@@ -376,15 +382,21 @@ async function request(
         .trim()
         .toLowerCase() !== 'application/json'
     )
-      throw new ApiError('invalid_response')
+      throw new ApiError(
+        'invalid_response',
+        response.status === 503 ? response.status : undefined,
+      )
     let result: unknown
     try {
       result = await response.json()
     } catch {
-      throw new ApiError('invalid_response')
+      throw new ApiError(
+        'invalid_response',
+        response.status === 503 ? response.status : undefined,
+      )
     }
-    if (signal?.aborted) throw new ApiError('aborted')
-    return result
+    if (controller.signal.aborted) throw new ApiError('aborted')
+    return { data: result, status: response.status }
   } catch (error) {
     if (timedOut) throw new ApiError('timeout')
     if (signal?.aborted || controller.signal.aborted)
@@ -394,6 +406,25 @@ async function request(
   } finally {
     window.clearTimeout(timer)
     signal?.removeEventListener('abort', abort)
+  }
+}
+
+function validateSearchResponse<
+  T extends RecommendationResponse | EventSearchResponse,
+>(response: JsonResponse, parse: (value: unknown) => T, requestId?: string): T {
+  try {
+    const result = parse(response.data)
+    // A search 503 may carry only the validated unavailable envelope.
+    if (
+      (response.status === 503 && result.status !== 'unavailable') ||
+      (requestId && result.request_id !== requestId)
+    )
+      throw new ApiError('invalid_response')
+    return result
+  } catch (error) {
+    if (response.status === 503 && error instanceof ApiError)
+      throw new ApiError(error.code, response.status)
+    throw error
   }
 }
 
@@ -411,7 +442,7 @@ function validateRequest(body: SearchRequest): void {
 export async function checkHealth(
   signal?: AbortSignal,
 ): Promise<{ status: 'ok' }> {
-  const result = await request('/health', undefined, signal)
+  const { data: result } = await request('/health', undefined, signal)
   if (
     !result ||
     typeof result !== 'object' ||
@@ -428,14 +459,12 @@ export async function searchRecommendations(
   signal?: AbortSignal,
 ): Promise<RecommendationResponse> {
   validateRequest(body)
-  const result = parseSearchResponse(
-    await request('/v1/recommendations', body, signal),
-    'recommendations',
-    body.locale ?? 'kk',
+  return validateSearchResponse(
+    await request('/v1/recommendations', body, signal, true),
+    (value) =>
+      parseSearchResponse(value, 'recommendations', body.locale ?? 'kk'),
+    body.request_id,
   )
-  if (body.request_id && result.request_id !== body.request_id)
-    throw new ApiError('invalid_response')
-  return result
 }
 
 export async function searchEvents(
@@ -443,12 +472,9 @@ export async function searchEvents(
   signal?: AbortSignal,
 ): Promise<EventSearchResponse> {
   validateRequest(body)
-  const result = parseSearchResponse(
-    await request('/v1/events/search', body, signal),
-    'events',
-    body.locale ?? 'kk',
+  return validateSearchResponse(
+    await request('/v1/events/search', body, signal, true),
+    (value) => parseSearchResponse(value, 'events', body.locale ?? 'kk'),
+    body.request_id,
   )
-  if (body.request_id && result.request_id !== body.request_id)
-    throw new ApiError('invalid_response')
-  return result
 }

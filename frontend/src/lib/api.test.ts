@@ -9,7 +9,7 @@ import {
   searchEvents,
   searchRecommendations,
 } from './api'
-import type { SearchRequest } from './types'
+import type { Locale, SearchRequest } from './types'
 
 const body: SearchRequest = {
   request_id: recommendation.request_id,
@@ -28,6 +28,27 @@ function json(value: unknown, status = 200): Response {
     status,
     headers: { 'content-type': 'application/json' },
   })
+}
+
+function unavailableResponse(locale: Locale) {
+  const messages = {
+    kk: 'Қызмет уақытша қолжетімсіз.',
+    ru: 'Сервис временно недоступен.',
+    en: 'The service is temporarily unavailable.',
+  }
+  return {
+    status: 'unavailable',
+    items: [],
+    warnings: [
+      {
+        code: 'provider_unavailable',
+        message: messages[locale],
+        fields: [],
+      },
+    ],
+    sources: [],
+    request_id: recommendation.request_id,
+  }
 }
 
 describe('same-origin API transport', () => {
@@ -147,7 +168,6 @@ describe('same-origin API transport', () => {
     [404, 'not_ready'],
     [422, 'invalid_request'],
     [500, 'server_error'],
-    [503, 'server_error'],
   ])('sanitizes HTTP %i without reading error bodies', async (status, code) => {
     const response = json(
       { detail: 'Private provider payload and raw input' },
@@ -158,6 +178,193 @@ describe('same-origin API transport', () => {
     const result = searchRecommendations(body)
     await expect(result).rejects.toMatchObject({ code, status })
     await expect(result).rejects.not.toHaveProperty('detail')
+    expect(readBody).not.toHaveBeenCalled()
+  })
+
+  describe.each([
+    {
+      name: 'recommendations',
+      search: searchRecommendations,
+      cards: recommendation,
+    },
+    { name: 'events', search: searchEvents, cards: events },
+  ])('HTTP 503 $name boundary', ({ search, cards }) => {
+    it.each<Locale>(['kk', 'ru', 'en'])(
+      'returns a validated unavailable envelope for the requested %s locale',
+      async (locale) => {
+        const envelope = unavailableResponse(locale)
+        const fetch = vi.fn().mockResolvedValue(json(envelope, 503))
+        vi.stubGlobal('fetch', fetch)
+
+        const result = await search({ ...body, locale })
+
+        expect(result).toEqual(envelope)
+        expect(result.items).toEqual([])
+        expect(result.sources).toEqual([])
+        expect(result.warnings).toEqual(envelope.warnings)
+        expect(JSON.parse(fetch.mock.calls[0][1].body).locale).toBe(locale)
+        // Empty unavailable envelopes have no generated_locale. This checks
+        // preservation of warning text, not automatic prose-language detection.
+      },
+    )
+
+    it.each([
+      {
+        name: 'HTML',
+        response: () =>
+          new Response('<html>Private upstream response</html>', {
+            status: 503,
+            headers: { 'content-type': 'text/html' },
+          }),
+      },
+      {
+        name: 'malformed JSON',
+        response: () =>
+          new Response('{private:broken', {
+            status: 503,
+            headers: { 'content-type': 'application/json' },
+          }),
+      },
+      {
+        name: 'incomplete envelope',
+        response: () => json({ status: 'unavailable' }, 503),
+      },
+      {
+        name: 'provider error body',
+        response: () => json({ detail: 'Private upstream error' }, 503),
+      },
+      {
+        name: 'no_match domain status',
+        response: () =>
+          json({ ...unavailableResponse('en'), status: 'no_match' }, 503),
+      },
+      {
+        name: 'unknown domain status',
+        response: () =>
+          json({ ...unavailableResponse('en'), status: 'unknown' }, 503),
+      },
+      {
+        name: 'unexpected top-level locale',
+        response: () =>
+          json({ ...unavailableResponse('en'), locale: 'en' }, 503),
+      },
+    ])('rejects $name with a safe error', async ({ response }) => {
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue(response()))
+
+      const pending = search(body)
+
+      await expect(pending).rejects.toMatchObject({
+        code: 'invalid_response',
+        message: 'invalid_response',
+        status: 503,
+      })
+      await expect(pending).rejects.not.toHaveProperty('detail')
+    })
+
+    it('still enforces response request correlation', async () => {
+      vi.stubGlobal(
+        'fetch',
+        vi.fn().mockResolvedValue(
+          json(
+            {
+              ...unavailableResponse('en'),
+              request_id: '00000000-0000-4000-8000-000000000009',
+            },
+            503,
+          ),
+        ),
+      )
+
+      await expect(search(body)).rejects.toMatchObject({
+        code: 'invalid_response',
+        status: 503,
+      })
+    })
+
+    it('still validates generated card language before returning a 503 payload', async () => {
+      const invalid = structuredClone(cards)
+      invalid.status = 'unavailable'
+      invalid.items[0].generated_locale = 'ru'
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue(json(invalid, 503)))
+
+      await expect(search(body)).rejects.toMatchObject({
+        code: 'locale_mismatch',
+      })
+    })
+
+    it('preserves cancellation while reading a 503 body', async () => {
+      let markBodyStarted: () => void = () => undefined
+      const bodyStarted = new Promise<void>((resolve) => {
+        markBodyStarted = resolve
+      })
+      vi.stubGlobal(
+        'fetch',
+        vi.fn().mockImplementation((_url, options: RequestInit) => {
+          const response = json(unavailableResponse('en'), 503)
+          vi.spyOn(response, 'json').mockImplementation(
+            () =>
+              new Promise((_resolve, reject) => {
+                options.signal!.addEventListener('abort', () =>
+                  reject(new DOMException('Aborted', 'AbortError')),
+                )
+                markBodyStarted()
+              }),
+          )
+          return Promise.resolve(response)
+        }),
+      )
+      const controller = new AbortController()
+      const pending = search(body, controller.signal)
+      const rejected = expect(pending).rejects.toMatchObject({
+        code: 'aborted',
+      })
+      await bodyStarted
+      controller.abort()
+      await rejected
+    })
+
+    it('preserves timeout and timer cleanup while reading a 503 body', async () => {
+      vi.useFakeTimers()
+      let markBodyStarted: () => void = () => undefined
+      const bodyStarted = new Promise<void>((resolve) => {
+        markBodyStarted = resolve
+      })
+      vi.stubGlobal(
+        'fetch',
+        vi.fn().mockImplementation((_url, options: RequestInit) => {
+          const response = json(unavailableResponse('en'), 503)
+          vi.spyOn(response, 'json').mockImplementation(
+            () =>
+              new Promise((_resolve, reject) => {
+                options.signal!.addEventListener('abort', () =>
+                  reject(new DOMException('Aborted', 'AbortError')),
+                )
+                markBodyStarted()
+              }),
+          )
+          return Promise.resolve(response)
+        }),
+      )
+      const pending = search(body)
+      const rejected = expect(pending).rejects.toMatchObject({
+        code: 'timeout',
+      })
+      await bodyStarted
+      await vi.advanceTimersByTimeAsync(20_000)
+      await rejected
+      expect(vi.getTimerCount()).toBe(0)
+    })
+  })
+
+  it('keeps HTTP 503 health failures as server errors', async () => {
+    const response = json(unavailableResponse('en'), 503)
+    const readBody = vi.spyOn(response, 'json')
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(response))
+
+    await expect(checkHealth()).rejects.toMatchObject({
+      code: 'server_error',
+      status: 503,
+    })
     expect(readBody).not.toHaveBeenCalled()
   })
 
