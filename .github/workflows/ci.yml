@@ -70,7 +70,12 @@ jobs:
           docker build -t qadam-s01 .
           docker run -d --name qadam-smoke -e PORT=8123 -p 8123:8123 qadam-s01
           trap 'docker rm -f qadam-smoke' EXIT
-          curl --fail --retry 20 --retry-delay 1 --retry-connrefused http://localhost:8123/api/health
+          if ! curl --fail --retry 20 --retry-delay 1 --retry-all-errors \
+            --connect-timeout 2 --max-time 5 --retry-max-time 60 \
+            http://localhost:8123/api/health; then
+            docker logs qadam-smoke
+            exit 1
+          fi
           for method in GET POST; do
             test "$(curl -s -X "$method" -o /tmp/missing.json -w '%{http_code}' http://localhost:8123/api/not-real)" = 404
             python -c "import json; assert json.load(open('/tmp/missing.json'))['error']['code']=='not_found'"
