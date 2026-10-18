@@ -1,0 +1,20 @@
+{
+  "checked_at": "2026-10-18T22:55:38.395742+00:00",
+  "checks": {
+    "db": {
+      "status": "not_run",
+      "reason": "DATABASE_URL is empty; no connection attempted",
+      "details": null
+    },
+    "responses": {
+      "status": "not_run",
+      "reason": "OPENAI_API_KEY is empty; no API request attempted",
+      "details": null
+    },
+    "embedding": {
+      "status": "not_run",
+      "reason": "OPENAI_API_KEY is empty; no API request attempted",
+      "details": null
+    }
+  }
+}
