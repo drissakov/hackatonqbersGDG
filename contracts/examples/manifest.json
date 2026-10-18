@@ -1,0 +1,58 @@
+[
+  {
+    "file": "poi.test.json",
+    "schema": "poi.schema.json"
+  },
+  {
+    "file": "recommendation-request-en.test.json",
+    "schema": "recommendation-request.schema.json"
+  },
+  {
+    "file": "recommendation-request-kk.test.json",
+    "schema": "recommendation-request.schema.json"
+  },
+  {
+    "file": "recommendation-request-ru.test.json",
+    "schema": "recommendation-request.schema.json"
+  },
+  {
+    "file": "recommendation-partial.test.json",
+    "schema": "recommendation-response.schema.json"
+  },
+  {
+    "file": "recommendation-unknown.test.json",
+    "schema": "recommendation-response.schema.json"
+  },
+  {
+    "file": "recommendation-unavailable.test.json",
+    "schema": "recommendation-response.schema.json"
+  },
+  {
+    "file": "recommendation-no_match.test.json",
+    "schema": "recommendation-response.schema.json"
+  },
+  {
+    "file": "recommendation-ok.test.json",
+    "schema": "recommendation-response.schema.json"
+  },
+  {
+    "file": "event.test.json",
+    "schema": "event.schema.json"
+  },
+  {
+    "file": "event-session.test.json",
+    "schema": "event-session.schema.json"
+  },
+  {
+    "file": "event-search-request.test.json",
+    "schema": "event-search-request.schema.json"
+  },
+  {
+    "file": "event-search-response.test.json",
+    "schema": "event-search-response.schema.json"
+  },
+  {
+    "file": "upsert-result.test.json",
+    "schema": "upsert-result.schema.json"
+  }
+]

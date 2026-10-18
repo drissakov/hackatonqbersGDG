@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "RejectedPOI": {
+      "additionalProperties": false,
+      "properties": {
+        "index": {
+          "minimum": 0,
+          "title": "Index",
+          "type": "integer"
+        },
+        "code": {
+          "enum": [
+            "invalid_record",
+            "duplicate_in_batch",
+            "storage_not_permitted",
+            "stale_record"
+          ],
+          "title": "Code",
+          "type": "string"
+        }
+      },
+      "required": [
+        "index",
+        "code"
+      ],
+      "title": "RejectedPOI",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "inserted": {
+      "minimum": 0,
+      "title": "Inserted",
+      "type": "integer"
+    },
+    "updated": {
+      "minimum": 0,
+      "title": "Updated",
+      "type": "integer"
+    },
+    "rejected": {
+      "minimum": 0,
+      "title": "Rejected",
+      "type": "integer"
+    },
+    "rejections": {
+      "items": {
+        "$ref": "#/$defs/RejectedPOI"
+      },
+      "title": "Rejections",
+      "type": "array"
+    }
+  },
+  "required": [
+    "inserted",
+    "updated",
+    "rejected",
+    "rejections"
+  ],
+  "title": "UpsertResult",
+  "type": "object"
+}

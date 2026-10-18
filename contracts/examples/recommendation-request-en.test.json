@@ -1,0 +1,22 @@
+{
+  "request_id": "00000000-0000-4000-8000-000000000001",
+  "query": "SYNTHETIC TEST ONLY: an indoor museum for one hour",
+  "locale": "en",
+  "origin": {
+    "latitude": 51.13,
+    "longitude": 71.42
+  },
+  "available_minutes": 60,
+  "return_to_start": false,
+  "budget_kzt_per_person": 5000,
+  "indoor_only": true,
+  "date_time": "2030-01-15T12:00:00+05:00",
+  "explicit_fields": [
+    "origin",
+    "available_minutes",
+    "return_to_start",
+    "budget_kzt_per_person",
+    "indoor_only",
+    "date_time"
+  ]
+}

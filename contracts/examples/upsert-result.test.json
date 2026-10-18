@@ -1,0 +1,11 @@
+{
+  "inserted": 1,
+  "updated": 1,
+  "rejected": 1,
+  "rejections": [
+    {
+      "index": 2,
+      "code": "invalid_record"
+    }
+  ]
+}

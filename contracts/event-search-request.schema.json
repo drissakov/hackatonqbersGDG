@@ -1,0 +1,138 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "Coordinates": {
+      "additionalProperties": false,
+      "properties": {
+        "latitude": {
+          "maximum": 90,
+          "minimum": -90,
+          "title": "Latitude",
+          "type": "number"
+        },
+        "longitude": {
+          "maximum": 180,
+          "minimum": -180,
+          "title": "Longitude",
+          "type": "number"
+        }
+      },
+      "required": [
+        "latitude",
+        "longitude"
+      ],
+      "title": "Coordinates",
+      "type": "object"
+    },
+    "ExplicitField": {
+      "enum": [
+        "origin",
+        "available_minutes",
+        "return_to_start",
+        "budget_kzt_per_person",
+        "indoor_only",
+        "date_time"
+      ],
+      "title": "ExplicitField",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Same constraints; date_time is the earliest session start when supplied.",
+  "properties": {
+    "request_id": {
+      "format": "uuid",
+      "title": "Request Id",
+      "type": "string"
+    },
+    "query": {
+      "maxLength": 2000,
+      "minLength": 1,
+      "title": "Query",
+      "type": "string"
+    },
+    "locale": {
+      "default": "kk",
+      "enum": [
+        "kk",
+        "ru",
+        "en"
+      ],
+      "title": "Locale",
+      "type": "string"
+    },
+    "origin": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Coordinates"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "available_minutes": {
+      "anyOf": [
+        {
+          "exclusiveMinimum": 0,
+          "maximum": 1440,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Available Minutes"
+    },
+    "return_to_start": {
+      "default": false,
+      "title": "Return To Start",
+      "type": "boolean"
+    },
+    "budget_kzt_per_person": {
+      "anyOf": [
+        {
+          "minimum": 0,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Budget Kzt Per Person"
+    },
+    "indoor_only": {
+      "default": false,
+      "title": "Indoor Only",
+      "type": "boolean"
+    },
+    "date_time": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Date Time"
+    },
+    "explicit_fields": {
+      "items": {
+        "$ref": "#/$defs/ExplicitField"
+      },
+      "title": "Explicit Fields",
+      "type": "array"
+    }
+  },
+  "required": [
+    "query"
+  ],
+  "title": "EventSearchRequest",
+  "type": "object"
+}

@@ -1,0 +1,147 @@
+{
+  "status": "partial",
+  "items": [
+    {
+      "provenance": [
+        {
+          "source_id": "test-source-001",
+          "external_id": "event-001",
+          "fields": [
+            "title",
+            "activity_code"
+          ],
+          "observed_at": "2030-01-15T10:00:00+05:00"
+        },
+        {
+          "source_id": "test-source-001",
+          "external_id": "session-001",
+          "fields": [
+            "starts_at",
+            "status"
+          ],
+          "observed_at": "2030-01-15T10:00:00+05:00"
+        }
+      ],
+      "reason_codes": [
+        "query_match",
+        "schedule_unknown",
+        "budget_unknown"
+      ],
+      "activity_code": "culture",
+      "visit_minutes_estimate": null,
+      "route_status": "estimated",
+      "travel_minutes_estimate": 12,
+      "fit_status": "unknown",
+      "missing_fields": [
+        "price_kzt_per_person",
+        "session_time",
+        "visit_minutes_estimate"
+      ],
+      "explanation": "Synthetic event session: start is known, end and price are unknown. No confirmed time or budget fit.",
+      "generated_locale": "en",
+      "action": {
+        "code": "open_source",
+        "url": "https://example.invalid/test-only/poi-001"
+      },
+      "event": {
+        "id": "test:event-001",
+        "title": "SYNTHETIC TEST ONLY - Fictional exhibition",
+        "description": null,
+        "activity_code": "culture",
+        "sources": [
+          {
+            "source_id": "test-source-001",
+            "provider": "test_fixture",
+            "url": "https://example.invalid/test-only/poi-001",
+            "retrieved_at": "2030-01-15T10:00:00+05:00",
+            "license": "Synthetic test fixture only; no real-world facts",
+            "rights_basis_url": "https://example.invalid/test-only/rights",
+            "storage_allowed": true,
+            "indexing_allowed": true,
+            "is_test": true
+          }
+        ],
+        "provenance": [
+          {
+            "source_id": "test-source-001",
+            "external_id": "event-001",
+            "fields": [
+              "title",
+              "activity_code"
+            ],
+            "observed_at": "2030-01-15T10:00:00+05:00"
+          }
+        ],
+        "is_test": true
+      },
+      "session": {
+        "id": "test:session-001",
+        "event_id": "test:event-001",
+        "poi_id": "test:poi-001",
+        "location": {
+          "latitude": 51.128,
+          "longitude": 71.43
+        },
+        "starts_at": "2030-01-15T13:00:00+05:00",
+        "ends_at": null,
+        "price_kzt_per_person": null,
+        "status": "scheduled",
+        "booking_url": null,
+        "sources": [
+          {
+            "source_id": "test-source-001",
+            "provider": "test_fixture",
+            "url": "https://example.invalid/test-only/poi-001",
+            "retrieved_at": "2030-01-15T10:00:00+05:00",
+            "license": "Synthetic test fixture only; no real-world facts",
+            "rights_basis_url": "https://example.invalid/test-only/rights",
+            "storage_allowed": true,
+            "indexing_allowed": true,
+            "is_test": true
+          }
+        ],
+        "provenance": [
+          {
+            "source_id": "test-source-001",
+            "external_id": "session-001",
+            "fields": [
+              "starts_at",
+              "status"
+            ],
+            "observed_at": "2030-01-15T10:00:00+05:00"
+          }
+        ],
+        "is_test": true
+      }
+    }
+  ],
+  "warnings": [
+    {
+      "code": "test_data",
+      "message": "SYNTHETIC TEST ONLY; never show as real city data.",
+      "fields": []
+    },
+    {
+      "code": "data_unknown",
+      "message": "Session end and admission price are unknown.",
+      "fields": [
+        "session_time",
+        "price_kzt_per_person"
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "source_id": "test-source-001",
+      "provider": "test_fixture",
+      "url": "https://example.invalid/test-only/poi-001",
+      "retrieved_at": "2030-01-15T10:00:00+05:00",
+      "license": "Synthetic test fixture only; no real-world facts",
+      "rights_basis_url": "https://example.invalid/test-only/rights",
+      "storage_allowed": true,
+      "indexing_allowed": true,
+      "is_test": true
+    }
+  ],
+  "request_id": "00000000-0000-4000-8000-000000000001"
+}

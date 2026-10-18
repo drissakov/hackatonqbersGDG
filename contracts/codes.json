@@ -1,0 +1,104 @@
+{
+  "contract_version": "1.0.0",
+  "locale": [
+    "kk",
+    "ru",
+    "en"
+  ],
+  "response_status": [
+    "ok",
+    "partial",
+    "unknown",
+    "unavailable",
+    "no_match"
+  ],
+  "route_status": [
+    "known",
+    "estimated",
+    "unknown",
+    "unavailable",
+    "not_requested"
+  ],
+  "fit_status": [
+    "fits",
+    "does_not_fit",
+    "unknown"
+  ],
+  "activity_code": [
+    "walk",
+    "museum",
+    "food",
+    "culture",
+    "sport",
+    "shopping",
+    "entertainment",
+    "other"
+  ],
+  "reason_codes": [
+    "query_match",
+    "nearby",
+    "within_time",
+    "within_budget",
+    "indoor_match",
+    "time_unknown",
+    "budget_unknown",
+    "hours_unknown",
+    "route_unknown",
+    "visit_duration_estimate",
+    "weather_unknown",
+    "schedule_unknown"
+  ],
+  "warning_codes": [
+    "missing_input",
+    "data_unknown",
+    "provider_unavailable",
+    "route_unavailable",
+    "weather_unavailable",
+    "source_stale",
+    "test_data"
+  ],
+  "explicit_fields": [
+    "origin",
+    "available_minutes",
+    "return_to_start",
+    "budget_kzt_per_person",
+    "indoor_only",
+    "date_time"
+  ],
+  "missing_fields": [
+    "origin",
+    "available_minutes",
+    "date_time",
+    "location",
+    "price_kzt_per_person",
+    "indoor",
+    "opening_hours",
+    "visit_minutes_estimate",
+    "travel_minutes_estimate",
+    "weather",
+    "session_time"
+  ],
+  "source_provider": [
+    "osm",
+    "municipal",
+    "organizer",
+    "twogis",
+    "test_fixture",
+    "other"
+  ],
+  "action_code": [
+    "open_source",
+    "open_map"
+  ],
+  "session_status": [
+    "scheduled",
+    "cancelled",
+    "unknown"
+  ],
+  "rejection_code": [
+    "invalid_record",
+    "duplicate_in_batch",
+    "storage_not_permitted",
+    "stale_record"
+  ]
+}

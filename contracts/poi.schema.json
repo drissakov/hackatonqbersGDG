@@ -1,0 +1,333 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "ActivityCode": {
+      "enum": [
+        "walk",
+        "museum",
+        "food",
+        "culture",
+        "sport",
+        "shopping",
+        "entertainment",
+        "other"
+      ],
+      "title": "ActivityCode",
+      "type": "string"
+    },
+    "Coordinates": {
+      "additionalProperties": false,
+      "properties": {
+        "latitude": {
+          "maximum": 90,
+          "minimum": -90,
+          "title": "Latitude",
+          "type": "number"
+        },
+        "longitude": {
+          "maximum": 180,
+          "minimum": -180,
+          "title": "Longitude",
+          "type": "number"
+        }
+      },
+      "required": [
+        "latitude",
+        "longitude"
+      ],
+      "title": "Coordinates",
+      "type": "object"
+    },
+    "Provenance": {
+      "additionalProperties": false,
+      "properties": {
+        "source_id": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Source Id",
+          "type": "string"
+        },
+        "external_id": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "External Id",
+          "type": "string"
+        },
+        "fields": {
+          "items": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Fields",
+          "type": "array"
+        },
+        "observed_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Observed At"
+        }
+      },
+      "required": [
+        "source_id",
+        "external_id",
+        "fields"
+      ],
+      "title": "Provenance",
+      "type": "object"
+    },
+    "Source": {
+      "additionalProperties": false,
+      "properties": {
+        "source_id": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Source Id",
+          "type": "string"
+        },
+        "provider": {
+          "$ref": "#/$defs/SourceProvider"
+        },
+        "url": {
+          "format": "uri",
+          "maxLength": 2083,
+          "minLength": 1,
+          "title": "Url",
+          "type": "string"
+        },
+        "retrieved_at": {
+          "format": "date-time",
+          "title": "Retrieved At",
+          "type": "string"
+        },
+        "license": {
+          "anyOf": [
+            {
+              "maxLength": 4000,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "License"
+        },
+        "rights_basis_url": {
+          "anyOf": [
+            {
+              "format": "uri",
+              "maxLength": 2083,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Rights Basis Url"
+        },
+        "storage_allowed": {
+          "default": false,
+          "title": "Storage Allowed",
+          "type": "boolean"
+        },
+        "indexing_allowed": {
+          "default": false,
+          "title": "Indexing Allowed",
+          "type": "boolean"
+        },
+        "is_test": {
+          "default": false,
+          "title": "Is Test",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "source_id",
+        "provider",
+        "url",
+        "retrieved_at"
+      ],
+      "title": "Source",
+      "type": "object"
+    },
+    "SourceProvider": {
+      "enum": [
+        "osm",
+        "municipal",
+        "organizer",
+        "twogis",
+        "test_fixture",
+        "other"
+      ],
+      "title": "SourceProvider",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "sources": {
+      "items": {
+        "$ref": "#/$defs/Source"
+      },
+      "minItems": 1,
+      "title": "Sources",
+      "type": "array"
+    },
+    "provenance": {
+      "items": {
+        "$ref": "#/$defs/Provenance"
+      },
+      "minItems": 1,
+      "title": "Provenance",
+      "type": "array"
+    },
+    "is_test": {
+      "default": false,
+      "title": "Is Test",
+      "type": "boolean"
+    },
+    "id": {
+      "maxLength": 200,
+      "minLength": 1,
+      "title": "Id",
+      "type": "string"
+    },
+    "primary_source_id": {
+      "maxLength": 200,
+      "minLength": 1,
+      "title": "Primary Source Id",
+      "type": "string"
+    },
+    "external_id": {
+      "maxLength": 200,
+      "minLength": 1,
+      "title": "External Id",
+      "type": "string"
+    },
+    "name": {
+      "maxLength": 4000,
+      "minLength": 1,
+      "title": "Name",
+      "type": "string"
+    },
+    "description": {
+      "anyOf": [
+        {
+          "maxLength": 4000,
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Description"
+    },
+    "location": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Coordinates"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "address": {
+      "anyOf": [
+        {
+          "maxLength": 4000,
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Address"
+    },
+    "activity_code": {
+      "$ref": "#/$defs/ActivityCode"
+    },
+    "indoor": {
+      "anyOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Indoor"
+    },
+    "price_kzt_per_person": {
+      "anyOf": [
+        {
+          "minimum": 0,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Price Kzt Per Person"
+    },
+    "visit_minutes_estimate": {
+      "anyOf": [
+        {
+          "exclusiveMinimum": 0,
+          "maximum": 10080,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Visit Minutes Estimate"
+    },
+    "opening_hours_text": {
+      "anyOf": [
+        {
+          "maxLength": 4000,
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Opening Hours Text"
+    }
+  },
+  "required": [
+    "sources",
+    "provenance",
+    "id",
+    "primary_source_id",
+    "external_id",
+    "name",
+    "activity_code"
+  ],
+  "title": "POIRecord",
+  "type": "object"
+}

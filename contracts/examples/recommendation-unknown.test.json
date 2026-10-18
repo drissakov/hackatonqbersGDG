@@ -1,0 +1,20 @@
+{
+  "status": "unknown",
+  "items": [],
+  "warnings": [
+    {
+      "code": "test_data",
+      "message": "SYNTHETIC TEST ONLY; never show as real city data.",
+      "fields": []
+    },
+    {
+      "code": "missing_input",
+      "message": "Synthetic test: origin or time constraint is missing.",
+      "fields": [
+        "origin"
+      ]
+    }
+  ],
+  "sources": [],
+  "request_id": "00000000-0000-4000-8000-000000000001"
+}

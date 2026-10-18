@@ -1,0 +1,218 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "ActivityCode": {
+      "enum": [
+        "walk",
+        "museum",
+        "food",
+        "culture",
+        "sport",
+        "shopping",
+        "entertainment",
+        "other"
+      ],
+      "title": "ActivityCode",
+      "type": "string"
+    },
+    "Provenance": {
+      "additionalProperties": false,
+      "properties": {
+        "source_id": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Source Id",
+          "type": "string"
+        },
+        "external_id": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "External Id",
+          "type": "string"
+        },
+        "fields": {
+          "items": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Fields",
+          "type": "array"
+        },
+        "observed_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Observed At"
+        }
+      },
+      "required": [
+        "source_id",
+        "external_id",
+        "fields"
+      ],
+      "title": "Provenance",
+      "type": "object"
+    },
+    "Source": {
+      "additionalProperties": false,
+      "properties": {
+        "source_id": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Source Id",
+          "type": "string"
+        },
+        "provider": {
+          "$ref": "#/$defs/SourceProvider"
+        },
+        "url": {
+          "format": "uri",
+          "maxLength": 2083,
+          "minLength": 1,
+          "title": "Url",
+          "type": "string"
+        },
+        "retrieved_at": {
+          "format": "date-time",
+          "title": "Retrieved At",
+          "type": "string"
+        },
+        "license": {
+          "anyOf": [
+            {
+              "maxLength": 4000,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "License"
+        },
+        "rights_basis_url": {
+          "anyOf": [
+            {
+              "format": "uri",
+              "maxLength": 2083,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Rights Basis Url"
+        },
+        "storage_allowed": {
+          "default": false,
+          "title": "Storage Allowed",
+          "type": "boolean"
+        },
+        "indexing_allowed": {
+          "default": false,
+          "title": "Indexing Allowed",
+          "type": "boolean"
+        },
+        "is_test": {
+          "default": false,
+          "title": "Is Test",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "source_id",
+        "provider",
+        "url",
+        "retrieved_at"
+      ],
+      "title": "Source",
+      "type": "object"
+    },
+    "SourceProvider": {
+      "enum": [
+        "osm",
+        "municipal",
+        "organizer",
+        "twogis",
+        "test_fixture",
+        "other"
+      ],
+      "title": "SourceProvider",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "sources": {
+      "items": {
+        "$ref": "#/$defs/Source"
+      },
+      "minItems": 1,
+      "title": "Sources",
+      "type": "array"
+    },
+    "provenance": {
+      "items": {
+        "$ref": "#/$defs/Provenance"
+      },
+      "minItems": 1,
+      "title": "Provenance",
+      "type": "array"
+    },
+    "is_test": {
+      "default": false,
+      "title": "Is Test",
+      "type": "boolean"
+    },
+    "id": {
+      "maxLength": 200,
+      "minLength": 1,
+      "title": "Id",
+      "type": "string"
+    },
+    "title": {
+      "maxLength": 4000,
+      "minLength": 1,
+      "title": "Title",
+      "type": "string"
+    },
+    "description": {
+      "anyOf": [
+        {
+          "maxLength": 4000,
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Description"
+    },
+    "activity_code": {
+      "$ref": "#/$defs/ActivityCode"
+    }
+  },
+  "required": [
+    "sources",
+    "provenance",
+    "id",
+    "title",
+    "activity_code"
+  ],
+  "title": "EventRecord",
+  "type": "object"
+}

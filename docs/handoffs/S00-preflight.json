@@ -1,0 +1,25 @@
+{
+  "checked_at": "2026-10-18T22:42:30.129161+00:00",
+  "checks": {
+    "db": {
+      "status": "failed",
+      "reason": "database_connection_failed; inspect locally without secrets",
+      "details": null
+    },
+    "responses": {
+      "status": "passed",
+      "reason": "project_model_access_and_responses",
+      "details": {
+        "model": "gpt-6-luna"
+      }
+    },
+    "embedding": {
+      "status": "passed",
+      "reason": "project_model_access_and_embedding",
+      "details": {
+        "model": "text-embedding-3-large",
+        "dimensions": 1536
+      }
+    }
+  }
+}

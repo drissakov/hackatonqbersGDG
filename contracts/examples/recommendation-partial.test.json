@@ -1,0 +1,114 @@
+{
+  "status": "partial",
+  "items": [
+    {
+      "poi": {
+        "id": "test:poi-001",
+        "primary_source_id": "test-source-001",
+        "external_id": "poi-001",
+        "name": "SYNTHETIC TEST ONLY - Fictional Astana Museum",
+        "description": "Fixture for contract validation; this is not a real venue.",
+        "location": {
+          "latitude": 51.128,
+          "longitude": 71.43
+        },
+        "address": null,
+        "activity_code": "museum",
+        "indoor": true,
+        "price_kzt_per_person": null,
+        "visit_minutes_estimate": 45,
+        "opening_hours_text": null,
+        "sources": [
+          {
+            "source_id": "test-source-001",
+            "provider": "test_fixture",
+            "url": "https://example.invalid/test-only/poi-001",
+            "retrieved_at": "2030-01-15T10:00:00+05:00",
+            "license": "Synthetic test fixture only; no real-world facts",
+            "rights_basis_url": "https://example.invalid/test-only/rights",
+            "storage_allowed": true,
+            "indexing_allowed": true,
+            "is_test": true
+          }
+        ],
+        "provenance": [
+          {
+            "source_id": "test-source-001",
+            "external_id": "poi-001",
+            "fields": [
+              "name",
+              "location",
+              "indoor",
+              "visit_minutes_estimate"
+            ],
+            "observed_at": "2030-01-15T10:00:00+05:00"
+          }
+        ],
+        "is_test": true
+      },
+      "provenance": [
+        {
+          "source_id": "test-source-001",
+          "external_id": "poi-001",
+          "fields": [
+            "name",
+            "location",
+            "indoor",
+            "visit_minutes_estimate"
+          ],
+          "observed_at": "2030-01-15T10:00:00+05:00"
+        }
+      ],
+      "reason_codes": [
+        "query_match",
+        "budget_unknown",
+        "hours_unknown",
+        "visit_duration_estimate"
+      ],
+      "activity_code": "museum",
+      "visit_minutes_estimate": 45,
+      "route_status": "estimated",
+      "travel_minutes_estimate": 12,
+      "fit_status": "unknown",
+      "missing_fields": [
+        "price_kzt_per_person",
+        "opening_hours"
+      ],
+      "explanation": "Synthetic example: price and opening hours are unknown, so budget and admission cannot be confirmed. The visit and travel durations are estimates.",
+      "generated_locale": "en",
+      "action": {
+        "code": "open_source",
+        "url": "https://example.invalid/test-only/poi-001"
+      }
+    }
+  ],
+  "warnings": [
+    {
+      "code": "test_data",
+      "message": "SYNTHETIC TEST ONLY; never show as real city data.",
+      "fields": []
+    },
+    {
+      "code": "data_unknown",
+      "message": "Price and opening hours are unknown.",
+      "fields": [
+        "price_kzt_per_person",
+        "opening_hours"
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "source_id": "test-source-001",
+      "provider": "test_fixture",
+      "url": "https://example.invalid/test-only/poi-001",
+      "retrieved_at": "2030-01-15T10:00:00+05:00",
+      "license": "Synthetic test fixture only; no real-world facts",
+      "rights_basis_url": "https://example.invalid/test-only/rights",
+      "storage_allowed": true,
+      "indexing_allowed": true,
+      "is_test": true
+    }
+  ],
+  "request_id": "00000000-0000-4000-8000-000000000001"
+}

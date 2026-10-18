@@ -1,0 +1,18 @@
+{
+  "status": "unavailable",
+  "items": [],
+  "warnings": [
+    {
+      "code": "test_data",
+      "message": "SYNTHETIC TEST ONLY; never show as real city data.",
+      "fields": []
+    },
+    {
+      "code": "provider_unavailable",
+      "message": "Synthetic test: required corpus is unavailable.",
+      "fields": []
+    }
+  ],
+  "sources": [],
+  "request_id": "00000000-0000-4000-8000-000000000001"
+}

@@ -1,0 +1,31 @@
+{
+  "id": "test:event-001",
+  "title": "SYNTHETIC TEST ONLY - Fictional exhibition",
+  "description": null,
+  "activity_code": "culture",
+  "sources": [
+    {
+      "source_id": "test-source-001",
+      "provider": "test_fixture",
+      "url": "https://example.invalid/test-only/poi-001",
+      "retrieved_at": "2030-01-15T10:00:00+05:00",
+      "license": "Synthetic test fixture only; no real-world facts",
+      "rights_basis_url": "https://example.invalid/test-only/rights",
+      "storage_allowed": true,
+      "indexing_allowed": true,
+      "is_test": true
+    }
+  ],
+  "provenance": [
+    {
+      "source_id": "test-source-001",
+      "external_id": "event-001",
+      "fields": [
+        "title",
+        "activity_code"
+      ],
+      "observed_at": "2030-01-15T10:00:00+05:00"
+    }
+  ],
+  "is_test": true
+}

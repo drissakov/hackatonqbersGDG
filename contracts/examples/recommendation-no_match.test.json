@@ -1,0 +1,13 @@
+{
+  "status": "no_match",
+  "items": [],
+  "warnings": [
+    {
+      "code": "test_data",
+      "message": "SYNTHETIC TEST ONLY; never show as real city data.",
+      "fields": []
+    }
+  ],
+  "sources": [],
+  "request_id": "00000000-0000-4000-8000-000000000001"
+}
