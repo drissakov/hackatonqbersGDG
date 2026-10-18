@@ -19,6 +19,9 @@ MODELS = {
     "event-search-request": schemas.EventSearchRequest,
     "event-search-response": schemas.EventSearchResponse,
     "upsert-result": schemas.UpsertResult,
+    "coverage-response": schemas.CoverageResponse,
+    "route-request": schemas.RouteRequest,
+    "route-response": schemas.RouteResponse,
 }
 CODE_ENUMS = {
     "response_status": schemas.ResponseStatus,
@@ -41,7 +44,7 @@ def artifacts() -> dict[str, dict]:
             **model.model_json_schema(),
         }
     result["codes.json"] = {
-        "contract_version": "1.0.0",
+        "contract_version": "1.1.0",
         "locale": ["kk", "ru", "en"],
         **{key: [member.value for member in enum] for key, enum in CODE_ENUMS.items()},
         "action_code": ["open_source", "open_map"],

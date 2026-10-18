@@ -15,6 +15,7 @@ sys.path.insert(0, str(ROOT))
 import psycopg  # noqa: E402
 from pydantic import ValidationError  # noqa: E402
 
+from backend.app.database import DatabaseUnavailable, connection_options  # noqa: E402
 from backend.app.openai_client import OpenAIClient, ProviderError  # noqa: E402
 from backend.app.settings import Settings  # noqa: E402
 
@@ -33,12 +34,13 @@ def check_database(settings: Settings) -> CheckResult:
     if not url:
         return CheckResult("not_run", "DATABASE_URL is empty; no connection attempted")
     try:
-        with psycopg.connect(
-            url,
-            connect_timeout=10,
+        options = connection_options(url)
+        options.pop("row_factory")
+        options.update(
             autocommit=True,
             options="-c default_transaction_read_only=on -c statement_timeout=5000",
-        ) as connection:
+        )
+        with psycopg.connect(**options) as connection:
             with connection.cursor() as cursor:
                 cursor.execute("SELECT 1")
                 if cursor.fetchone() != (1,):
@@ -80,7 +82,7 @@ def check_database(settings: Settings) -> CheckResult:
         ):
             return CheckResult("not_run", "database_network_unavailable_or_timeout")
         return CheckResult("failed", "database_connection_failed; inspect locally without secrets")
-    except (psycopg.Error, ValueError):
+    except (psycopg.Error, ValueError, DatabaseUnavailable):
         return CheckResult("failed", "database_configuration_or_query_error")
 
 

@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: qadam-astana
+    runtime: docker
+    plan: free
+    region: frankfurt
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /api/health
+    autoDeployTrigger: "off"
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: DEV_FIXTURE_MODE
+        value: "false"
+      - key: DATABASE_POOL_SIZE
+        value: "3"
+      - key: DATABASE_URL
+        sync: false
+      - key: APP_TIMEZONE
+        value: Asia/Almaty
+      - key: DEFAULT_LOCALE
+        value: kk
+      - key: TWOGIS_ENABLED
+        value: "false"

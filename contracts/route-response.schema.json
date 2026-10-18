@@ -1,0 +1,94 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "MissingField": {
+      "enum": [
+        "origin",
+        "available_minutes",
+        "date_time",
+        "location",
+        "price_kzt_per_person",
+        "indoor",
+        "opening_hours",
+        "visit_minutes_estimate",
+        "travel_minutes_estimate",
+        "weather",
+        "session_time"
+      ],
+      "title": "MissingField",
+      "type": "string"
+    },
+    "Warning": {
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "$ref": "#/$defs/WarningCode"
+        },
+        "message": {
+          "maxLength": 4000,
+          "minLength": 1,
+          "title": "Message",
+          "type": "string"
+        },
+        "fields": {
+          "items": {
+            "$ref": "#/$defs/MissingField"
+          },
+          "title": "Fields",
+          "type": "array"
+        }
+      },
+      "required": [
+        "code",
+        "message"
+      ],
+      "title": "Warning",
+      "type": "object"
+    },
+    "WarningCode": {
+      "enum": [
+        "missing_input",
+        "data_unknown",
+        "provider_unavailable",
+        "route_unavailable",
+        "weather_unavailable",
+        "source_stale",
+        "test_data"
+      ],
+      "title": "WarningCode",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "request_id": {
+      "format": "uuid",
+      "title": "Request Id",
+      "type": "string"
+    },
+    "status": {
+      "const": "unavailable",
+      "default": "unavailable",
+      "title": "Status",
+      "type": "string"
+    },
+    "travel_minutes_estimate": {
+      "default": null,
+      "title": "Travel Minutes Estimate",
+      "type": "null"
+    },
+    "warnings": {
+      "items": {
+        "$ref": "#/$defs/Warning"
+      },
+      "title": "Warnings",
+      "type": "array"
+    }
+  },
+  "required": [
+    "request_id",
+    "warnings"
+  ],
+  "title": "RouteResponse",
+  "type": "object"
+}

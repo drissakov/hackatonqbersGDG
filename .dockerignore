@@ -1,4 +1,13 @@
 .git
+**/.git
+**/.venv
+**/.codex
+**/.agents
+**/.aws
+**/*.pem
+**/*.key
+**/*.p12
+**/*.pfx
 **/.env
 **/.env.*
 !**/.env.example

@@ -19,6 +19,9 @@ class Settings(BaseSettings):
     )
 
     database_url: SecretStr = SecretStr("")
+    database_pool_size: int = Field(default=3, ge=1, le=5)
+    app_env: Literal["production", "development", "test"] = "production"
+    dev_fixture_mode: bool = False
     openai_api_key: SecretStr = SecretStr("")
     openai_model: str = "gpt-6-luna"
     openai_embedding_model: str = "text-embedding-3-large"
@@ -27,6 +30,10 @@ class Settings(BaseSettings):
     twogis_enabled: bool = False
     app_timezone: str = "Asia/Almaty"
     default_locale: Literal["kk", "ru", "en"] = "kk"
+
+    @property
+    def fixtures_enabled(self) -> bool:
+        return self.app_env in {"development", "test"} and self.dev_fixture_mode
 
     @field_validator("app_timezone")
     @classmethod

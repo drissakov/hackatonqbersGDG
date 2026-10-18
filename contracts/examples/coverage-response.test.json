@@ -1,0 +1,12 @@
+{
+  "status": "ok",
+  "production_pois": 0,
+  "test_pois": 1,
+  "located_pois": 0,
+  "missing_location_pois": 0,
+  "embedded_pois": 0,
+  "by_source": {},
+  "import_runs": {"total": 1, "failed": 0, "rejected_records": 0},
+  "city_coverage": "unknown",
+  "is_production_dataset": false
+}

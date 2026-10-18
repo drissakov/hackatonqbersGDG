@@ -54,5 +54,17 @@
   {
     "file": "upsert-result.test.json",
     "schema": "upsert-result.schema.json"
+  },
+  {
+    "file": "coverage-response.test.json",
+    "schema": "coverage-response.schema.json"
+  },
+  {
+    "file": "route-request.test.json",
+    "schema": "route-request.schema.json"
+  },
+  {
+    "file": "route-response.test.json",
+    "schema": "route-response.schema.json"
   }
 ]

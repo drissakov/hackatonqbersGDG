@@ -1,4 +1,4 @@
-# Qadam Astana API contract v1.0.0
+# Qadam Astana API contract v1.1.0
 
 Owner: Sabyrzhan. Consumers: Damir's frontend, ingestion and event service.
 Python source of truth: `backend/app/schemas.py`; generated JSON Schema and
@@ -9,28 +9,36 @@ response consistency. Contract changes need the owner's review and synchronized
 examples. Codes are stable machine values; UI labels belong to Damir's kk/ru/en
 translations.
 
-## HTTP surface and S00 implementation boundary
+## HTTP surface and S01 implementation boundary
 
-| Method | Path | Request / response | S00 state |
+| Method | Path | Request / response | S01 state |
 | --- | --- | --- | --- |
 | GET | `/api/health` | No body -> `{"status":"ok"}` | Implemented; process health only |
-| POST | `/api/v1/recommendations` | recommendation-request / recommendation-response | Reserved; currently 404 |
-| POST | `/api/v1/events/search` | event-search-request / event-search-response | Reserved; currently 404 |
+| GET | `/api/coverage` | No body / coverage-response | Real DB counters, 200; DB unavailable 503 |
+| POST | `/api/recommendations` | recommendation-request / recommendation-response | Scaffold, 503 unavailable |
+| POST | `/api/events/search` | event-search-request / event-search-response | Scaffold, 503 unavailable |
+| POST | `/api/route` | route-request / route-response | Scaffold, 503 unavailable, null travel time |
+| GET | `/api/dev/pois` | Explicit synthetic POI fixture | Only APP_ENV=development/test AND DEV_FIXTURE_MODE=true; otherwise 404 |
 
 All wire bodies are JSON, snake_case. `/api/health` has no request_id envelope,
-does not read settings, and performs no provider/database calls. Search routes
-are not mounted by S00; frontend development uses explicitly synthetic fixtures.
-`VITE_API_BASE_URL=/api` means the frontend appends `/v1/recommendations` or
-`/v1/events/search`. The Vite dev proxy forwards `/api` to port 8000. Production
-should use the same origin; no permissive CORS is added in S00.
+does not read settings, and performs no provider/database calls. S00's reserved
+`/api/v1/recommendations` and `/api/v1/events/search` remain compatible aliases;
+`/api/v1/route` is also an alias. They have identical bodies and status codes.
+`VITE_API_BASE_URL=/api` means new callers append `/recommendations`,
+`/events/search` or `/route`. Existing D01 `/v1/...` calls still work. The Vite
+dev proxy forwards `/api` to port 8000. Production uses the same origin.
+No permissive CORS is added. Unknown `/api` paths always return JSON 404,
+including when the SPA is present. A wrong HTTP method returns JSON 405.
 
-For later search implementations: valid searches return HTTP 200 even for
-unknown/unavailable/no_match, with the status in the body. Invalid JSON/input
+S01 amends S00's planned HTTP behavior: an unavailable service returns HTTP 503,
+with `status=unavailable` in search/route bodies. Later completed searches use
+HTTP 200 for ok/partial/unknown/no_match. A 503 must never be treated as no_match.
+Invalid JSON/input
 returns 422; unexpected internal failures return a generic 500 without SQL,
 provider bodies, secrets or raw input values. Error responses use
 `{"error":{"code":"invalid_request","fields":["origin"]},"request_id":"<uuid>"}`
-(500 code `internal_error`, empty fields). These error responses are planned,
-not implemented by health. Invalid request_id is replaced by a generated UUID
+(500 code `internal_error`, empty fields). Coverage infrastructure failure uses
+503 code `database_unavailable`. Invalid request_id is replaced by a generated UUID
 for error correlation. Never expose a raw Pydantic/SDK exception in that route.
 
 ## Search request
@@ -166,13 +174,37 @@ class POIRepository(Protocol):
     ) -> UpsertResult: ...
 ```
 
-Damir owns producing records; Sabyrzhan implements persistence in S01. Import
-the interface from `backend.app.repository`. No fake in-memory database or
-working SQL repository is shipped in S00. Do not let ingestion construct its own
-database writes or alter shared models to bypass validation.
+Damir owns producing records. S01 supplies `PostgresPOIRepository` and
+`DatabasePool`; the protocol import remains `backend.app.repository.POIRepository`.
+Do not construct separate ingestion SQL or bypass shared validation. Call this
+Python boundary from a trusted backend/import process, never directly from the
+browser. It is not a public HTTP write endpoint.
+
+```python
+from backend.app.database import DatabasePool
+from backend.app.repository import PostgresPOIRepository
+from backend.app.settings import Settings
+
+settings = Settings()
+pool = DatabasePool(settings.database_url.get_secret_value(), settings.database_pool_size)
+repository = PostgresPOIRepository(pool, allow_test=settings.fixtures_enabled)
+try:
+    result = await repository.upsert_pois(records)
+    coverage = await repository.coverage()
+finally:
+    pool.close()
+```
+
+`await repository.geo_search(Coordinates(...), radius_m=5000, limit=20)` uses
+WGS84 geography and meter distances, excludes unknown coordinates, and returns
+nearest records in a stable order. It does not claim a route or a time/budget
+fit. Storage-only records without indexing permission are excluded. Normal
+reads exclude test rows. Dev fixture mode explicitly allows them.
 
 - Validate each mapping as POIRecord and enforce rights before any write or
-  embedding. Normalization failures reject a record without returning raw input.
+  embedding. PostgreSQL-incompatible NUL and invalid Unicode text are rejected
+  as invalid_record before SQL and before batch identity deduplication.
+  Normalization failures reject a record without returning raw input.
 - Stable upsert identity: `(primary source provider, external_id)`, not name or
   coordinates. primary_source_id references one of sources. id is a stable
   canonical ID supplied by ingestion; updates preserve the existing stored ID
@@ -183,6 +215,10 @@ database writes or alter shared models to bypass validation.
   primary-source observation is stale_record, not an overwrite. S01 must define
   and test the matching primary-source provenance comparison and null handling
   transactionally; never substitute retrieval time as a known observation time.
+  S01 compares only provenance matching both primary_source_id and external_id.
+  It uses the oldest matching observed_at; missing matches or any matching null
+  yield unknown. Known stored time rejects an older or unknown incoming time;
+  equal times update; unknown stored time accepts unknown or known incoming time.
 - Return `{inserted: int, updated: int, rejected: int, rejections: [{index, code}]}`.
   Each input record contributes to exactly one count, so their sum equals batch
   size. `index` is zero-based in the original input. Rejection count equals the
@@ -194,11 +230,32 @@ database writes or alter shared models to bypass validation.
 
 ## Provider configuration and preflight
 
+S01 coverage reports production/test counts separately, located/missing-location
+records, embedded production records, production counts by primary provider and
+import run failure/rejection counts. Empty but available tables return 200 with
+zero counts. Unavailable/unmigrated tables return 503, never zero-count success.
+`city_coverage` remains `unknown`: counters are not a measured city-area ratio.
+`is_production_dataset` indicates the presence of non-test records only, not
+completeness, freshness or a quality guarantee. See coverage-response.schema.json.
+
+RouteRequest has request_id, nullable origin, required destination coordinates,
+return_to_start and locale. The S01 route scaffold returns HTTP 503 with
+`status=unavailable`, `travel_minutes_estimate=null`, localized warnings and the
+same request_id. No provider route call or fallback time estimate is made.
+
+S01 database access uses TLS, Session pooler on Supabase port 5432 and a lazy
+bounded pool (default three connections per process). Migrations are an explicit
+operator action. The managed Data API must be disabled and app must not appear
+in exposed schemas; this Dashboard setting requires separate verification.
+
 Backend loads `backend/.env` relative to settings.py, independent of cwd. Runtime
 env wins; local files are ignored by Git and Docker contexts. Defaults:
 
 ```dotenv
 DATABASE_URL=
+DATABASE_POOL_SIZE=3
+APP_ENV=production
+DEV_FIXTURE_MODE=false
 OPENAI_API_KEY=
 OPENAI_MODEL=gpt-6-luna
 OPENAI_EMBEDDING_MODEL=text-embedding-3-large
