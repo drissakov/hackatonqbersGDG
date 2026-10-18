@@ -1,0 +1,71 @@
+{
+  "checked_at": "2026-10-18T23:40:02.846991+00:00",
+  "checks": {
+    "health": {
+      "status": "passed",
+      "http_status": 200,
+      "response": {
+        "status": "ok"
+      }
+    },
+    "coverage": {
+      "status": "passed",
+      "http_status": 200,
+      "response": {
+        "status": "ok",
+        "production_pois": 0,
+        "test_pois": 0,
+        "located_pois": 0,
+        "missing_location_pois": 0,
+        "embedded_pois": 0,
+        "by_source": {},
+        "import_runs": {
+          "total": 0,
+          "failed": 0,
+          "rejected_records": 0
+        },
+        "city_coverage": "unknown",
+        "is_production_dataset": false
+      }
+    },
+    "unknown_api": {
+      "status": "passed",
+      "http_status": 404,
+      "response": {
+        "error": {
+          "code": "not_found",
+          "fields": []
+        },
+        "request_id": "e79ae156-2450-41fe-9da8-bec7302a848c"
+      }
+    },
+    "unknown_api_post": {
+      "status": "passed",
+      "http_status": 404,
+      "response": {
+        "error": {
+          "code": "not_found",
+          "fields": []
+        },
+        "request_id": "f14bf16b-c482-40e3-a313-2b7ebe2d78f6"
+      }
+    },
+    "recommendations": {
+      "status": "passed",
+      "http_status": 503,
+      "response": {
+        "status": "unavailable",
+        "items": [],
+        "warnings": [
+          {
+            "code": "provider_unavailable",
+            "message": "Сервис пока недоступен. Повторите попытку позже.",
+            "fields": []
+          }
+        ],
+        "sources": [],
+        "request_id": "00000000-0000-4000-8000-000000000001"
+      }
+    }
+  }
+}

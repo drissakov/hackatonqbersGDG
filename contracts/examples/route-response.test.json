@@ -1,0 +1,12 @@
+{
+  "request_id": "00000000-0000-4000-8000-000000000001",
+  "status": "unavailable",
+  "travel_minutes_estimate": null,
+  "warnings": [
+    {
+      "code": "route_unavailable",
+      "message": "This service is not available yet. Please try again later.",
+      "fields": []
+    }
+  ]
+}

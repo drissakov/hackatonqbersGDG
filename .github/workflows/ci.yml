@@ -1,0 +1,83 @@
+name: S01 verification
+on: [push, pull_request, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  python:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: backend/*requirements*.txt
+      - run: python -m pip install -r backend/requirements-dev.txt
+      - run: python -m pip check
+      - run: python -m compileall -q backend/app scripts
+      - run: python -m pytest -q
+      - run: python -m ruff check backend scripts
+      - run: python -m ruff format --check backend scripts
+      - run: python scripts/export_contracts.py --check
+  postgres:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:0.8.7-pg17-bookworm
+        env:
+          POSTGRES_PASSWORD: synthetic-ci-only
+          POSTGRES_DB: qadam_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready --health-interval 5s
+          --health-timeout 5s --health-retries 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install PostGIS and enable test-only TLS
+        env:
+          CONTAINER_ID: ${{ job.services.postgres.id }}
+        run: |
+          docker exec -u root "$CONTAINER_ID" apt-get update -qq
+          docker exec -u root "$CONTAINER_ID" apt-get install -y postgresql-17-postgis-3 openssl
+          docker exec -u postgres "$CONTAINER_ID" openssl req -new -x509 -nodes -days 1 -subj /CN=localhost -keyout /tmp/server.key -out /tmp/server.crt
+          docker exec -u postgres "$CONTAINER_ID" chmod 600 /tmp/server.key
+          docker exec -u postgres "$CONTAINER_ID" psql -d qadam_test -c "ALTER SYSTEM SET ssl_cert_file='/tmp/server.crt'"
+          docker exec -u postgres "$CONTAINER_ID" psql -d qadam_test -c "ALTER SYSTEM SET ssl_key_file='/tmp/server.key'"
+          docker exec -u postgres "$CONTAINER_ID" psql -d qadam_test -c "ALTER SYSTEM SET ssl='on'"
+          docker exec -u postgres "$CONTAINER_ID" psql -d qadam_test -c 'SELECT pg_reload_conf()'
+          docker exec -u postgres "$CONTAINER_ID" psql -d qadam_test -v ON_ERROR_STOP=1 -c 'CREATE SCHEMA vector_ext; CREATE EXTENSION vector WITH SCHEMA vector_ext; CREATE EXTENSION postgis WITH SCHEMA public;'
+      - run: python -m pip install -r backend/requirements-dev.txt
+      - name: Run isolated database integration tests
+        env:
+          TEST_DATABASE_URL: postgresql://postgres:synthetic-ci-only@localhost:5432/qadam_test?sslmode=require
+        run: python -m pytest backend/tests/test_repository_integration.py -q
+  image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build when D01 input exists
+        run: |
+          if [ ! -f frontend/package.json ] || [ ! -f frontend/package-lock.json ]; then
+            echo '::notice::not_run: D01 frontend input is absent; Dockerfile intentionally rejects missing input.'
+            exit 0
+          fi
+          docker build -t qadam-s01 .
+          docker run -d --name qadam-smoke -e PORT=8123 -p 8123:8123 qadam-s01
+          trap 'docker rm -f qadam-smoke' EXIT
+          if ! curl --fail --retry 20 --retry-delay 1 --retry-all-errors \
+            --connect-timeout 2 --max-time 5 --retry-max-time 60 \
+            http://localhost:8123/api/health; then
+            docker logs qadam-smoke
+            exit 1
+          fi
+          for method in GET POST; do
+            test "$(curl -s -X "$method" -o /tmp/missing.json -w '%{http_code}' http://localhost:8123/api/not-real)" = 404
+            python -c "import json; assert json.load(open('/tmp/missing.json'))['error']['code']=='not_found'"
+          done
+          curl --fail http://localhost:8123/ > /tmp/index.html

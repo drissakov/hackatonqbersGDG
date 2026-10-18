@@ -1,0 +1,99 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "ImportRunCounts": {
+      "additionalProperties": false,
+      "properties": {
+        "total": {
+          "minimum": 0,
+          "title": "Total",
+          "type": "integer"
+        },
+        "failed": {
+          "minimum": 0,
+          "title": "Failed",
+          "type": "integer"
+        },
+        "rejected_records": {
+          "minimum": 0,
+          "title": "Rejected Records",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "total",
+        "failed",
+        "rejected_records"
+      ],
+      "title": "ImportRunCounts",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "status": {
+      "const": "ok",
+      "default": "ok",
+      "title": "Status",
+      "type": "string"
+    },
+    "production_pois": {
+      "minimum": 0,
+      "title": "Production Pois",
+      "type": "integer"
+    },
+    "test_pois": {
+      "minimum": 0,
+      "title": "Test Pois",
+      "type": "integer"
+    },
+    "located_pois": {
+      "minimum": 0,
+      "title": "Located Pois",
+      "type": "integer"
+    },
+    "missing_location_pois": {
+      "minimum": 0,
+      "title": "Missing Location Pois",
+      "type": "integer"
+    },
+    "embedded_pois": {
+      "minimum": 0,
+      "title": "Embedded Pois",
+      "type": "integer"
+    },
+    "by_source": {
+      "additionalProperties": {
+        "minimum": 0,
+        "type": "integer"
+      },
+      "title": "By Source",
+      "type": "object"
+    },
+    "import_runs": {
+      "$ref": "#/$defs/ImportRunCounts"
+    },
+    "city_coverage": {
+      "const": "unknown",
+      "default": "unknown",
+      "title": "City Coverage",
+      "type": "string"
+    },
+    "is_production_dataset": {
+      "title": "Is Production Dataset",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "production_pois",
+    "test_pois",
+    "located_pois",
+    "missing_location_pois",
+    "embedded_pois",
+    "by_source",
+    "import_runs",
+    "is_production_dataset"
+  ],
+  "title": "CoverageResponse",
+  "type": "object"
+}

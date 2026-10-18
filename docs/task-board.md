@@ -2,8 +2,8 @@
 
 Each contributor has **24 active hours** (48 person-hours total). Windows are
 relative to that contributor's start; they are not promises of wall-clock time.
-Only S00 is authorized in this chat. Later rows are coordination plans, not
-authorization to implement them. Owners must confirm detailed scope at handoff.
+S00 and S01 were explicitly authorized in this chat. Later rows are coordination
+plans, not authorization to implement them. Owners must confirm scope at handoff.
 
 | Stage | Active hours | Sabyrzhan task and ownership | Damir task and ownership | Dependency / exit gate |
 | --- | --- | --- | --- | --- |
@@ -21,7 +21,8 @@ authorization to implement them. Owners must confirm detailed scope at handoff.
 
 - [x] S00 — shared foundation delivered; 64 tests pass, health works, real Responses/1536-dimension embedding pass. DB preflight is failed and remains an explicit blocker; see `handoffs/S00.md`.
 - [ ] D00 — in parallel according to the user; no completion evidence available here.
-- [ ] S01 / D01 — not started here; consume S00 after handoff.
+- [x] S01 — database/API implementation and deployment configuration delivered; REVIEW passed 129 tests including isolated SQL checks. Real Supabase migrations/upsert/coverage passed. First HTTPS deployment and managed Data API/exposed-schema verification remain explicit not_run gates; see `handoffs/S01.md`.
+- [ ] D01 — frontend and HTTP 503 fix are published in origin/main; live acceptance with S01 remains pending. This S01 commit does not mark Damir's task complete.
 - [ ] S02–S08 / D02–D08 — planned, not implemented here.
 
 ## Shared-file coordination
@@ -35,4 +36,4 @@ required fields, migration/API impact and a fixture showing the need.
 Use separate branches/checkouts. Before each task read instructions and status;
 never stage another contributor's changes. Commit each approved task separately.
 Do not push or merge without an explicit command. No next-stage work begins
-automatically from this S00 task.
+automatically from an approved task.

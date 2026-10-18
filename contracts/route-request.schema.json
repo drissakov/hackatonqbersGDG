@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "Coordinates": {
+      "additionalProperties": false,
+      "properties": {
+        "latitude": {
+          "maximum": 90,
+          "minimum": -90,
+          "title": "Latitude",
+          "type": "number"
+        },
+        "longitude": {
+          "maximum": 180,
+          "minimum": -180,
+          "title": "Longitude",
+          "type": "number"
+        }
+      },
+      "required": [
+        "latitude",
+        "longitude"
+      ],
+      "title": "Coordinates",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "request_id": {
+      "format": "uuid",
+      "title": "Request Id",
+      "type": "string"
+    },
+    "origin": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Coordinates"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "destination": {
+      "$ref": "#/$defs/Coordinates"
+    },
+    "return_to_start": {
+      "default": false,
+      "title": "Return To Start",
+      "type": "boolean"
+    },
+    "locale": {
+      "default": "kk",
+      "enum": [
+        "kk",
+        "ru",
+        "en"
+      ],
+      "title": "Locale",
+      "type": "string"
+    }
+  },
+  "required": [
+    "destination"
+  ],
+  "title": "RouteRequest",
+  "type": "object"
+}

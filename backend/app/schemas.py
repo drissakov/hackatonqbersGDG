@@ -373,3 +373,37 @@ class UpsertResult(ContractModel):
         if len({row.index for row in self.rejections}) != self.rejected:
             raise ValueError("Rejection indexes must be unique")
         return self
+
+
+class ImportRunCounts(ContractModel):
+    total: Annotated[int, Field(ge=0)]
+    failed: Annotated[int, Field(ge=0)]
+    rejected_records: Annotated[int, Field(ge=0)]
+
+
+class CoverageResponse(ContractModel):
+    status: Literal["ok"] = "ok"
+    production_pois: Annotated[int, Field(ge=0)]
+    test_pois: Annotated[int, Field(ge=0)]
+    located_pois: Annotated[int, Field(ge=0)]
+    missing_location_pois: Annotated[int, Field(ge=0)]
+    embedded_pois: Annotated[int, Field(ge=0)]
+    by_source: dict[str, Annotated[int, Field(ge=0)]]
+    import_runs: ImportRunCounts
+    city_coverage: Literal["unknown"] = "unknown"
+    is_production_dataset: bool
+
+
+class RouteRequest(ContractModel):
+    request_id: UUID = Field(default_factory=uuid4)
+    origin: Coordinates | None = None
+    destination: Coordinates
+    return_to_start: StrictBool = False
+    locale: Locale = "kk"
+
+
+class RouteResponse(ContractModel):
+    request_id: UUID
+    status: Literal["unavailable"] = "unavailable"
+    travel_minutes_estimate: None = None
+    warnings: list[Warning]

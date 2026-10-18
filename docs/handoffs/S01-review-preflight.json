@@ -1,0 +1,15 @@
+{
+  "checked_at": "2026-10-18T23:37:42.327744+00:00",
+  "checks": {
+    "db": {
+      "status": "passed",
+      "reason": "read_only_connection_and_extensions",
+      "details": {
+        "extensions": [
+          "postgis",
+          "vector"
+        ]
+      }
+    }
+  }
+}

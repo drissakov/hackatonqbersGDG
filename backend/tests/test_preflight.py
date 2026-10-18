@@ -38,6 +38,7 @@ def test_database_probe_is_read_only_parameterized_and_closes(monkeypatch):
     result = preflight.check_database(settings)
     assert result.status == "passed"
     assert "default_transaction_read_only=on" in connect.call_args.kwargs["options"]
+    assert connect.call_args.kwargs["sslmode"] == "require"
     assert cursor.execute.call_args.args[1] == ("postgis", "vector")
     connection.__exit__.assert_called_once()
 
