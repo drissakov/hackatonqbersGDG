@@ -1,0 +1,454 @@
+import requestSchema from '../../../contracts/recommendation-request.schema.json'
+import recommendationSchema from '../../../contracts/recommendation-response.schema.json'
+import eventSchema from '../../../contracts/event-search-response.schema.json'
+import type {
+  CardDetails,
+  EventCardData,
+  EventSearchResponse,
+  Locale,
+  RecommendationCard,
+  RecommendationResponse,
+  SearchRequest,
+  SearchResponse,
+  Source,
+  SourcedRecord,
+} from './types'
+
+export type ApiErrorCode =
+  | 'invalid_configuration'
+  | 'invalid_request'
+  | 'network'
+  | 'timeout'
+  | 'aborted'
+  | 'not_ready'
+  | 'server_error'
+  | 'invalid_response'
+  | 'locale_mismatch'
+
+export class ApiError extends Error {
+  readonly code: ApiErrorCode
+  readonly status?: number
+
+  constructor(code: ApiErrorCode, status?: number) {
+    // Only stable local codes reach the UI; never expose provider/server bodies.
+    super(code)
+    this.name = 'ApiError'
+    this.code = code
+    this.status = status
+  }
+}
+
+type Schema = {
+  $ref?: string
+  $defs?: Record<string, Schema>
+  type?: string
+  anyOf?: Schema[]
+  enum?: unknown[]
+  const?: unknown
+  properties?: Record<string, Schema>
+  required?: string[]
+  additionalProperties?: boolean
+  items?: Schema
+  minItems?: number
+  maxItems?: number
+  minLength?: number
+  maxLength?: number
+  minimum?: number
+  maximum?: number
+  exclusiveMinimum?: number
+  format?: string
+  default?: unknown
+}
+
+const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+const awareDateTime =
+  /^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})(?::(\d{2})(?:\.\d+)?)?(?:Z|[+-](\d{2}):?(\d{2}))$/i
+
+function validDateTime(value: string): boolean {
+  const match = awareDateTime.exec(value)
+  if (!match) return false
+  const [
+    ,
+    yearText,
+    monthText,
+    dayText,
+    hourText,
+    minuteText,
+    secondText = '0',
+    offsetHour = '0',
+    offsetMinute = '0',
+  ] = match
+  const year = Number(yearText)
+  const month = Number(monthText)
+  const day = Number(dayText)
+  const leap = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0)
+  const days = [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+  return (
+    year > 0 &&
+    month >= 1 &&
+    month <= 12 &&
+    day >= 1 &&
+    day <= days[month - 1] &&
+    Number(hourText) < 24 &&
+    Number(minuteText) < 60 &&
+    Number(secondText) < 60 &&
+    Number(offsetHour) < 24 &&
+    Number(offsetMinute) < 60 &&
+    Number.isFinite(Date.parse(value))
+  )
+}
+
+function httpUrl(value: string): boolean {
+  try {
+    const url = new URL(value)
+    return (
+      (url.protocol === 'https:' || url.protocol === 'http:') &&
+      Boolean(url.hostname)
+    )
+  } catch {
+    return false
+  }
+}
+
+/** Validates the JSON Schema keywords used by the checked-in v1 wire schemas.
+ * Defaults are copied only into responses; user requests are sent unchanged.
+ */
+function conforms(
+  value: unknown,
+  schema: Schema,
+  root: Schema,
+  defaults: boolean,
+): boolean {
+  if (schema.$ref) {
+    const name = schema.$ref.replace('#/$defs/', '')
+    const target = root.$defs?.[name]
+    return Boolean(target && conforms(value, target, root, defaults))
+  }
+  if (
+    schema.anyOf &&
+    !schema.anyOf.some((part) => conforms(value, part, root, defaults))
+  )
+    return false
+  if (schema.enum && !schema.enum.includes(value)) return false
+  if ('const' in schema && schema.const !== value) return false
+  if (schema.type === 'null') return value === null
+  if (schema.type === 'boolean') return typeof value === 'boolean'
+  if (schema.type === 'string') {
+    if (typeof value !== 'string') return false
+    // ContractModel strips surrounding text whitespace before length checks.
+    // Keep the user's wire body unchanged; the server owns normalization.
+    const length = Array.from(schema.format ? value : value.trim()).length
+    if (
+      length < (schema.minLength ?? 0) ||
+      length > (schema.maxLength ?? Infinity)
+    )
+      return false
+    if (schema.format === 'uri' && !httpUrl(value)) return false
+    if (schema.format === 'uuid' && !uuid.test(value)) return false
+    if (schema.format === 'date-time' && !validDateTime(value)) return false
+  }
+  if (schema.type === 'number' || schema.type === 'integer') {
+    if (typeof value !== 'number' || !Number.isFinite(value)) return false
+    if (schema.type === 'integer' && !Number.isSafeInteger(value)) return false
+    if (
+      value < (schema.minimum ?? -Infinity) ||
+      value > (schema.maximum ?? Infinity)
+    )
+      return false
+    if (
+      schema.exclusiveMinimum !== undefined &&
+      value <= schema.exclusiveMinimum
+    )
+      return false
+  }
+  if (schema.type === 'array') {
+    if (
+      !Array.isArray(value) ||
+      value.length < (schema.minItems ?? 0) ||
+      value.length > (schema.maxItems ?? Infinity)
+    )
+      return false
+    if (
+      schema.items &&
+      !value.every((item) => conforms(item, schema.items!, root, defaults))
+    )
+      return false
+  }
+  if (schema.type === 'object') {
+    if (!value || typeof value !== 'object' || Array.isArray(value))
+      return false
+    const object = value as Record<string, unknown>
+    if (schema.required?.some((key) => !Object.hasOwn(object, key)))
+      return false
+    if (
+      schema.additionalProperties === false &&
+      Object.keys(object).some(
+        (key) => !Object.hasOwn(schema.properties ?? {}, key),
+      )
+    )
+      return false
+    for (const [key, property] of Object.entries(schema.properties ?? {})) {
+      if (Object.hasOwn(object, key)) {
+        if (!conforms(object[key], property, root, defaults)) return false
+      } else if (defaults && 'default' in property) {
+        object[key] = structuredClone(property.default)
+      }
+    }
+  }
+  return true
+}
+
+function sourceIsValid(source: Source): boolean {
+  return (
+    !(source.indexing_allowed && !source.storage_allowed) &&
+    (!(source.storage_allowed || source.indexing_allowed) ||
+      Boolean(source.license && source.rights_basis_url)) &&
+    (source.provider !== 'test_fixture' || source.is_test)
+  )
+}
+
+function uniqueSources(sources: Source[]): boolean {
+  return (
+    new Set(sources.map((source) => source.source_id)).size === sources.length
+  )
+}
+
+function sourcedRecordIsValid(
+  record: SourcedRecord,
+  envelope: Map<string, Source>,
+): boolean {
+  const ids = new Set(record.sources.map((source) => source.source_id))
+  return (
+    uniqueSources(record.sources) &&
+    record.provenance.every((item) => ids.has(item.source_id)) &&
+    record.sources.every((source) => {
+      const included = envelope.get(source.source_id)
+      return (
+        sourceIsValid(source) &&
+        source.storage_allowed &&
+        source.provider !== 'twogis' &&
+        Boolean(
+          included &&
+          Object.entries(source).every(
+            ([key, value]) => included[key as keyof Source] === value,
+          ),
+        )
+      )
+    }) &&
+    (!record.sources.some((source) => source.is_test) || record.is_test)
+  )
+}
+
+function cardIsValid(card: CardDetails, locale: Locale): boolean {
+  const hasRoute =
+    card.route_status === 'known' || card.route_status === 'estimated'
+  return (
+    card.generated_locale === locale &&
+    hasRoute === (card.travel_minutes_estimate !== null) &&
+    card.fit_status !== 'does_not_fit' &&
+    (card.fit_status !== 'fits' || card.missing_fields.length === 0) &&
+    (card.fit_status !== 'unknown' || card.missing_fields.length > 0)
+  )
+}
+
+export function parseSearchResponse(
+  value: unknown,
+  kind: 'recommendations',
+  locale: Locale,
+): RecommendationResponse
+export function parseSearchResponse(
+  value: unknown,
+  kind: 'events',
+  locale: Locale,
+): EventSearchResponse
+export function parseSearchResponse(
+  value: unknown,
+  kind: 'recommendations' | 'events',
+  locale: Locale,
+): RecommendationResponse | EventSearchResponse {
+  const schema = kind === 'recommendations' ? recommendationSchema : eventSchema
+  const copy: unknown = structuredClone(value)
+  if (!conforms(copy, schema, schema, true))
+    throw new ApiError('invalid_response')
+  const result = copy as SearchResponse<RecommendationCard | EventCardData>
+  if (result.items.some((item) => item.generated_locale !== locale))
+    throw new ApiError('locale_mismatch')
+  const hasItems = result.status === 'ok' || result.status === 'partial'
+  const sources = new Map(
+    result.sources.map((source) => [source.source_id, source]),
+  )
+  const identities = result.items.map((item) =>
+    'poi' in item ? item.poi.id : item.session.id,
+  )
+  const valid =
+    hasItems === Boolean(result.items.length) &&
+    (result.status !== 'partial' || result.warnings.length > 0) &&
+    uniqueSources(result.sources) &&
+    result.sources.every(sourceIsValid) &&
+    new Set(identities).size === identities.length &&
+    result.items.every((item) => {
+      if (
+        !cardIsValid(item, locale) ||
+        (result.status === 'ok' && item.fit_status !== 'fits')
+      )
+        return false
+      if (
+        !item.provenance.every((provenance) =>
+          sources.has(provenance.source_id),
+        )
+      )
+        return false
+      if ('poi' in item) {
+        return (
+          item.activity_code === item.poi.activity_code &&
+          sourcedRecordIsValid(item.poi, sources) &&
+          item.poi.sources.some(
+            (source) => source.source_id === item.poi.primary_source_id,
+          )
+        )
+      }
+      return (
+        item.session.event_id === item.event.id &&
+        item.activity_code === item.event.activity_code &&
+        item.session.status !== 'cancelled' &&
+        (item.session.ends_at === null ||
+          Date.parse(item.session.ends_at) >
+            Date.parse(item.session.starts_at)) &&
+        sourcedRecordIsValid(item.event, sources) &&
+        sourcedRecordIsValid(item.session, sources)
+      )
+    })
+  if (!valid) throw new ApiError('invalid_response')
+  return result as RecommendationResponse | EventSearchResponse
+}
+
+function apiBase(): string {
+  const configured = import.meta.env.VITE_API_BASE_URL || '/api'
+  // Same-origin /api only: sending precise coordinates or queries elsewhere is prohibited.
+  if (configured !== '/api' && configured !== '/api/')
+    throw new ApiError('invalid_configuration')
+  return '/api'
+}
+
+const timeoutMs = 20_000
+
+async function request(
+  path: string,
+  body?: SearchRequest,
+  signal?: AbortSignal,
+): Promise<unknown> {
+  const base = apiBase()
+  if (signal?.aborted) throw new ApiError('aborted')
+  const controller = new AbortController()
+  let timedOut = false
+  const abort = () => controller.abort()
+  signal?.addEventListener('abort', abort, { once: true })
+  const timer = window.setTimeout(() => {
+    timedOut = true
+    controller.abort()
+  }, timeoutMs)
+  try {
+    const response = await fetch(`${base}${path}`, {
+      method: body ? 'POST' : 'GET',
+      headers: {
+        Accept: 'application/json',
+        ...(body ? { 'Content-Type': 'application/json' } : {}),
+      },
+      ...(body ? { body: JSON.stringify(body) } : {}),
+      signal: controller.signal,
+      credentials: 'same-origin',
+      cache: 'no-store',
+      redirect: 'error',
+      referrerPolicy: 'same-origin',
+    })
+    if (signal?.aborted) throw new ApiError('aborted')
+    if (!response.ok) {
+      if (response.status === 404)
+        throw new ApiError('not_ready', response.status)
+      if (response.status === 422)
+        throw new ApiError('invalid_request', response.status)
+      throw new ApiError('server_error', response.status)
+    }
+    if (
+      response.headers
+        .get('content-type')
+        ?.split(';')[0]
+        .trim()
+        .toLowerCase() !== 'application/json'
+    )
+      throw new ApiError('invalid_response')
+    let result: unknown
+    try {
+      result = await response.json()
+    } catch {
+      throw new ApiError('invalid_response')
+    }
+    if (signal?.aborted) throw new ApiError('aborted')
+    return result
+  } catch (error) {
+    if (timedOut) throw new ApiError('timeout')
+    if (signal?.aborted || controller.signal.aborted)
+      throw new ApiError('aborted')
+    if (error instanceof ApiError) throw error
+    throw new ApiError('network')
+  } finally {
+    window.clearTimeout(timer)
+    signal?.removeEventListener('abort', abort)
+  }
+}
+
+function validateRequest(body: SearchRequest): void {
+  if (!conforms(body, requestSchema, requestSchema, false))
+    throw new ApiError('invalid_request')
+  const fields = body.explicit_fields ?? []
+  if (
+    new Set(fields).size !== fields.length ||
+    fields.some((field) => !Object.hasOwn(body, field))
+  )
+    throw new ApiError('invalid_request')
+}
+
+export async function checkHealth(
+  signal?: AbortSignal,
+): Promise<{ status: 'ok' }> {
+  const result = await request('/health', undefined, signal)
+  if (
+    !result ||
+    typeof result !== 'object' ||
+    Array.isArray(result) ||
+    Object.keys(result).length !== 1 ||
+    (result as { status?: unknown }).status !== 'ok'
+  )
+    throw new ApiError('invalid_response')
+  return { status: 'ok' }
+}
+
+export async function searchRecommendations(
+  body: SearchRequest,
+  signal?: AbortSignal,
+): Promise<RecommendationResponse> {
+  validateRequest(body)
+  const result = parseSearchResponse(
+    await request('/v1/recommendations', body, signal),
+    'recommendations',
+    body.locale ?? 'kk',
+  )
+  if (body.request_id && result.request_id !== body.request_id)
+    throw new ApiError('invalid_response')
+  return result
+}
+
+export async function searchEvents(
+  body: SearchRequest,
+  signal?: AbortSignal,
+): Promise<EventSearchResponse> {
+  validateRequest(body)
+  const result = parseSearchResponse(
+    await request('/v1/events/search', body, signal),
+    'events',
+    body.locale ?? 'kk',
+  )
+  if (body.request_id && result.request_id !== body.request_id)
+    throw new ApiError('invalid_response')
+  return result
+}
