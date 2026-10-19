@@ -2,7 +2,7 @@
 
 Each contributor has **24 active hours** (48 person-hours total). Windows are
 relative to that contributor's start; they are not promises of wall-clock time.
-S00 and S01 were explicitly authorized in this chat. Later rows are coordination
+S00, S01 and D02 were explicitly authorized in this chat. Later rows are coordination
 plans, not authorization to implement them. Owners must confirm scope at handoff.
 
 | Stage | Active hours | Sabyrzhan task and ownership | Damir task and ownership | Dependency / exit gate |
@@ -23,7 +23,8 @@ plans, not authorization to implement them. Owners must confirm scope at handoff
 - [ ] D00 — in parallel according to the user; no completion evidence available here.
 - [x] S01 — database/API implementation and deployment configuration delivered; REVIEW passed 129 tests including isolated SQL checks. Real Supabase migrations/upsert/coverage passed. First HTTPS deployment and managed Data API/exposed-schema verification remain explicit not_run gates; see `handoffs/S01.md`.
 - [ ] D01 — frontend and HTTP 503 fix are published in origin/main; live acceptance with S01 remains pending. This S01 commit does not mark Damir's task complete.
-- [ ] S02–S08 / D02–D08 — planned, not implemented here.
+- [x] D02 — repeatable Astana OSM importer, canonical export and coverage/quality reports delivered; 985 real POIs loaded through S01, with 222 tests passed and 11 isolated SQL tests skipped. See `handoffs/D02.md` for replay evidence, transfer artifacts and known limits.
+- [ ] S02–S08 / D03–D08 — planned, not implemented here.
 
 ## Shared-file coordination
 
