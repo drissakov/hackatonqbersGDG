@@ -4,7 +4,10 @@ import { LanguageSwitch } from './components/LanguageSwitch'
 import { SearchForm } from './components/SearchForm'
 import { ResultCard } from './components/ResultCard'
 import { EventCard } from './components/EventCard'
-import { DiscoveredEventCard } from './components/DiscoveredEventCard'
+import {
+  DiscoveredEventCard,
+  TransientEventCard,
+} from './components/DiscoveredEventCard'
 import { EventSearchSources } from './components/EventSearchSources'
 import { DestinationDetails } from './components/DestinationDetails'
 import type { Destination } from './components/DestinationDetails'
@@ -167,6 +170,15 @@ export default function App() {
 
   const response = result?.response
   const stateKey = response?.status === 'no_match' ? 'empty' : response?.status
+  const transientListings =
+    result?.kind === 'events'
+      ? (result.response.transient?.listings.filter(
+          (event) =>
+            !result.response.transient!.items.some(
+              (card) => card.event.id === event.event_id,
+            ),
+        ) ?? [])
+      : []
   const destinations: Destination[] =
     result?.kind === 'recommendations'
       ? result.response.items.slice(0, 3).map(({ poi }) => ({
@@ -175,17 +187,30 @@ export default function App() {
           location: poi.location,
         }))
       : result?.kind === 'events'
-        ? result.response.discovery
-          ? result.response.discovery.events.slice(0, 3).map((event) => ({
-              id: event.event_id,
-              name: event.title,
-              location: eventLocation(event),
-            }))
-          : result.response.items.slice(0, 3).map(({ session, event }) => ({
-              id: session.id,
-              name: event.title,
-              location: session.location,
-            }))
+        ? result.response.transient
+          ? [
+              ...result.response.transient.items.map((card) => ({
+                id: `session:${card.session.session_id}`,
+                name: card.event.title,
+                location: card.session.venue.location,
+              })),
+              ...transientListings.map((event) => ({
+                id: `listing:${event.event_id}`,
+                name: event.title,
+                location: eventLocation(event),
+              })),
+            ].slice(0, 3)
+          : result.response.discovery
+            ? result.response.discovery.events.slice(0, 3).map((event) => ({
+                id: event.event_id,
+                name: event.title,
+                location: eventLocation(event),
+              }))
+            : result.response.items.slice(0, 3).map(({ session, event }) => ({
+                id: session.id,
+                name: event.title,
+                location: session.location,
+              }))
         : []
   return (
     <>
@@ -386,6 +411,20 @@ export default function App() {
                       )}
                     </p>
                   ) : null}
+                  {result.kind === 'events' && result.response.transient ? (
+                    <>
+                      <p className="event-notice">
+                        {t('events.searchStatus')}:{' '}
+                        {t(
+                          `events.searchStates.${result.response.transient.live_web_search}`,
+                        )}
+                      </p>
+                      <EventSearchSources
+                        sources={result.response.transient.sources}
+                        locale={locale}
+                      />
+                    </>
+                  ) : null}
                   {response.warnings.length > 0 && (
                     <ul className="warning-list">
                       {response.warnings.map((warning, index) => (
@@ -406,6 +445,64 @@ export default function App() {
                     />
                   ) : null}
                   <div className="result-list">
+                    {result.kind === 'events' && result.response.transient ? (
+                      <>
+                        {result.response.transient.items.map(
+                          (card, index, cards) => (
+                            <TransientEventCard
+                              key={card.session.session_id}
+                              card={card}
+                              sources={result.response.transient!.sources}
+                              listing={
+                                cards.findIndex(
+                                  (other) => other.event.id === card.event.id,
+                                ) === index
+                                  ? result.response.transient!.listings.find(
+                                      (event) =>
+                                        event.event_id === card.event.id,
+                                    )
+                                  : undefined
+                              }
+                              representedSessionIds={cards.map(
+                                (other) => other.session.session_id,
+                              )}
+                              locale={locale}
+                              selected={
+                                selectedId ===
+                                `session:${card.session.session_id}`
+                              }
+                              onSelect={() =>
+                                setSelectedId(
+                                  `session:${card.session.session_id}`,
+                                )
+                              }
+                            />
+                          ),
+                        )}
+                        {transientListings
+                          .slice(
+                            0,
+                            Math.max(
+                              0,
+                              3 - result.response.transient.items.length,
+                            ),
+                          )
+                          .map((event) => (
+                            <DiscoveredEventCard
+                              key={event.event_id}
+                              event={event}
+                              citations={[]}
+                              locale={locale}
+                              selected={
+                                selectedId === `listing:${event.event_id}`
+                              }
+                              onSelect={() =>
+                                setSelectedId(`listing:${event.event_id}`)
+                              }
+                            />
+                          ))}
+                      </>
+                    ) : null}
                     {result.kind === 'recommendations'
                       ? result.response.items
                           .slice(0, 3)

@@ -1,5 +1,6 @@
+import { useId } from 'react'
 import { useTranslation } from 'react-i18next'
-import { formatDateTime, formatMoney } from '../lib/format'
+import { formatDateTime, formatMinutes, formatMoney } from '../lib/format'
 import { safeExternalUrl } from '../lib/links'
 import type {
   DiscoveredEvent,
@@ -7,7 +8,20 @@ import type {
   EventCitation,
   EventVenue,
   Locale,
+  TransientEventCardData,
+  TransientEventSource,
 } from '../lib/types'
+
+function missingFieldLabel(
+  field: string,
+  t: ReturnType<typeof useTranslation>['t'],
+) {
+  return t(`events.fields.${field}`, {
+    defaultValue: t(`codes.missing_fields.${field}`, {
+      defaultValue: t('source.otherFact'),
+    }),
+  })
+}
 
 function SourceLink({
   url,
@@ -88,10 +102,9 @@ function SessionFacts({
         <div>
           <dt>{t('events.price')}</dt>
           <dd>
-            {session.price_from !== null && session.price_kind === 'starting'
-              ? `${t('events.from')} `
-              : ''}
-            {amount}
+            {session.price_from !== null
+              ? t('events.from', { amount })
+              : amount}
             {session.price_from !== null && session.price_kind === 'promotion'
               ? ` · ${t('events.promotion')}`
               : ''}
@@ -118,11 +131,7 @@ function SessionFacts({
         <p>
           {t('card.missing')}:{' '}
           {session.missing_fields
-            .map((field) =>
-              t(`events.fields.${field}`, {
-                defaultValue: t('source.otherFact'),
-              }),
-            )
+            .map((field) => missingFieldLabel(field, t))
             .join(', ')}
         </p>
       ) : null}
@@ -149,14 +158,19 @@ export function DiscoveredEventCard({
   locale,
   selected = false,
   onSelect,
+  summary,
+  supplementalListing,
 }: {
   event: DiscoveredEvent
   citations: EventCitation[]
   locale: Locale
   selected?: boolean
   onSelect?: () => void
+  summary?: TransientEventCardData
+  supplementalListing?: DiscoveredEvent
 }) {
   const { t } = useTranslation()
+  const headingId = useId()
   const sessions = event.sessions.filter(
     (session) =>
       session.recommendation_candidate &&
@@ -164,6 +178,19 @@ export function DiscoveredEventCard({
       session.starts_at !== null &&
       session.exclusion_reasons.length === 0,
   )
+  const withheldSessions = summary
+    ? []
+    : event.sessions.filter((session) => !sessions.includes(session))
+  const inspectionListing =
+    supplementalListing ??
+    (withheldSessions.length > 0
+      ? {
+          ...event,
+          schedule_hints: [],
+          missing_fields: [],
+          sessions: withheldSessions,
+        }
+      : undefined)
   const sourceUrls = new Set([
     event.source_url,
     ...sessions.map((session) => session.source_url),
@@ -172,10 +199,7 @@ export function DiscoveredEventCard({
     sourceUrls.has(citation.url),
   )
   return (
-    <article
-      className="event-card result-card"
-      aria-labelledby={`discovered-${event.event_id}`}
-    >
+    <article className="event-card result-card" aria-labelledby={headingId}>
       <div className="card-topline">
         <span className="activity-badge">
           {t(
@@ -186,14 +210,18 @@ export function DiscoveredEventCard({
           {t('codes.fit_status.unknown')}
         </span>
       </div>
-      <h3 id={`discovered-${event.event_id}`} lang="">
+      <h3 id={headingId} lang="">
         {event.title}
       </h3>
       <h4>{t('card.sourceFacts')}</h4>
       <dl className="card-facts">
         <div>
           <dt>{t('card.category')}</dt>
-          <dd>{t('card.unknown')}</dd>
+          <dd>
+            {summary
+              ? t(`codes.activity_code.${summary.activity_code}`)
+              : t('card.unknown')}
+          </dd>
         </div>
         <div>
           <dt>{t('events.fields.city')}</dt>
@@ -247,41 +275,86 @@ export function DiscoveredEventCard({
       <dl className="card-facts">
         <div>
           <dt>{t('card.visit')}</dt>
-          <dd>{t('card.unknown')}</dd>
+          <dd>
+            {formatMinutes(summary?.visit_minutes_estimate ?? null, locale)}
+          </dd>
         </div>
         <div>
           <dt>{t('card.travel')}</dt>
-          <dd>{t('card.unknown')}</dd>
+          <dd>
+            {formatMinutes(summary?.travel_minutes_estimate ?? null, locale)}
+          </dd>
         </div>
         <div>
           <dt>{t('card.route')}</dt>
-          <dd>{t('codes.route_status.not_requested')}</dd>
+          <dd>
+            {t(
+              `codes.route_status.${summary?.route_status ?? 'not_requested'}`,
+            )}
+          </dd>
         </div>
       </dl>
       <p className="field-hint">{t('card.searchSnapshot')}</p>
       <div className="card-idea">
         <h4>{t('card.idea')}</h4>
-        <p>{t('events.activity')}</p>
+        <p>
+          {summary
+            ? t(`activityAction.${summary.activity_code}`)
+            : t('events.activity')}
+        </p>
       </div>
       <div className="card-reasons">
         <h4>{t('card.why')}</h4>
-        <p>{t('events.reason')}</p>
+        {summary ? (
+          <ul className="reason-list">
+            {summary.reason_codes.map((reason) => (
+              <li key={reason}>{t(`codes.reason_codes.${reason}`)}</li>
+            ))}
+          </ul>
+        ) : (
+          <p>{t('events.reason')}</p>
+        )}
       </div>
+      {summary ? (
+        <div className="card-explanation">
+          <h4>
+            {t(
+              summary.generated_locale === locale
+                ? 'card.explanation'
+                : 'card.localizedSummary',
+            )}
+          </h4>
+          <p lang={locale}>
+            {summary.generated_locale === locale
+              ? summary.explanation
+              : t('card.explanationFallback', {
+                  activity: t(`codes.activity_code.${summary.activity_code}`),
+                  reasons: summary.reason_codes
+                    .map((reason) => t(`codes.reason_codes.${reason}`))
+                    .join('; '),
+                })}
+          </p>
+        </div>
+      ) : null}
       {event.missing_fields.length > 0 ? (
         <div className="missing-details">
           <h4>{t('card.missing')}</h4>
           <ul>
             {event.missing_fields.map((field) => (
-              <li key={field}>
-                {t(`events.fields.${field}`, {
-                  defaultValue: t('source.otherFact'),
-                })}
-              </li>
+              <li key={field}>{missingFieldLabel(field, t)}</li>
             ))}
           </ul>
         </div>
       ) : null}
-      <SourceLink url={event.source_url} ticketAction />
+      <SourceLink
+        url={summary?.action.url ?? event.source_url}
+        ticketAction
+        label={
+          summary?.action.code === 'open_map'
+            ? t('codes.action_code.open_map')
+            : undefined
+        }
+      />
       {onSelect ? (
         <button
           type="button"
@@ -291,6 +364,39 @@ export function DiscoveredEventCard({
         >
           {t(selected ? 'card.selected' : 'card.select')}
         </button>
+      ) : null}
+      {inspectionListing ? (
+        <details className="source-details">
+          <summary>{t('events.supplementalDetails')}</summary>
+          <p>{t('events.notRecommendedSession')}</p>
+          {inspectionListing.schedule_hints.length > 0 ? (
+            <p className="source-hours">
+              {t('events.scheduleHint')}:{' '}
+              <span lang="">{inspectionListing.schedule_hints.join('; ')}</span>
+            </p>
+          ) : null}
+          {inspectionListing.sessions.map((session) => (
+            <SessionFacts
+              key={session.session_id}
+              session={session}
+              locale={locale}
+            />
+          ))}
+          {inspectionListing.missing_fields.length > 0 ? (
+            <p>
+              {t('card.missing')}:{' '}
+              {inspectionListing.missing_fields
+                .map((field) => missingFieldLabel(field, t))
+                .join(', ')}
+            </p>
+          ) : null}
+          <SourceLink url={inspectionListing.source_url} />
+          <p>
+            {t('events.observed')}:{' '}
+            {formatDateTime(inspectionListing.source_fetched_at, locale)}
+          </p>
+          <p>{t('events.observationNotice')}</p>
+        </details>
       ) : null}
       <details className="source-details">
         <summary>{t('source.title')}</summary>
@@ -316,5 +422,61 @@ export function DiscoveredEventCard({
         ) : null}
       </details>
     </article>
+  )
+}
+
+/** Render the shared transient card without converting its source into a persistent record. */
+export function TransientEventCard({
+  card,
+  sources,
+  listing,
+  representedSessionIds,
+  ...props
+}: {
+  card: TransientEventCardData
+  sources: TransientEventSource[]
+  listing?: DiscoveredEvent
+  representedSessionIds?: string[]
+  locale: Locale
+  selected?: boolean
+  onSelect?: () => void
+}) {
+  const source = sources.find(
+    (entry) => entry.source_id === card.event.source_id,
+  )!
+  const remainingSessions =
+    listing?.sessions.filter(
+      (session) =>
+        !(representedSessionIds ?? [card.session.session_id]).includes(
+          session.session_id,
+        ),
+    ) ?? []
+  const supplementalListing =
+    listing &&
+    (listing.schedule_hints.length > 0 || remainingSessions.length > 0)
+      ? { ...listing, sessions: remainingSessions }
+      : undefined
+  const event: DiscoveredEvent = {
+    event_id: card.event.id,
+    title: card.event.title,
+    source_url: source.url,
+    source_fetched_at: source.retrieved_at,
+    city: card.event.city,
+    venue_name: card.event.venue_name,
+    venue_address: card.event.venue_address,
+    venue: card.session.venue,
+    status: 'discovered',
+    schedule_hints: [],
+    missing_fields: card.missing_fields,
+    sessions: [card.session],
+  }
+  return (
+    <DiscoveredEventCard
+      event={event}
+      citations={[]}
+      summary={card}
+      supplementalListing={supplementalListing}
+      {...props}
+    />
   )
 }

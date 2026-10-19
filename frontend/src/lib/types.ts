@@ -228,6 +228,57 @@ export interface SearchResponse<T extends CardDetails> {
 export type RecommendationResponse = SearchResponse<RecommendationCard>
 export interface EventSearchResponse extends SearchResponse<EventCardData> {
   discovery?: EventDiscovery | null
+  /** Current S04 wire response retained without invented persistent rights. */
+  transient?: TransientEventSearchResponse
+}
+
+export interface TransientEventSource {
+  source_id: string
+  url: string
+  retrieved_at: string
+  source_updated_at: string | null
+  storage_allowed: false
+  indexing_allowed: false
+}
+
+export interface TransientEventHeader {
+  id: string
+  title: string
+  city: string | null
+  venue_name: string | null
+  venue_address: string | null
+  source_id: string
+}
+
+export interface TransientEventCardData {
+  event: TransientEventHeader
+  session: DiscoveredSession
+  source_ids: string[]
+  reason_codes: ReasonCode[]
+  activity_code: ActivityCode
+  visit_minutes_estimate: number | null
+  route_status: RouteStatus
+  travel_minutes_estimate: number | null
+  fit_status: FitStatus
+  missing_fields: string[]
+  explanation: string
+  generated_locale: Locale
+  action: Action
+}
+
+export interface TransientEventSearchResponse {
+  request_id: string
+  contract_version: '1.3.0'
+  status: ResponseStatus
+  provider_status: 'partial' | 'unknown' | 'unavailable'
+  provider_code: string | null
+  live_web_search: 'not_run' | 'passed' | 'failed'
+  items: TransientEventCardData[]
+  listings: DiscoveredEvent[]
+  sources: TransientEventSource[]
+  warnings: SearchWarning[]
+  excluded_sessions: number
+  rejected_events: number
 }
 
 /** Ephemeral discovery facts; these are not persistent EventRecord sources. */
