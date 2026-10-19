@@ -111,13 +111,17 @@
       "price_conditions": "Price conditions",
       "status": "Session status",
       "location": "Coordinates",
-      "sessions": "Session date and time"
+      "sessions": "Session date and time",
+      "source_verification": "Independent source verification",
+      "ticket_availability": "Ticket availability",
+      "return_travel_minutes_estimate": "Return travel time"
     },
     "checkTickets": "Check tickets",
     "activity": "Check the venue, session time and ticket details with the source before deciding to attend.",
     "reason": "This event was found in search sources. Its fit with your constraints remains unconfirmed.",
     "venueSources": "Independent venue coordinate sources",
-    "venueNotice": "Venue coordinates were matched independently by name and address. Their accuracy and an accessible entrance remain unverified."
+    "venueNotice": "Venue coordinates were matched independently by name and address. Their accuracy and an accessible entrance remain unverified.",
+    "notAlternative": "This session is source information, not a recommended alternative. Check its status and missing details."
   },
   "dev": {
     "title": "Synthetic preview · development only",

@@ -9,7 +9,9 @@ export function CardFacts({
   sourceUrl,
   ticketAction = false,
 }: {
-  card: CardDetails
+  card: Omit<CardDetails, 'provenance' | 'missing_fields'> & {
+    missing_fields: string[]
+  }
   locale: Locale
   sourceUrl: string | null
   ticketAction?: boolean
@@ -71,7 +73,13 @@ export function CardFacts({
           <h4>{t('card.missing')}</h4>
           <ul>
             {card.missing_fields.map((field) => (
-              <li key={field}>{t(`codes.missing_fields.${field}`)}</li>
+              <li key={field}>
+                {t(`codes.missing_fields.${field}`, {
+                  defaultValue: t(`events.fields.${field}`, {
+                    defaultValue: t('source.otherFact'),
+                  }),
+                })}
+              </li>
             ))}
           </ul>
         </div>

@@ -6,6 +6,10 @@ import { ResultCard } from './components/ResultCard'
 import { EventCard } from './components/EventCard'
 import { DiscoveredEventCard } from './components/DiscoveredEventCard'
 import { EventSearchSources } from './components/EventSearchSources'
+import {
+  TransientEventCard,
+  TransientEventSources,
+} from './components/TransientEventCard'
 import { DestinationDetails } from './components/DestinationDetails'
 import type { Destination } from './components/DestinationDetails'
 import {
@@ -21,9 +25,32 @@ import type {
   RecommendationResponse,
   ResponseStatus,
   SearchRequest,
+  TransientEventSearchResponse,
 } from './lib/types'
 
 type Kind = 'recommendations' | 'events'
+function supplementalListings(response: TransientEventSearchResponse) {
+  return response.listings.filter((event) => {
+    const cards = response.items.filter(
+      (card) => card.event.id === event.event_id,
+    )
+    if (cards.length === 0) return true
+    const sessions = new Set(cards.map((card) => card.session.session_id))
+    const missing = new Set(
+      cards.flatMap((card) => [
+        ...card.missing_fields,
+        ...card.session.missing_fields,
+      ]),
+    )
+    // Preserve withheld sessions, schedule wording and additional diagnostics.
+    return (
+      event.sessions.some((session) => !sessions.has(session.session_id)) ||
+      event.schedule_hints.length > 0 ||
+      event.missing_fields.some((field) => !missing.has(field))
+    )
+  })
+}
+
 function eventLocation(event: DiscoveredEvent) {
   const candidates = event.sessions.filter(
     (session) => session.recommendation_candidate,
@@ -175,17 +202,23 @@ export default function App() {
           location: poi.location,
         }))
       : result?.kind === 'events'
-        ? result.response.discovery
-          ? result.response.discovery.events.slice(0, 3).map((event) => ({
-              id: event.event_id,
+        ? result.response.transient
+          ? result.response.transient.items.map(({ session, event }) => ({
+              id: session.session_id,
               name: event.title,
-              location: eventLocation(event),
+              location: session.venue.location,
             }))
-          : result.response.items.slice(0, 3).map(({ session, event }) => ({
-              id: session.id,
-              name: event.title,
-              location: session.location,
-            }))
+          : result.response.discovery
+            ? result.response.discovery.events.slice(0, 3).map((event) => ({
+                id: event.event_id,
+                name: event.title,
+                location: eventLocation(event),
+              }))
+            : result.response.items.slice(0, 3).map(({ session, event }) => ({
+                id: session.id,
+                name: event.title,
+                location: session.location,
+              }))
         : []
   return (
     <>
@@ -378,13 +411,20 @@ export default function App() {
                       {t('dev.description')} {t('dev.englishNotice')}
                     </p>
                   )}
-                  {result.kind === 'events' && result.response.discovery ? (
+                  {result.kind === 'events' &&
+                  (result.response.discovery || result.response.transient) ? (
                     <p className="event-notice">
                       {t('events.searchStatus')}:{' '}
                       {t(
-                        `events.searchStates.${result.response.discovery.live_web_search}`,
+                        `events.searchStates.${result.response.transient?.live_web_search ?? result.response.discovery?.live_web_search}`,
                       )}
                     </p>
+                  ) : null}
+                  {result.kind === 'events' && result.response.transient ? (
+                    <TransientEventSources
+                      sources={result.response.transient.sources}
+                      locale={locale}
+                    />
                   ) : null}
                   {response.warnings.length > 0 && (
                     <ul className="warning-list">
@@ -406,6 +446,33 @@ export default function App() {
                     />
                   ) : null}
                   <div className="result-list">
+                    {result.kind === 'events' && result.response.transient ? (
+                      <>
+                        {result.response.transient.items.map((card) => (
+                          <TransientEventCard
+                            key={card.session.session_id}
+                            card={card}
+                            sources={result.response.transient!.sources}
+                            locale={locale}
+                            selected={selectedId === card.session.session_id}
+                            onSelect={() =>
+                              setSelectedId(card.session.session_id)
+                            }
+                          />
+                        ))}
+                        {supplementalListings(result.response.transient)
+                          .slice(0, 3)
+                          .map((event) => (
+                            <DiscoveredEventCard
+                              key={event.event_id}
+                              event={event}
+                              citations={[]}
+                              locale={locale}
+                              includeWithheldSessions
+                            />
+                          ))}
+                      </>
+                    ) : null}
                     {result.kind === 'recommendations'
                       ? result.response.items
                           .slice(0, 3)

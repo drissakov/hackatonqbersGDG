@@ -2,8 +2,9 @@ import requestSchema from '../../../contracts/recommendation-request.schema.json
 import recommendationSchema from '../../../contracts/recommendation-response.schema.json'
 import routeRequestSchema from '../../../contracts/route-request.schema.json'
 import routeResponseSchema from '../../../contracts/route-response.schema.json'
-// Pending Sabyrzhan's shared 1.3 delivery: the reviewed integration snapshot
-// extends the checked-in event contract without changing its legacy fields.
+import transientEventSchema from '../../../contracts/transient-event-search-response.schema.json'
+import codes from '../../../contracts/codes.json'
+// Compatibility for development examples and earlier event integrations only.
 import eventSchema from './event-search-response.schema.json'
 import type {
   CardDetails,
@@ -21,6 +22,7 @@ import type {
   SearchResponse,
   Source,
   SourcedRecord,
+  TransientEventSearchResponse,
 } from './types'
 
 export type ApiErrorCode =
@@ -66,6 +68,7 @@ type Schema = {
   maximum?: number
   exclusiveMinimum?: number
   format?: string
+  pattern?: string
   default?: unknown
 }
 
@@ -155,6 +158,7 @@ function conforms(
     if (schema.format === 'uri' && !httpUrl(value)) return false
     if (schema.format === 'uuid' && !uuid.test(value)) return false
     if (schema.format === 'date-time' && !validDateTime(value)) return false
+    if (schema.pattern && !new RegExp(schema.pattern).test(value)) return false
   }
   if (schema.type === 'number' || schema.type === 'integer') {
     if (typeof value !== 'number' || !Number.isFinite(value)) return false
@@ -364,6 +368,166 @@ function discoveryIsValid(discovery: EventDiscovery): boolean {
   )
 }
 
+function astanaCity(value: string | null): boolean {
+  return (
+    value !== null &&
+    [
+      'astana',
+      'астана',
+      'astana qalasy',
+      'астана қаласы',
+      'астана қ.',
+      'г. астана',
+    ].includes(value.normalize('NFC').trim().replace(/\s+/g, ' ').toLowerCase())
+  )
+}
+
+function transientResponse(
+  value: unknown,
+  locale: Locale,
+): EventSearchResponse {
+  const copy: unknown = structuredClone(value)
+  if (!conforms(copy, transientEventSchema, transientEventSchema, true))
+    throw new ApiError('invalid_response')
+  const result = copy as TransientEventSearchResponse
+  for (const warning of result.warnings) warning.fields ??= []
+  const venues = [
+    ...result.listings.map((event) => event.venue),
+    ...result.listings.flatMap((event) =>
+      event.sessions.map((session) => session.venue),
+    ),
+    ...result.items.map((card) => card.session.venue),
+  ]
+  for (const venue of venues) {
+    venue.source_ids ??= []
+    venue.source_urls ??= []
+  }
+  const sessions = [
+    ...result.items.map((card) => card.session),
+    ...result.listings.flatMap((event) => event.sessions),
+  ]
+  for (const session of sessions) session.verified_fields ??= []
+  if (result.items.some((card) => card.generated_locale !== locale))
+    throw new ApiError('locale_mismatch')
+  const sources = new Map(
+    result.sources.map((source) => [source.source_id, source]),
+  )
+  const urls = new Set(result.sources.map((source) => source.url))
+  const hasData = Boolean(result.items.length || result.listings.length)
+  const missingValid = (fields: string[]) =>
+    fields.length <= 32 &&
+    fields.every((field) =>
+      codes.transient_event_missing_fields.includes(field),
+    )
+  const identityValid = (id: string) => id.trim().length > 0 && id.length <= 200
+  const validSession = (session: DiscoveredSession) =>
+    identityValid(session.session_id) &&
+    identityValid(session.event_id) &&
+    urls.has(session.source_url) &&
+    session.venue.source_urls.every((url) => urls.has(url)) &&
+    venueIsValid(session.venue) &&
+    missingValid(session.missing_fields) &&
+    session.verified_fields.length <= 32 &&
+    (session.verification_status === 'verified') ===
+      Boolean(session.verified_fields.length) &&
+    fieldChecksAreValid(session) &&
+    (session.ends_at === null ||
+      (session.starts_at !== null &&
+        Date.parse(session.ends_at) > Date.parse(session.starts_at)))
+  // The current D03 provider cannot verify ticket inventory; no card can prove
+  // a confirmed fit, so its backend validators also reject ok/fits responses.
+  const valid =
+    result.status !== 'no_match' &&
+    result.status !== 'ok' &&
+    (result.status === 'partial') === hasData &&
+    (result.status !== 'partial' || result.warnings.length > 0) &&
+    (result.provider_status !== 'unavailable' ||
+      result.status === 'unavailable') &&
+    (!hasData || result.live_web_search === 'passed') &&
+    sources.size === result.sources.length &&
+    result.sources.every((source) => {
+      const url = new URL(source.url)
+      return (
+        !url.username &&
+        !url.password &&
+        !source.storage_allowed &&
+        !source.indexing_allowed
+      )
+    }) &&
+    new Set(result.items.map((card) => card.session.session_id)).size ===
+      result.items.length &&
+    new Set(result.listings.map((event) => event.event_id)).size ===
+      result.listings.length &&
+    sessions.every(validSession) &&
+    result.items.every((card) => {
+      const knownRoute =
+        card.route_status === 'known' || card.route_status === 'estimated'
+      const requiredMissing = ['ticket_availability']
+      if (!knownRoute) requiredMissing.push('travel_minutes_estimate')
+      if (card.session.ends_at === null) requiredMissing.push('ends_at')
+      const checked = new Set<string>(
+        card.session.verified_fields.map((check) => check.field),
+      )
+      if (
+        ![
+          'city',
+          'venue_name',
+          'venue_address',
+          'starts_at',
+          'ends_at',
+          'status',
+        ].every((field) => checked.has(field))
+      )
+        requiredMissing.push('source_verification')
+      const cited = card.source_ids.map((id) => sources.get(id)?.url)
+      return (
+        card.session.event_id === card.event.id &&
+        astanaCity(card.session.city) &&
+        (card.event.city === null || astanaCity(card.event.city)) &&
+        card.session.status === 'scheduled' &&
+        card.session.starts_at !== null &&
+        card.session.recommendation_candidate &&
+        card.session.exclusion_reasons.length === 0 &&
+        new Set(card.source_ids).size === card.source_ids.length &&
+        card.source_ids.every((id) => sources.has(id)) &&
+        card.source_ids.includes(card.event.source_id) &&
+        cited.includes(card.session.source_url) &&
+        cited.includes(card.action.url) &&
+        knownRoute === (card.travel_minutes_estimate !== null) &&
+        card.fit_status === 'unknown' &&
+        missingValid(card.missing_fields) &&
+        new Set(card.missing_fields).size === card.missing_fields.length &&
+        requiredMissing.every((field) => card.missing_fields.includes(field)) &&
+        !card.reason_codes.includes('within_budget') &&
+        !card.reason_codes.includes('indoor_match') &&
+        (card.visit_minutes_estimate === null ||
+          card.reason_codes.includes('visit_duration_estimate'))
+      )
+    }) &&
+    result.listings.every(
+      (event) =>
+        identityValid(event.event_id) &&
+        urls.has(event.source_url) &&
+        (event.city === null || astanaCity(event.city)) &&
+        event.sessions.length <= 20 &&
+        event.schedule_hints.length <= 32 &&
+        missingValid(event.missing_fields) &&
+        venueIsValid(event.venue) &&
+        event.venue.source_urls.every((url) => urls.has(url)) &&
+        event.sessions.every((session) => session.event_id === event.event_id),
+    )
+  if (!valid) throw new ApiError('invalid_response')
+  // Keep ephemeral source rights and session facts in their actual wire shape.
+  return {
+    request_id: result.request_id,
+    status: result.status,
+    warnings: result.warnings,
+    items: [],
+    sources: [],
+    transient: result,
+  }
+}
+
 export function parseSearchResponse(
   value: unknown,
   kind: 'recommendations',
@@ -379,6 +543,15 @@ export function parseSearchResponse(
   kind: 'recommendations' | 'events',
   locale: Locale,
 ): RecommendationResponse | EventSearchResponse {
+  if (
+    kind === 'events' &&
+    value &&
+    typeof value === 'object' &&
+    ('contract_version' in value ||
+      'provider_status' in value ||
+      'listings' in value)
+  )
+    return transientResponse(value, locale)
   const schema = kind === 'recommendations' ? recommendationSchema : eventSchema
   const copy: unknown = structuredClone(value)
   if (!conforms(copy, schema, schema, true))

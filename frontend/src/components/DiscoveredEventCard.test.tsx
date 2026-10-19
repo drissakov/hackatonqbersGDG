@@ -100,13 +100,13 @@ describe('transient event discovery cards', () => {
     ]
     render(<DiscoveredEventCard event={event} citations={[]} locale="en" />)
     expect(
-      screen.getByText('5,000 (currency unknown) · Promotional price'),
+      screen.getByText('From 5,000 (currency unknown) · Promotional price'),
     ).toBeVisible()
     expect(screen.getByText('TEST ONLY student promotion')).toHaveAttribute(
       'lang',
       '',
     )
-    expect(screen.queryByText(/^From /)).not.toBeInTheDocument()
+    expect(screen.getByText(/^From /)).toBeVisible()
   })
 
   it('blocks executable links when the component is used directly', () => {
@@ -133,7 +133,7 @@ describe('transient event discovery cards', () => {
     render(<DiscoveredEventCard event={event} citations={[]} locale="ru" />)
     const price = screen.getByText(i18n.t('events.price')).parentElement!
     expect(price.querySelector('dd')?.textContent).toBe(
-      `${new Intl.NumberFormat('ru-KZ', { maximumFractionDigits: 0 }).format(12500)} (${i18n.t('events.currencyUnknown')})`,
+      `${i18n.t('events.from')} ${new Intl.NumberFormat('ru-KZ', { maximumFractionDigits: 0 }).format(12500)} (${i18n.t('events.currencyUnknown')})`,
     )
     expect(price).not.toHaveTextContent('₸')
   })

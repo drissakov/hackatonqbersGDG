@@ -1,8 +1,8 @@
 # Qadam Astana frontend
 
 D04 React/Vite/TypeScript single-page place and event search in kk/ru/en.
-Consumes [shared API v1.2](../contracts/api-v1.md) plus the pending S03/D03
-event-discovery v1.3 extension described below. Node.js 24 was tested;
+Consumes [shared API v1.3](../contracts/api-v1.md), including the published
+transient event-discovery response. Node.js 24 was tested;
 `package-lock.json` locks the installed dependency tree.
 
 ## Setup and development
@@ -28,18 +28,23 @@ database readiness.
 
 The client calls `POST /api/recommendations`, `POST /api/events/search` and, only
 after selecting an alternative with a known origin/destination, `POST /api/route`.
-No failed API request is replaced with fixtures. On this committed base
-(`origin/main ba6039e`) search handlers are still 503 scaffolds. Real searches
-require Sabyrzhan's pending S03/D03 integration, currently running separately on
-port 8006. D04 does not modify that backend or claim S04 constraint evaluation.
+No failed API request is replaced with fixtures. Event search validates the
+actual `contracts/transient-event-search-response.schema.json` response. Its
+conditional session cards, separate listings, source IDs, timestamps and literal
+false storage/indexing rights remain separate from persistent event records.
+Unknown tickets, end times and lower-bound prices never become confirmed fits.
+Listings are shown as unconfirmed information and do not initiate route requests.
+Listings fully represented by session cards are not repeated; extra sessions,
+schedule wording and missing-data diagnostics remain visible. Every `price_from`
+is shown as a lower bound, including regular and promotional source prices.
+The API transport checks locale, source references, HTTP/domain status and the
+request correlation ID before rendering.
 
-`src/lib/event-search-response.schema.json` is a frontend-owned, semantic copy
-of that existing integration's v1.3 response schema. It validates ephemeral D03
-listings/session evidence without editing the shared contracts. The contract
-check verifies the shared v1.2 definitions and fields remain compatible with this
-snapshot. Sabyrzhan must review/publish v1.3, then the snapshot should be replaced
-with the shared generated schema. No event-source storage/indexing rights follow
-from this adapter.
+`src/lib/event-search-response.schema.json` is retained only for backwards
+compatibility with earlier integrations and development examples. The contract
+check verifies the published transient wire fields and supported schema keywords
+against the shared schema, as well as legacy compatibility. Production requests
+use `/api/events/search`; no event data is saved to browser storage.
 
 ## Checks and build
 

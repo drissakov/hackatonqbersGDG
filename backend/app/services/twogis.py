@@ -201,10 +201,16 @@ class TwoGISAdapter:
             if not isinstance(results, list) or not results or not isinstance(results[0], dict):
                 raise _ProviderFailure("invalid_response")
             result = results[0]
+            # Summary output uses length/duration; detailed output uses total_*.
+            # Never combine fields or fall back from a malformed summary pair.
+            if "length" in result or "duration" in result:
+                distance, duration = result.get("length"), result.get("duration")
+            else:
+                distance, duration = result.get("total_distance"), result.get("total_duration")
             return RouteLeg(
                 status="known",
-                distance_meters=_units(result.get("total_distance"), 1_000_000),
-                duration_seconds=_units(result.get("total_duration"), 604_800),
+                distance_meters=_units(distance, 1_000_000),
+                duration_seconds=_units(duration, 604_800),
                 provenance=RouteProvenance(
                     retrieved_at=datetime.now(UTC), provider_locale=provider_locale
                 ),

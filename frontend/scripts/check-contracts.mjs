@@ -9,6 +9,7 @@ const [
   request,
   recommendations,
   legacyEvents,
+  snapshot,
   events,
   routeRequest,
   routeResponse,
@@ -18,8 +19,9 @@ const [
   readJson('contracts/recommendation-request.schema.json'),
   readJson('contracts/recommendation-response.schema.json'),
   readJson('contracts/event-search-response.schema.json'),
-  // Integration 1.3 snapshot stays frontend-owned until the shared delivery.
+  // Keep the older integration only as explicit backwards compatibility.
   readJson('frontend/src/lib/event-search-response.schema.json'),
+  readJson('contracts/transient-event-search-response.schema.json'),
   readJson('contracts/route-request.schema.json'),
   readJson('contracts/route-response.schema.json'),
   readFile(new URL('frontend/src/lib/types.ts', root), 'utf8'),
@@ -58,16 +60,16 @@ function sameValues(actual, expected, label) {
 // definition. Shared contract edits belong to Sabyrzhan, never this checker.
 for (const [name, schema] of Object.entries(legacyEvents.$defs))
   check(
-    JSON.stringify(events.$defs[name]) === JSON.stringify(schema),
+    JSON.stringify(snapshot.$defs[name]) === JSON.stringify(schema),
     `Event snapshot changed legacy definition ${name}`,
   )
 for (const [name, schema] of Object.entries(legacyEvents.properties))
   check(
-    JSON.stringify(events.properties[name]) === JSON.stringify(schema),
+    JSON.stringify(snapshot.properties[name]) === JSON.stringify(schema),
     `Event snapshot changed legacy field ${name}`,
   )
 sameValues(
-  events.required,
+  snapshot.required,
   legacyEvents.required,
   'Event legacy required fields',
 )
@@ -137,18 +139,22 @@ const interfaces = [
   ['POIRecord', recommendations.$defs.POIRecord],
   ['Action', recommendations.$defs.Action],
   ['RecommendationCard', recommendations.$defs.POICard],
-  ['EventRecord', events.$defs.EventRecord],
-  ['EventSession', events.$defs.EventSession],
-  ['EventCardData', events.$defs.EventCard],
-  ['EventSearchResponse', events],
-  ['EventEvidenceSource', events.$defs.EventDiscoverySource],
-  ['EventCitation', events.$defs.EventDiscoveryCitation],
-  ['EventEvidence', events.$defs.EventDiscoveryEvidence],
-  ['EventVenue', events.$defs.EventDiscoveryVenue],
-  ['EventFieldCheck', events.$defs.EventDiscoveryFieldCheck],
-  ['DiscoveredSession', events.$defs.EventDiscoverySession],
-  ['DiscoveredEvent', events.$defs.EventDiscoveryEvent],
-  ['EventDiscovery', events.$defs.EventDiscoveryPayload],
+  ['EventRecord', snapshot.$defs.EventRecord],
+  ['EventSession', snapshot.$defs.EventSession],
+  ['EventCardData', snapshot.$defs.EventCard],
+  ['LegacyEventSearchResponse', snapshot],
+  ['EventEvidenceSource', snapshot.$defs.EventDiscoverySource],
+  ['EventCitation', snapshot.$defs.EventDiscoveryCitation],
+  ['EventEvidence', snapshot.$defs.EventDiscoveryEvidence],
+  ['EventVenue', events.$defs.VenueMatch],
+  ['EventFieldCheck', events.$defs.FieldCheck],
+  ['DiscoveredSession', events.$defs.NormalizedSession],
+  ['DiscoveredEvent', events.$defs.NormalizedEvent],
+  ['EventDiscovery', snapshot.$defs.EventDiscoveryPayload],
+  ['TransientEventSource', events.$defs.TransientEventSource],
+  ['TransientEvent', events.$defs.TransientEvent],
+  ['TransientEventCardData', events.$defs.TransientEventCard],
+  ['TransientEventSearchResponse', events],
   ['SearchWarning', recommendations.$defs.Warning],
 ]
 for (const [name, schema] of interfaces)
@@ -183,6 +189,7 @@ const supported = new Set([
   'maximum',
   'exclusiveMinimum',
   'format',
+  'pattern',
 ])
 function checkKeywords(schema) {
   for (const key of Object.keys(schema))
@@ -197,11 +204,12 @@ for (const schema of [
   request,
   recommendations,
   legacyEvents,
+  snapshot,
   events,
   routeRequest,
   routeResponse,
 ])
   checkKeywords(schema)
 console.log(
-  `Shared v${codes.contract_version} and pending event v1.3 snapshot: frontend enums, field names, compatibility and runtime schema keywords match.`,
+  `Shared v${codes.contract_version} including transient events: frontend enums, wire fields, legacy compatibility and runtime schema keywords match.`,
 )

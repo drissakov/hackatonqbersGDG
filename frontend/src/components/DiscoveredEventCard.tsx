@@ -52,7 +52,7 @@ function VenueSources({ venue }: { venue: EventVenue }) {
   )
 }
 
-function SessionFacts({
+export function SessionFacts({
   session,
   locale,
 }: {
@@ -88,9 +88,7 @@ function SessionFacts({
         <div>
           <dt>{t('events.price')}</dt>
           <dd>
-            {session.price_from !== null && session.price_kind === 'starting'
-              ? `${t('events.from')} `
-              : ''}
+            {session.price_from !== null ? `${t('events.from')} ` : ''}
             {amount}
             {session.price_from !== null && session.price_kind === 'promotion'
               ? ` · ${t('events.promotion')}`
@@ -149,20 +147,23 @@ export function DiscoveredEventCard({
   locale,
   selected = false,
   onSelect,
+  includeWithheldSessions = false,
 }: {
   event: DiscoveredEvent
   citations: EventCitation[]
   locale: Locale
   selected?: boolean
   onSelect?: () => void
+  includeWithheldSessions?: boolean
 }) {
   const { t } = useTranslation()
   const sessions = event.sessions.filter(
     (session) =>
-      session.recommendation_candidate &&
-      session.status === 'scheduled' &&
-      session.starts_at !== null &&
-      session.exclusion_reasons.length === 0,
+      includeWithheldSessions ||
+      (session.recommendation_candidate &&
+        session.status === 'scheduled' &&
+        session.starts_at !== null &&
+        session.exclusion_reasons.length === 0),
   )
   const sourceUrls = new Set([
     event.source_url,
@@ -216,11 +217,12 @@ export function DiscoveredEventCard({
       ) : null}
       {sessions.length > 0 ? (
         sessions.map((session) => (
-          <SessionFacts
-            key={session.session_id}
-            session={session}
-            locale={locale}
-          />
+          <div key={session.session_id}>
+            <SessionFacts session={session} locale={locale} />
+            {!session.recommendation_candidate ? (
+              <p className="event-notice">{t('events.notAlternative')}</p>
+            ) : null}
+          </div>
         ))
       ) : (
         <>

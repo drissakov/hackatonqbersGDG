@@ -206,11 +206,11 @@ function RouteDetails({
                 <p className="field-hint" key={index}>
                   {t(index === 0 ? 'route.walking' : 'route.return')}:{' '}
                   <a
-                    href="https://2gis.kz"
+                    href="https://dev.2gis.ru"
                     target="_blank"
                     rel="noopener noreferrer"
                   >
-                    2GIS
+                    2ГИС
                   </a>{' '}
                   · {t('source.retrieved')}:{' '}
                   {formatDateTime(leg.provenance.retrieved_at, locale)}

@@ -80,9 +80,11 @@ describe('selected walking route details', () => {
       expect(
         screen.getByText(i18n.t('route.approximateDestination')),
       ).toBeVisible()
-      expect(screen.getAllByRole('link', { name: '2GIS' })).toHaveLength(
+      expect(screen.getAllByRole('link', { name: '2ГИС' })).toHaveLength(
         status === 'known' ? 2 : 1,
       )
+      for (const link of screen.getAllByRole('link', { name: '2ГИС' }))
+        expect(link).toHaveAttribute('href', 'https://dev.2gis.ru')
       expect(getRoute).toHaveBeenCalledOnce()
       expect(getRoute).toHaveBeenCalledWith(
         expect.objectContaining({
