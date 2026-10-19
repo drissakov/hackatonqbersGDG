@@ -1,0 +1,64 @@
+{
+  "by_category": {
+    "culture": 68,
+    "entertainment": 15,
+    "food": 739,
+    "museum": 8,
+    "shopping": 68,
+    "sport": 47,
+    "walk": 40
+  },
+  "by_osm_type": {
+    "node": 792,
+    "relation": 4,
+    "way": 189
+  },
+  "category_sample_ids": {
+    "culture": "osm:node:10570309737",
+    "entertainment": "osm:node:10168968309",
+    "food": "osm:node:10064384671",
+    "museum": "osm:node:13948916190",
+    "shopping": "osm:node:10570377881",
+    "sport": "osm:node:10242167716",
+    "walk": "osm:relation:15957444"
+  },
+  "checked_at": "2026-10-19T00:39:26.695759+00:00",
+  "city_coverage": "unknown",
+  "coordinates": {
+    "approximate_centers": 193,
+    "extent": {
+      "east": 71.7181063,
+      "north": 51.2892202,
+      "south": 50.8725627,
+      "west": 71.2358957
+    },
+    "located_records": 985,
+    "outside_boundary": 0
+  },
+  "duplicate_identities": 0,
+  "format": "qadam-poi-quality-v1",
+  "human_verification": {
+    "planned_stages": [
+      "D05",
+      "D06"
+    ],
+    "sample_size": 0,
+    "status": "not_run"
+  },
+  "import_id": "osm-20261019T002412Z-5476f94c2d93",
+  "potential_cross_id_duplicate_groups": 0,
+  "potential_cross_id_duplicate_records": 0,
+  "potential_duplicate_rule": "NFC casefold name and representative coordinates rounded to 6 decimals; never merged",
+  "records_count": 985,
+  "scope": "structural_and_coordinate_checks_only",
+  "sha256": "acfd1406ff9e976a672712fa58798b814685e49474dd2b70dedfc47efda9324a",
+  "source_queries_complete": true,
+  "status": "passed",
+  "validation": {
+    "json_schema": "passed",
+    "nfc": "passed",
+    "pydantic": "passed",
+    "sha256": "passed",
+    "sidecar": "passed"
+  }
+}

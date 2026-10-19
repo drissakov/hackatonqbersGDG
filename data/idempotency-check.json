@@ -1,0 +1,51 @@
+{
+  "check": "same_ten_records_replayed_after_full_import",
+  "corpus_record_count": 985,
+  "database_after": {
+    "by_source": {
+      "osm": 985
+    },
+    "city_coverage": "unknown",
+    "embedded_pois": 0,
+    "import_runs": {
+      "failed": 0,
+      "rejected_records": 0,
+      "total": 12
+    },
+    "is_production_dataset": true,
+    "located_pois": 985,
+    "missing_location_pois": 0,
+    "production_pois": 985,
+    "status": "ok",
+    "test_pois": 0
+  },
+  "database_before": {
+    "by_source": {
+      "osm": 985
+    },
+    "city_coverage": "unknown",
+    "embedded_pois": 0,
+    "import_runs": {
+      "failed": 0,
+      "rejected_records": 0,
+      "total": 11
+    },
+    "is_production_dataset": true,
+    "located_pois": 985,
+    "missing_location_pois": 0,
+    "production_pois": 985,
+    "status": "ok",
+    "test_pois": 0
+  },
+  "full_corpus_replayed": false,
+  "import_id": "osm-20261019T002412Z-5476f94c2d93",
+  "sample_record_count": 10,
+  "sha256": "acfd1406ff9e976a672712fa58798b814685e49474dd2b70dedfc47efda9324a",
+  "status": "passed",
+  "upsert": {
+    "inserted": 0,
+    "rejected": 0,
+    "rejections": [],
+    "updated": 10
+  }
+}
