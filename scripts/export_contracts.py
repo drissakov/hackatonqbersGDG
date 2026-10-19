@@ -8,7 +8,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from backend.app import schemas  # noqa: E402
+from backend.app import event_schemas, schemas  # noqa: E402
 
 MODELS = {
     "poi": schemas.POIRecord,
@@ -22,6 +22,7 @@ MODELS = {
     "coverage-response": schemas.CoverageResponse,
     "route-request": schemas.RouteRequest,
     "route-response": schemas.RouteResponse,
+    "transient-event-search-response": event_schemas.TransientEventSearchResponse,
 }
 CODE_ENUMS = {
     "response_status": schemas.ResponseStatus,
@@ -44,11 +45,12 @@ def artifacts() -> dict[str, dict]:
             **model.model_json_schema(),
         }
     result["codes.json"] = {
-        "contract_version": "1.2.0",
+        "contract_version": "1.3.0",
         "locale": ["kk", "ru", "en"],
         **{key: [member.value for member in enum] for key, enum in CODE_ENUMS.items()},
         "action_code": ["open_source", "open_map"],
         "session_status": ["scheduled", "cancelled", "unknown"],
+        "transient_event_missing_fields": event_schemas.TRANSIENT_MISSING_FIELDS,
         "rejection_code": [
             "invalid_record",
             "duplicate_in_batch",

@@ -18,6 +18,7 @@ from starlette.routing import Match
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 from backend.app.database import DatabasePool, DatabaseUnavailable
+from backend.app.event_schemas import TransientEventSearchResponse
 from backend.app.repository import POIRepository, PostgresPOIRepository
 from backend.app.schemas import (
     CoverageResponse,
@@ -146,7 +147,7 @@ def create_app(*, spa_dir: Path | None = None) -> FastAPI:
             if application.state.pool:
                 await asyncio.to_thread(application.state.pool.close)
 
-    application = FastAPI(title="Qadam Astana API", version="1.2.0", lifespan=lifespan)
+    application = FastAPI(title="Qadam Astana API", version="1.3.0", lifespan=lifespan)
     application.add_middleware(SafeErrorMiddleware)
     application.state.pool = None
     application.state.repository = None
@@ -190,12 +191,27 @@ def create_app(*, spa_dir: Path | None = None) -> FastAPI:
     async def coverage(repository: Annotated[POIRepository, Depends(get_repository)]):
         return await repository.coverage()
 
-    @application.post("/api/v1/recommendations", include_in_schema=False, status_code=503)
+    @application.post("/api/v1/recommendations", include_in_schema=False)
     @application.post(
-        "/api/recommendations", response_model=RecommendationResponse, status_code=503
+        "/api/recommendations",
+        response_model=RecommendationResponse,
+        responses={503: {"model": RecommendationResponse, "description": "Search unavailable"}},
     )
-    async def recommendations(body: RecommendationRequest):
-        return RecommendationResponse(
+    async def recommendations(body: RecommendationRequest, response: Response, request: Request):
+        from backend.app.api import recommendations as search
+
+        return await search(
+            body,
+            response,
+            request,
+            repository_factory=get_repository,
+            router_factory=get_twogis,
+        )
+
+    @application.post("/api/v1/events/search", include_in_schema=False, status_code=503)
+    async def legacy_events(body: EventSearchRequest, response: Response):
+        response.headers["Cache-Control"] = "no-store"
+        return EventSearchResponse(
             request_id=body.request_id,
             status="unavailable",
             items=[],
@@ -205,17 +221,35 @@ def create_app(*, spa_dir: Path | None = None) -> FastAPI:
             ],
         )
 
-    @application.post("/api/v1/events/search", include_in_schema=False, status_code=503)
-    @application.post("/api/events/search", response_model=EventSearchResponse, status_code=503)
-    async def events(body: EventSearchRequest):
-        return EventSearchResponse(
-            request_id=body.request_id,
-            status="unavailable",
-            items=[],
-            sources=[],
-            warnings=[
-                Warning(code="provider_unavailable", message=UNAVAILABLE_MESSAGES[body.locale])
-            ],
+    @application.post(
+        "/api/v2/events/search",
+        response_model=TransientEventSearchResponse,
+        responses={
+            503: {
+                "model": TransientEventSearchResponse,
+                "description": "Event discovery unavailable",
+            }
+        },
+    )
+    @application.post(
+        "/api/events/search",
+        response_model=TransientEventSearchResponse,
+        responses={
+            503: {
+                "model": TransientEventSearchResponse,
+                "description": "Event discovery unavailable",
+            }
+        },
+    )
+    async def events(body: EventSearchRequest, response: Response, request: Request):
+        from backend.app.api import events as search
+
+        return await search(
+            body,
+            response,
+            request,
+            repository_factory=get_repository,
+            router_factory=get_twogis,
         )
 
     @application.post("/api/v1/route", include_in_schema=False)

@@ -1,0 +1,1040 @@
+{
+  "is_synthetic": true,
+  "external_calls": 0,
+  "contract_version": "1.3.0",
+  "transport": "actual FastAPI via in-process ASGI HTTP",
+  "probes": [
+    {
+      "case": "partial_card",
+      "http_status": 200,
+      "body": {
+        "request_id": "ed2f920c-e7e0-4c95-a3b5-7c8895452bba",
+        "contract_version": "1.3.0",
+        "status": "partial",
+        "provider_status": "partial",
+        "provider_code": "unverified_source_facts",
+        "live_web_search": "passed",
+        "items": [
+          {
+            "event": {
+              "id": "c6d4c87e44d36a472be298dc",
+              "title": "Synthetic D03 event",
+              "city": "Astana",
+              "venue_name": "Synthetic venue",
+              "venue_address": "Synthetic street 1, Astana",
+              "source_id": "event-source:3c67f6a34872aed26dbeeb31"
+            },
+            "session": {
+              "session_id": "942ff140523eac4dcc6b0e35",
+              "event_id": "c6d4c87e44d36a472be298dc",
+              "source_url": "https://ticketon.kz/synthetic-d03-playground",
+              "source_fetched_at": "2026-10-19T02:58:34.155691Z",
+              "city": "Astana",
+              "venue_name": "Synthetic venue",
+              "venue_address": "Synthetic street 1, Astana",
+              "venue": {
+                "poi_id": "synthetic:playground:poi:1",
+                "location": {
+                  "latitude": 51.120999999999995,
+                  "longitude": 71.45
+                },
+                "basis": "name_address_astana_permitted_poi",
+                "source_ids": [
+                  "synthetic:playground:source:1"
+                ],
+                "source_urls": [
+                  "https://www.openstreetmap.org/synthetic-d03-playground/poi-1"
+                ],
+                "coordinate_accuracy": "unknown",
+                "geography_basis": "central_astana_bbox"
+              },
+              "starts_at": "2030-01-15T19:00:00+05:00",
+              "ends_at": "2030-01-15T21:00:00+05:00",
+              "price_from": 3000,
+              "currency": "KZT",
+              "price_conditions": "Category-dependent admission price",
+              "price_kind": "starting",
+              "status": "scheduled",
+              "verification_status": "discovered",
+              "verified_fields": [],
+              "ticket_availability": "unknown",
+              "missing_fields": [],
+              "recommendation_candidate": true,
+              "exclusion_reasons": []
+            },
+            "source_ids": [
+              "event-source:3c67f6a34872aed26dbeeb31",
+              "synthetic:playground:source:1"
+            ],
+            "reason_codes": [
+              "route_unknown",
+              "time_unknown",
+              "budget_unknown"
+            ],
+            "activity_code": "other",
+            "visit_minutes_estimate": null,
+            "route_status": "unavailable",
+            "travel_minutes_estimate": null,
+            "fit_status": "unknown",
+            "missing_fields": [
+              "travel_minutes_estimate",
+              "price_kzt_per_person",
+              "source_verification",
+              "ticket_availability"
+            ],
+            "explanation": "Можно рассмотреть посещение этого события. Соответствие всем ограничениям не подтверждено. Проверьте: время пути, цену в KZT на человека, актуальность сведений у источника, наличие билетов. Наличие билетов нужно проверить у организатора.",
+            "generated_locale": "ru",
+            "action": {
+              "code": "open_source",
+              "url": "https://ticketon.kz/synthetic-d03-playground"
+            }
+          }
+        ],
+        "listings": [
+          {
+            "event_id": "c6d4c87e44d36a472be298dc",
+            "title": "Synthetic D03 event",
+            "source_url": "https://ticketon.kz/synthetic-d03-playground",
+            "source_fetched_at": "2026-10-19T02:58:34.155691Z",
+            "city": "Astana",
+            "venue_name": "Synthetic venue",
+            "venue_address": "Synthetic street 1, Astana",
+            "venue": {
+              "poi_id": null,
+              "location": null,
+              "basis": "unknown",
+              "source_ids": [],
+              "source_urls": [],
+              "coordinate_accuracy": "unknown",
+              "geography_basis": "unknown"
+            },
+            "status": "discovered",
+            "schedule_hints": [
+              "15 January 2030, 19:00"
+            ],
+            "missing_fields": [
+              "location"
+            ],
+            "sessions": [
+              {
+                "session_id": "942ff140523eac4dcc6b0e35",
+                "event_id": "c6d4c87e44d36a472be298dc",
+                "source_url": "https://ticketon.kz/synthetic-d03-playground",
+                "source_fetched_at": "2026-10-19T02:58:34.155691Z",
+                "city": "Astana",
+                "venue_name": "Synthetic venue",
+                "venue_address": "Synthetic street 1, Astana",
+                "venue": {
+                  "poi_id": "synthetic:playground:poi:1",
+                  "location": {
+                    "latitude": 51.120999999999995,
+                    "longitude": 71.45
+                  },
+                  "basis": "name_address_astana_permitted_poi",
+                  "source_ids": [
+                    "synthetic:playground:source:1"
+                  ],
+                  "source_urls": [
+                    "https://www.openstreetmap.org/synthetic-d03-playground/poi-1"
+                  ],
+                  "coordinate_accuracy": "unknown",
+                  "geography_basis": "central_astana_bbox"
+                },
+                "starts_at": "2030-01-15T19:00:00+05:00",
+                "ends_at": "2030-01-15T21:00:00+05:00",
+                "price_from": 3000,
+                "currency": "KZT",
+                "price_conditions": "Category-dependent admission price",
+                "price_kind": "starting",
+                "status": "scheduled",
+                "verification_status": "discovered",
+                "verified_fields": [],
+                "ticket_availability": "unknown",
+                "missing_fields": [],
+                "recommendation_candidate": true,
+                "exclusion_reasons": []
+              }
+            ]
+          }
+        ],
+        "sources": [
+          {
+            "source_id": "event-source:3c67f6a34872aed26dbeeb31",
+            "url": "https://ticketon.kz/synthetic-d03-playground",
+            "retrieved_at": "2026-10-19T02:58:34.155691Z",
+            "source_updated_at": null,
+            "storage_allowed": false,
+            "indexing_allowed": false
+          },
+          {
+            "source_id": "synthetic:playground:source:1",
+            "url": "https://www.openstreetmap.org/synthetic-d03-playground/poi-1",
+            "retrieved_at": "2030-01-15T09:00:00+05:00",
+            "source_updated_at": null,
+            "storage_allowed": false,
+            "indexing_allowed": false
+          }
+        ],
+        "warnings": [
+          {
+            "code": "data_unknown",
+            "message": "Условные варианты: проверьте неизвестные данные по источнику.",
+            "fields": []
+          },
+          {
+            "code": "route_unavailable",
+            "message": "Условные варианты: проверьте неизвестные данные по источнику.",
+            "fields": []
+          }
+        ],
+        "excluded_sessions": 0,
+        "rejected_events": 0
+      }
+    },
+    {
+      "case": "listing",
+      "http_status": 200,
+      "body": {
+        "request_id": "0cb0bbf4-02d5-4525-9c22-c819b3d112d0",
+        "contract_version": "1.3.0",
+        "status": "partial",
+        "provider_status": "partial",
+        "provider_code": "unverified_source_facts",
+        "live_web_search": "passed",
+        "items": [],
+        "listings": [
+          {
+            "event_id": "675e4fb64ec4b9512e69d386",
+            "title": "Synthetic D03 event",
+            "source_url": "https://ticketon.kz/synthetic-d03-playground/ru/posters",
+            "source_fetched_at": "2026-10-19T02:58:34.179390Z",
+            "city": "Astana",
+            "venue_name": "Synthetic venue",
+            "venue_address": "Synthetic street 1, Astana",
+            "venue": {
+              "poi_id": null,
+              "location": null,
+              "basis": "unknown",
+              "source_ids": [],
+              "source_urls": [],
+              "coordinate_accuracy": "unknown",
+              "geography_basis": "unknown"
+            },
+            "status": "listing",
+            "schedule_hints": [
+              "15 January 2030, 19:00"
+            ],
+            "missing_fields": [
+              "location",
+              "sessions"
+            ],
+            "sessions": []
+          }
+        ],
+        "sources": [
+          {
+            "source_id": "event-source:92e6d707f4331b945f1b477a",
+            "url": "https://ticketon.kz/synthetic-d03-playground/ru/posters",
+            "retrieved_at": "2026-10-19T02:58:34.179390Z",
+            "source_updated_at": null,
+            "storage_allowed": false,
+            "indexing_allowed": false
+          }
+        ],
+        "warnings": [
+          {
+            "code": "data_unknown",
+            "message": "Условные варианты: проверьте неизвестные данные по источнику.",
+            "fields": []
+          }
+        ],
+        "excluded_sessions": 0,
+        "rejected_events": 0
+      }
+    },
+    {
+      "case": "cancelled",
+      "http_status": 200,
+      "body": {
+        "request_id": "1ad64567-3847-476a-93db-518687df4064",
+        "contract_version": "1.3.0",
+        "status": "partial",
+        "provider_status": "partial",
+        "provider_code": "unverified_source_facts",
+        "live_web_search": "passed",
+        "items": [],
+        "listings": [
+          {
+            "event_id": "c6d4c87e44d36a472be298dc",
+            "title": "Synthetic D03 event",
+            "source_url": "https://ticketon.kz/synthetic-d03-playground",
+            "source_fetched_at": "2026-10-19T02:58:34.194506Z",
+            "city": "Astana",
+            "venue_name": "Synthetic venue",
+            "venue_address": "Synthetic street 1, Astana",
+            "venue": {
+              "poi_id": null,
+              "location": null,
+              "basis": "unknown",
+              "source_ids": [],
+              "source_urls": [],
+              "coordinate_accuracy": "unknown",
+              "geography_basis": "unknown"
+            },
+            "status": "discovered",
+            "schedule_hints": [
+              "15 January 2030, 19:00"
+            ],
+            "missing_fields": [
+              "location"
+            ],
+            "sessions": [
+              {
+                "session_id": "942ff140523eac4dcc6b0e35",
+                "event_id": "c6d4c87e44d36a472be298dc",
+                "source_url": "https://ticketon.kz/synthetic-d03-playground",
+                "source_fetched_at": "2026-10-19T02:58:34.194506Z",
+                "city": "Astana",
+                "venue_name": "Synthetic venue",
+                "venue_address": "Synthetic street 1, Astana",
+                "venue": {
+                  "poi_id": null,
+                  "location": null,
+                  "basis": "unknown",
+                  "source_ids": [],
+                  "source_urls": [],
+                  "coordinate_accuracy": "unknown",
+                  "geography_basis": "unknown"
+                },
+                "starts_at": "2030-01-15T19:00:00+05:00",
+                "ends_at": "2030-01-15T21:00:00+05:00",
+                "price_from": 3000,
+                "currency": "KZT",
+                "price_conditions": "Category-dependent admission price",
+                "price_kind": "starting",
+                "status": "cancelled",
+                "verification_status": "discovered",
+                "verified_fields": [],
+                "ticket_availability": "unknown",
+                "missing_fields": [
+                  "location"
+                ],
+                "recommendation_candidate": false,
+                "exclusion_reasons": [
+                  "cancelled"
+                ]
+              }
+            ]
+          }
+        ],
+        "sources": [
+          {
+            "source_id": "event-source:3c67f6a34872aed26dbeeb31",
+            "url": "https://ticketon.kz/synthetic-d03-playground",
+            "retrieved_at": "2026-10-19T02:58:34.194506Z",
+            "source_updated_at": null,
+            "storage_allowed": false,
+            "indexing_allowed": false
+          }
+        ],
+        "warnings": [
+          {
+            "code": "data_unknown",
+            "message": "Условные варианты: проверьте неизвестные данные по источнику.",
+            "fields": []
+          }
+        ],
+        "excluded_sessions": 1,
+        "rejected_events": 0
+      }
+    },
+    {
+      "case": "unknown_end",
+      "http_status": 200,
+      "body": {
+        "request_id": "e96c24d6-c76c-4942-8164-cd5ff5d33adf",
+        "contract_version": "1.3.0",
+        "status": "partial",
+        "provider_status": "partial",
+        "provider_code": "unverified_source_facts",
+        "live_web_search": "passed",
+        "items": [
+          {
+            "event": {
+              "id": "c6d4c87e44d36a472be298dc",
+              "title": "Synthetic D03 event",
+              "city": "Astana",
+              "venue_name": "Synthetic venue",
+              "venue_address": "Synthetic street 1, Astana",
+              "source_id": "event-source:3c67f6a34872aed26dbeeb31"
+            },
+            "session": {
+              "session_id": "942ff140523eac4dcc6b0e35",
+              "event_id": "c6d4c87e44d36a472be298dc",
+              "source_url": "https://ticketon.kz/synthetic-d03-playground",
+              "source_fetched_at": "2026-10-19T02:58:34.214605Z",
+              "city": "Astana",
+              "venue_name": "Synthetic venue",
+              "venue_address": "Synthetic street 1, Astana",
+              "venue": {
+                "poi_id": null,
+                "location": null,
+                "basis": "unknown",
+                "source_ids": [],
+                "source_urls": [],
+                "coordinate_accuracy": "unknown",
+                "geography_basis": "unknown"
+              },
+              "starts_at": "2030-01-15T19:00:00+05:00",
+              "ends_at": null,
+              "price_from": 3000,
+              "currency": "KZT",
+              "price_conditions": "Category-dependent admission price",
+              "price_kind": "starting",
+              "status": "scheduled",
+              "verification_status": "discovered",
+              "verified_fields": [],
+              "ticket_availability": "unknown",
+              "missing_fields": [
+                "ends_at",
+                "location"
+              ],
+              "recommendation_candidate": true,
+              "exclusion_reasons": []
+            },
+            "source_ids": [
+              "event-source:3c67f6a34872aed26dbeeb31"
+            ],
+            "reason_codes": [
+              "schedule_unknown",
+              "route_unknown",
+              "time_unknown",
+              "budget_unknown"
+            ],
+            "activity_code": "other",
+            "visit_minutes_estimate": null,
+            "route_status": "unknown",
+            "travel_minutes_estimate": null,
+            "fit_status": "unknown",
+            "missing_fields": [
+              "ends_at",
+              "location",
+              "travel_minutes_estimate",
+              "price_kzt_per_person",
+              "source_verification",
+              "ticket_availability"
+            ],
+            "explanation": "Можно рассмотреть посещение этого события. Соответствие всем ограничениям не подтверждено. Проверьте: время окончания, местоположение, время пути, цену в KZT на человека, актуальность сведений у источника, наличие билетов. Время окончания неизвестно. Наличие билетов нужно проверить у организатора.",
+            "generated_locale": "ru",
+            "action": {
+              "code": "open_source",
+              "url": "https://ticketon.kz/synthetic-d03-playground"
+            }
+          }
+        ],
+        "listings": [
+          {
+            "event_id": "c6d4c87e44d36a472be298dc",
+            "title": "Synthetic D03 event",
+            "source_url": "https://ticketon.kz/synthetic-d03-playground",
+            "source_fetched_at": "2026-10-19T02:58:34.214605Z",
+            "city": "Astana",
+            "venue_name": "Synthetic venue",
+            "venue_address": "Synthetic street 1, Astana",
+            "venue": {
+              "poi_id": null,
+              "location": null,
+              "basis": "unknown",
+              "source_ids": [],
+              "source_urls": [],
+              "coordinate_accuracy": "unknown",
+              "geography_basis": "unknown"
+            },
+            "status": "discovered",
+            "schedule_hints": [
+              "15 January 2030, 19:00"
+            ],
+            "missing_fields": [
+              "location"
+            ],
+            "sessions": [
+              {
+                "session_id": "942ff140523eac4dcc6b0e35",
+                "event_id": "c6d4c87e44d36a472be298dc",
+                "source_url": "https://ticketon.kz/synthetic-d03-playground",
+                "source_fetched_at": "2026-10-19T02:58:34.214605Z",
+                "city": "Astana",
+                "venue_name": "Synthetic venue",
+                "venue_address": "Synthetic street 1, Astana",
+                "venue": {
+                  "poi_id": null,
+                  "location": null,
+                  "basis": "unknown",
+                  "source_ids": [],
+                  "source_urls": [],
+                  "coordinate_accuracy": "unknown",
+                  "geography_basis": "unknown"
+                },
+                "starts_at": "2030-01-15T19:00:00+05:00",
+                "ends_at": null,
+                "price_from": 3000,
+                "currency": "KZT",
+                "price_conditions": "Category-dependent admission price",
+                "price_kind": "starting",
+                "status": "scheduled",
+                "verification_status": "discovered",
+                "verified_fields": [],
+                "ticket_availability": "unknown",
+                "missing_fields": [
+                  "ends_at",
+                  "location"
+                ],
+                "recommendation_candidate": true,
+                "exclusion_reasons": []
+              }
+            ]
+          }
+        ],
+        "sources": [
+          {
+            "source_id": "event-source:3c67f6a34872aed26dbeeb31",
+            "url": "https://ticketon.kz/synthetic-d03-playground",
+            "retrieved_at": "2026-10-19T02:58:34.214605Z",
+            "source_updated_at": null,
+            "storage_allowed": false,
+            "indexing_allowed": false
+          }
+        ],
+        "warnings": [
+          {
+            "code": "data_unknown",
+            "message": "Условные варианты: проверьте неизвестные данные по источнику.",
+            "fields": []
+          }
+        ],
+        "excluded_sessions": 0,
+        "rejected_events": 0
+      }
+    },
+    {
+      "case": "return_unknown",
+      "http_status": 200,
+      "body": {
+        "request_id": "270d0fcd-d1f6-4260-be8e-33533e45788b",
+        "contract_version": "1.3.0",
+        "status": "partial",
+        "provider_status": "partial",
+        "provider_code": "unverified_source_facts",
+        "live_web_search": "passed",
+        "items": [
+          {
+            "event": {
+              "id": "c6d4c87e44d36a472be298dc",
+              "title": "Synthetic D03 event",
+              "city": "Astana",
+              "venue_name": "Synthetic venue",
+              "venue_address": "Synthetic street 1, Astana",
+              "source_id": "event-source:3c67f6a34872aed26dbeeb31"
+            },
+            "session": {
+              "session_id": "942ff140523eac4dcc6b0e35",
+              "event_id": "c6d4c87e44d36a472be298dc",
+              "source_url": "https://ticketon.kz/synthetic-d03-playground",
+              "source_fetched_at": "2026-10-19T02:58:34.232054Z",
+              "city": "Astana",
+              "venue_name": "Synthetic venue",
+              "venue_address": "Synthetic street 1, Astana",
+              "venue": {
+                "poi_id": "synthetic:playground:poi:1",
+                "location": {
+                  "latitude": 51.120999999999995,
+                  "longitude": 71.45
+                },
+                "basis": "name_address_astana_permitted_poi",
+                "source_ids": [
+                  "synthetic:playground:source:1"
+                ],
+                "source_urls": [
+                  "https://www.openstreetmap.org/synthetic-d03-playground/poi-1"
+                ],
+                "coordinate_accuracy": "unknown",
+                "geography_basis": "central_astana_bbox"
+              },
+              "starts_at": "2030-01-15T19:00:00+05:00",
+              "ends_at": "2030-01-15T21:00:00+05:00",
+              "price_from": 3000,
+              "currency": "KZT",
+              "price_conditions": "Category-dependent admission price",
+              "price_kind": "starting",
+              "status": "scheduled",
+              "verification_status": "discovered",
+              "verified_fields": [],
+              "ticket_availability": "unknown",
+              "missing_fields": [],
+              "recommendation_candidate": true,
+              "exclusion_reasons": []
+            },
+            "source_ids": [
+              "event-source:3c67f6a34872aed26dbeeb31",
+              "synthetic:playground:source:1"
+            ],
+            "reason_codes": [
+              "route_unknown",
+              "time_unknown",
+              "budget_unknown"
+            ],
+            "activity_code": "other",
+            "visit_minutes_estimate": null,
+            "route_status": "unknown",
+            "travel_minutes_estimate": null,
+            "fit_status": "unknown",
+            "missing_fields": [
+              "travel_minutes_estimate",
+              "return_travel_minutes_estimate",
+              "price_kzt_per_person",
+              "source_verification",
+              "ticket_availability"
+            ],
+            "explanation": "Можно рассмотреть посещение этого события. Соответствие всем ограничениям не подтверждено. Проверьте: время пути, время обратного пути, цену в KZT на человека, актуальность сведений у источника, наличие билетов. Наличие билетов нужно проверить у организатора.",
+            "generated_locale": "ru",
+            "action": {
+              "code": "open_source",
+              "url": "https://ticketon.kz/synthetic-d03-playground"
+            }
+          }
+        ],
+        "listings": [
+          {
+            "event_id": "c6d4c87e44d36a472be298dc",
+            "title": "Synthetic D03 event",
+            "source_url": "https://ticketon.kz/synthetic-d03-playground",
+            "source_fetched_at": "2026-10-19T02:58:34.232054Z",
+            "city": "Astana",
+            "venue_name": "Synthetic venue",
+            "venue_address": "Synthetic street 1, Astana",
+            "venue": {
+              "poi_id": null,
+              "location": null,
+              "basis": "unknown",
+              "source_ids": [],
+              "source_urls": [],
+              "coordinate_accuracy": "unknown",
+              "geography_basis": "unknown"
+            },
+            "status": "discovered",
+            "schedule_hints": [
+              "15 January 2030, 19:00"
+            ],
+            "missing_fields": [
+              "location"
+            ],
+            "sessions": [
+              {
+                "session_id": "942ff140523eac4dcc6b0e35",
+                "event_id": "c6d4c87e44d36a472be298dc",
+                "source_url": "https://ticketon.kz/synthetic-d03-playground",
+                "source_fetched_at": "2026-10-19T02:58:34.232054Z",
+                "city": "Astana",
+                "venue_name": "Synthetic venue",
+                "venue_address": "Synthetic street 1, Astana",
+                "venue": {
+                  "poi_id": "synthetic:playground:poi:1",
+                  "location": {
+                    "latitude": 51.120999999999995,
+                    "longitude": 71.45
+                  },
+                  "basis": "name_address_astana_permitted_poi",
+                  "source_ids": [
+                    "synthetic:playground:source:1"
+                  ],
+                  "source_urls": [
+                    "https://www.openstreetmap.org/synthetic-d03-playground/poi-1"
+                  ],
+                  "coordinate_accuracy": "unknown",
+                  "geography_basis": "central_astana_bbox"
+                },
+                "starts_at": "2030-01-15T19:00:00+05:00",
+                "ends_at": "2030-01-15T21:00:00+05:00",
+                "price_from": 3000,
+                "currency": "KZT",
+                "price_conditions": "Category-dependent admission price",
+                "price_kind": "starting",
+                "status": "scheduled",
+                "verification_status": "discovered",
+                "verified_fields": [],
+                "ticket_availability": "unknown",
+                "missing_fields": [],
+                "recommendation_candidate": true,
+                "exclusion_reasons": []
+              }
+            ]
+          }
+        ],
+        "sources": [
+          {
+            "source_id": "event-source:3c67f6a34872aed26dbeeb31",
+            "url": "https://ticketon.kz/synthetic-d03-playground",
+            "retrieved_at": "2026-10-19T02:58:34.232054Z",
+            "source_updated_at": null,
+            "storage_allowed": false,
+            "indexing_allowed": false
+          },
+          {
+            "source_id": "synthetic:playground:source:1",
+            "url": "https://www.openstreetmap.org/synthetic-d03-playground/poi-1",
+            "retrieved_at": "2030-01-15T09:00:00+05:00",
+            "source_updated_at": null,
+            "storage_allowed": false,
+            "indexing_allowed": false
+          }
+        ],
+        "warnings": [
+          {
+            "code": "data_unknown",
+            "message": "Условные варианты: проверьте неизвестные данные по источнику.",
+            "fields": []
+          }
+        ],
+        "excluded_sessions": 0,
+        "rejected_events": 0
+      }
+    },
+    {
+      "case": "window_conflict",
+      "http_status": 200,
+      "body": {
+        "request_id": "0ee40608-87ac-4e5c-ab41-00a86dc705ad",
+        "contract_version": "1.3.0",
+        "status": "partial",
+        "provider_status": "partial",
+        "provider_code": "unverified_source_facts",
+        "live_web_search": "passed",
+        "items": [],
+        "listings": [
+          {
+            "event_id": "c6d4c87e44d36a472be298dc",
+            "title": "Synthetic D03 event",
+            "source_url": "https://ticketon.kz/synthetic-d03-playground",
+            "source_fetched_at": "2026-10-19T02:58:34.248875Z",
+            "city": "Astana",
+            "venue_name": "Synthetic venue",
+            "venue_address": "Synthetic street 1, Astana",
+            "venue": {
+              "poi_id": null,
+              "location": null,
+              "basis": "unknown",
+              "source_ids": [],
+              "source_urls": [],
+              "coordinate_accuracy": "unknown",
+              "geography_basis": "unknown"
+            },
+            "status": "discovered",
+            "schedule_hints": [
+              "15 January 2030, 19:00"
+            ],
+            "missing_fields": [
+              "location"
+            ],
+            "sessions": [
+              {
+                "session_id": "942ff140523eac4dcc6b0e35",
+                "event_id": "c6d4c87e44d36a472be298dc",
+                "source_url": "https://ticketon.kz/synthetic-d03-playground",
+                "source_fetched_at": "2026-10-19T02:58:34.248875Z",
+                "city": "Astana",
+                "venue_name": "Synthetic venue",
+                "venue_address": "Synthetic street 1, Astana",
+                "venue": {
+                  "poi_id": null,
+                  "location": null,
+                  "basis": "unknown",
+                  "source_ids": [],
+                  "source_urls": [],
+                  "coordinate_accuracy": "unknown",
+                  "geography_basis": "unknown"
+                },
+                "starts_at": "2030-01-15T19:00:00+05:00",
+                "ends_at": null,
+                "price_from": 3000,
+                "currency": "KZT",
+                "price_conditions": "Category-dependent admission price",
+                "price_kind": "starting",
+                "status": "scheduled",
+                "verification_status": "discovered",
+                "verified_fields": [],
+                "ticket_availability": "unknown",
+                "missing_fields": [
+                  "location",
+                  "ends_at"
+                ],
+                "recommendation_candidate": false,
+                "exclusion_reasons": [
+                  "insufficient_time"
+                ]
+              }
+            ]
+          }
+        ],
+        "sources": [
+          {
+            "source_id": "event-source:3c67f6a34872aed26dbeeb31",
+            "url": "https://ticketon.kz/synthetic-d03-playground",
+            "retrieved_at": "2026-10-19T02:58:34.248875Z",
+            "source_updated_at": null,
+            "storage_allowed": false,
+            "indexing_allowed": false
+          }
+        ],
+        "warnings": [
+          {
+            "code": "data_unknown",
+            "message": "Условные варианты: проверьте неизвестные данные по источнику.",
+            "fields": []
+          }
+        ],
+        "excluded_sessions": 1,
+        "rejected_events": 0
+      }
+    },
+    {
+      "case": "unavailable",
+      "http_status": 503,
+      "body": {
+        "request_id": "8b8fd7f3-f951-481f-ba7d-d207f571dd59",
+        "contract_version": "1.3.0",
+        "status": "unavailable",
+        "provider_status": "unavailable",
+        "provider_code": "network_unavailable_or_timeout",
+        "live_web_search": "failed",
+        "items": [],
+        "listings": [],
+        "sources": [],
+        "warnings": [
+          {
+            "code": "provider_unavailable",
+            "message": "Поиск недоступен. Повторите попытку позже.",
+            "fields": []
+          }
+        ],
+        "excluded_sessions": 0,
+        "rejected_events": 0
+      }
+    },
+    {
+      "case": "clarification",
+      "http_status": 200,
+      "body": {
+        "request_id": "7520725f-bdf7-4dc6-b718-23b6d5c244c2",
+        "contract_version": "1.3.0",
+        "status": "unknown",
+        "provider_status": "unknown",
+        "provider_code": "constraint_clarification",
+        "live_web_search": "not_run",
+        "items": [],
+        "listings": [],
+        "sources": [],
+        "warnings": [
+          {
+            "code": "missing_input",
+            "message": "Уточните ограничения: date_time.",
+            "fields": []
+          }
+        ],
+        "excluded_sessions": 0,
+        "rejected_events": 0
+      }
+    },
+    {
+      "case": "source_instruction_fallback",
+      "http_status": 200,
+      "body": {
+        "request_id": "1b2d1999-7f59-49c1-9709-245160be0ed1",
+        "contract_version": "1.3.0",
+        "status": "partial",
+        "provider_status": "partial",
+        "provider_code": "unverified_source_facts",
+        "live_web_search": "passed",
+        "items": [
+          {
+            "event": {
+              "id": "c6d4c87e44d36a472be298dc",
+              "title": "Synthetic D03 event",
+              "city": "Astana",
+              "venue_name": "Synthetic venue",
+              "venue_address": "Synthetic street 1, Astana",
+              "source_id": "event-source:3c67f6a34872aed26dbeeb31"
+            },
+            "session": {
+              "session_id": "942ff140523eac4dcc6b0e35",
+              "event_id": "c6d4c87e44d36a472be298dc",
+              "source_url": "https://ticketon.kz/synthetic-d03-playground",
+              "source_fetched_at": "2026-10-19T02:58:34.288783Z",
+              "city": "Astana",
+              "venue_name": "Synthetic venue",
+              "venue_address": "Synthetic street 1, Astana",
+              "venue": {
+                "poi_id": "synthetic:playground:poi:1",
+                "location": {
+                  "latitude": 51.120999999999995,
+                  "longitude": 71.45
+                },
+                "basis": "name_address_astana_permitted_poi",
+                "source_ids": [
+                  "synthetic:playground:source:1"
+                ],
+                "source_urls": [
+                  "https://www.openstreetmap.org/synthetic-d03-playground/poi-1"
+                ],
+                "coordinate_accuracy": "unknown",
+                "geography_basis": "central_astana_bbox"
+              },
+              "starts_at": "2030-01-15T19:00:00+05:00",
+              "ends_at": "2030-01-15T21:00:00+05:00",
+              "price_from": 3000,
+              "currency": "KZT",
+              "price_conditions": "Category-dependent admission price",
+              "price_kind": "starting",
+              "status": "scheduled",
+              "verification_status": "discovered",
+              "verified_fields": [],
+              "ticket_availability": "unknown",
+              "missing_fields": [],
+              "recommendation_candidate": true,
+              "exclusion_reasons": []
+            },
+            "source_ids": [
+              "event-source:3c67f6a34872aed26dbeeb31",
+              "synthetic:playground:source:1"
+            ],
+            "reason_codes": [
+              "route_unknown",
+              "time_unknown",
+              "budget_unknown"
+            ],
+            "activity_code": "other",
+            "visit_minutes_estimate": null,
+            "route_status": "unavailable",
+            "travel_minutes_estimate": null,
+            "fit_status": "unknown",
+            "missing_fields": [
+              "travel_minutes_estimate",
+              "price_kzt_per_person",
+              "source_verification",
+              "ticket_availability"
+            ],
+            "explanation": "Можно рассмотреть посещение этого события. Соответствие всем ограничениям не подтверждено. Проверьте: время пути, цену в KZT на человека, актуальность сведений у источника, наличие билетов. Наличие билетов нужно проверить у организатора.",
+            "generated_locale": "ru",
+            "action": {
+              "code": "open_source",
+              "url": "https://ticketon.kz/synthetic-d03-playground"
+            }
+          }
+        ],
+        "listings": [
+          {
+            "event_id": "c6d4c87e44d36a472be298dc",
+            "title": "Synthetic D03 event",
+            "source_url": "https://ticketon.kz/synthetic-d03-playground",
+            "source_fetched_at": "2026-10-19T02:58:34.288783Z",
+            "city": "Astana",
+            "venue_name": "Synthetic venue",
+            "venue_address": "Synthetic street 1, Astana",
+            "venue": {
+              "poi_id": null,
+              "location": null,
+              "basis": "unknown",
+              "source_ids": [],
+              "source_urls": [],
+              "coordinate_accuracy": "unknown",
+              "geography_basis": "unknown"
+            },
+            "status": "discovered",
+            "schedule_hints": [
+              "15 January 2030, 19:00"
+            ],
+            "missing_fields": [
+              "location"
+            ],
+            "sessions": [
+              {
+                "session_id": "942ff140523eac4dcc6b0e35",
+                "event_id": "c6d4c87e44d36a472be298dc",
+                "source_url": "https://ticketon.kz/synthetic-d03-playground",
+                "source_fetched_at": "2026-10-19T02:58:34.288783Z",
+                "city": "Astana",
+                "venue_name": "Synthetic venue",
+                "venue_address": "Synthetic street 1, Astana",
+                "venue": {
+                  "poi_id": "synthetic:playground:poi:1",
+                  "location": {
+                    "latitude": 51.120999999999995,
+                    "longitude": 71.45
+                  },
+                  "basis": "name_address_astana_permitted_poi",
+                  "source_ids": [
+                    "synthetic:playground:source:1"
+                  ],
+                  "source_urls": [
+                    "https://www.openstreetmap.org/synthetic-d03-playground/poi-1"
+                  ],
+                  "coordinate_accuracy": "unknown",
+                  "geography_basis": "central_astana_bbox"
+                },
+                "starts_at": "2030-01-15T19:00:00+05:00",
+                "ends_at": "2030-01-15T21:00:00+05:00",
+                "price_from": 3000,
+                "currency": "KZT",
+                "price_conditions": "Category-dependent admission price",
+                "price_kind": "starting",
+                "status": "scheduled",
+                "verification_status": "discovered",
+                "verified_fields": [],
+                "ticket_availability": "unknown",
+                "missing_fields": [],
+                "recommendation_candidate": true,
+                "exclusion_reasons": []
+              }
+            ]
+          }
+        ],
+        "sources": [
+          {
+            "source_id": "event-source:3c67f6a34872aed26dbeeb31",
+            "url": "https://ticketon.kz/synthetic-d03-playground",
+            "retrieved_at": "2026-10-19T02:58:34.288783Z",
+            "source_updated_at": null,
+            "storage_allowed": false,
+            "indexing_allowed": false
+          },
+          {
+            "source_id": "synthetic:playground:source:1",
+            "url": "https://www.openstreetmap.org/synthetic-d03-playground/poi-1",
+            "retrieved_at": "2030-01-15T09:00:00+05:00",
+            "source_updated_at": null,
+            "storage_allowed": false,
+            "indexing_allowed": false
+          }
+        ],
+        "warnings": [
+          {
+            "code": "data_unknown",
+            "message": "Условные варианты: проверьте неизвестные данные по источнику.",
+            "fields": []
+          },
+          {
+            "code": "route_unavailable",
+            "message": "Условные варианты: проверьте неизвестные данные по источнику.",
+            "fields": []
+          },
+          {
+            "code": "data_unknown",
+            "message": "Объяснение сформировано безопасным шаблоном.",
+            "fields": []
+          }
+        ],
+        "excluded_sessions": 0,
+        "rejected_events": 0
+      }
+    }
+  ]
+}

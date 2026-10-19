@@ -1,0 +1,29 @@
+{
+  "request_id": "00000000-0000-4000-8000-000000000013",
+  "contract_version": "1.3.0",
+  "status": "unavailable",
+  "provider_status": "unavailable",
+  "provider_code": "synthetic_example_only",
+  "live_web_search": "not_run",
+  "items": [],
+  "listings": [],
+  "sources": [
+    {
+      "source_id": "synthetic:source-1",
+      "url": "https://example.invalid/synthetic-event",
+      "retrieved_at": "2030-01-15T10:00:00+05:00",
+      "source_updated_at": null,
+      "storage_allowed": false,
+      "indexing_allowed": false
+    }
+  ],
+  "warnings": [
+    {
+      "code": "data_unknown",
+      "message": "Synthetic example only; facts are unknown.",
+      "fields": []
+    }
+  ],
+  "excluded_sessions": 0,
+  "rejected_events": 0
+}

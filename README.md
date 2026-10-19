@@ -89,22 +89,36 @@ time/null rules and geo search are in [API v1.1](contracts/api-v1.md).
 Partial imports never deactivate/delete absent POIs. No production corpus ships
 with S01; `city_coverage=unknown` must not be presented as complete city coverage.
 
-## API for D01
+## API for D04
 
 | Method | Path | Current behavior |
 | --- | --- | --- |
 | GET | `/api/health` | 200 `{"status":"ok"}`, no external calls |
 | GET | `/api/coverage` | 200 real DB counters; 503 if unavailable/unmigrated |
-| POST | `/api/recommendations` | 503, contract envelope with unavailable status |
-| POST | `/api/events/search` | 503, separate event envelope, unavailable status |
+| POST | `/api/recommendations` | S04 real-corpus alternatives; 200 ok/partial/unknown/no_match, unavailable 503 |
+| POST | `/api/events/search` | S04 transient event v1.3: cards/listings/sources, unknowns preserved; unavailable 503 |
+| POST | `/api/v2/events/search` | Explicit versioned alias for the transient event response |
+| POST | `/api/v1/events/search` | Legacy persistent-event shape, unchanged 503 unavailable |
 | POST | `/api/route` | Optional S02 walking: 200 known/unknown; disabled/unavailable 503, null total |
 
-S00 `/api/v1/recommendations`, `/api/v1/events/search` remain aliases;
-`/api/v1/route` also works. Invalid input is sanitized JSON 422, internal failure
+S00 `/api/v1/recommendations` remains an alias; `/api/v1/route` also works.
+Event clients must select the new transient contract or the preserved legacy
+path explicitly. Invalid input is sanitized JSON 422, internal failure
 is generic JSON 500, and unknown `/api` paths are JSON 404. The SPA fallback
 never captures `/api`. D01 must inspect non-2xx JSON instead of turning 503 into
 an empty successful search. Request/response schemas and synthetic examples live
 in `contracts/`. No event service implementation is modified by S01.
+
+S04 connects Damir's unchanged D03 through the shared Responses `search_web`
+client and Pydantic extraction. Runtime event sources explicitly prohibit
+storage/indexing; HTTP uses `Cache-Control: no-store`. A separate listings array
+retains discovered schedules that cannot become recommended sessions. Unknown
+end, price-from, tickets or travel never become a confirmed fit. The bounded
+web sample cannot establish `no_match` or complete city coverage.
+See [the v1.3 event contract](contracts/api-v1.md#transient-event-discovery-s04-v13)
+and [S04 checks and D04 handoff](docs/handoffs/S04.md). Existing POI and persistent
+event schemas are unchanged. D04 frontend wiring is Damir's next consumer work;
+this change does not edit his UI, normalizer, ingestion or data files.
 
 S02's approved [route contract v1.2](contracts/api-v1.md#walking-route-s02-v12)
 adds separate outbound/return_route metrics in meters/seconds, ephemeral

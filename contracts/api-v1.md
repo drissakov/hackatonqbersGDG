@@ -1,7 +1,8 @@
-# Qadam Astana API contract v1.2.0
+# Qadam Astana API contract v1.3.0
 
 Owner: Sabyrzhan. Consumers: Damir's frontend, ingestion and event service.
-Python source of truth: `backend/app/schemas.py`; generated JSON Schema and
+Python sources of truth: `backend/app/schemas.py` and the additive transient
+event models in `backend/app/event_schemas.py`; generated JSON Schema and
 `codes.json` live here. Regenerate using `scripts/export_contracts.py`; CI/local
 checks must run it with `--check`. JSON Schema enforces structure and formats;
 Pydantic additionally checks source references, rights, temporal order and
@@ -14,21 +15,30 @@ the user on 2026-10-19. Search, POI, event, coverage and route request shapes ar
 unchanged. Existing unavailable route examples remain valid. D04 must consume
 the expanded route response; teammate acknowledgement is not claimed.
 
+S04's v1.3 extension adds a separate transient event discovery response, explicitly
+approved by the user on 2026-10-19. Existing persistent schemas remain byte-for-byte
+unchanged. `codes.json` advances its version and adds `transient_event_missing_fields`;
+existing enum members are unchanged. Runtime event discoveries gain no storage,
+embedding or indexing rights. See the transient event section below before wiring D04.
+
 ## HTTP surface and current implementation boundary
 
 | Method | Path | Request / response | Current state |
 | --- | --- | --- | --- |
 | GET | `/api/health` | No body -> `{"status":"ok"}` | Implemented; process health only |
 | GET | `/api/coverage` | No body / coverage-response | Real DB counters, 200; DB unavailable 503 |
-| POST | `/api/recommendations` | recommendation-request / recommendation-response | Scaffold, 503 unavailable |
-| POST | `/api/events/search` | event-search-request / event-search-response | Scaffold, 503 unavailable |
+| POST | `/api/recommendations` | recommendation-request / recommendation-response | S04 independent POI alternatives; 200 or 503 unavailable |
+| POST | `/api/events/search` | event-search-request / transient-event-search-response | S04 runtime event discovery; same response as v2 |
+| POST | `/api/v2/events/search` | event-search-request / transient-event-search-response | Explicit transient v1.3 response; 200 or 503 unavailable |
+| POST | `/api/v1/events/search` | event-search-request / event-search-response | Preserved persistent-wire scaffold, 503 unavailable |
 | POST | `/api/route` | route-request / route-response | S02 optional walking; 200 known/unknown, 503 unavailable |
 | GET | `/api/dev/pois` | Explicit synthetic POI fixture | Only APP_ENV=development/test AND DEV_FIXTURE_MODE=true; otherwise 404 |
 
 All wire bodies are JSON, snake_case. `/api/health` has no request_id envelope,
 does not read settings, and performs no provider/database calls. S00's reserved
-`/api/v1/recommendations` and `/api/v1/events/search` remain compatible aliases;
-`/api/v1/route` is also an alias. They have identical bodies and status codes.
+`/api/v1/recommendations` and `/api/v1/route` remain compatible aliases.
+The event v1 endpoint preserves its old unavailable body; unversioned and v2 event
+search use the new transient response. Clients must select the matching schema.
 `VITE_API_BASE_URL=/api` means new callers append `/recommendations`,
 `/events/search` or `/route`. Existing D01 `/v1/...` calls still work. The Vite
 dev proxy forwards `/api` to port 8000. Production uses the same origin.
@@ -45,6 +55,96 @@ provider bodies, secrets or raw input values. Error responses use
 (500 code `internal_error`, empty fields). Coverage infrastructure failure uses
 503 code `database_unavailable`. Invalid request_id is replaced by a generated UUID
 for error correlation. Never expose a raw Pydantic/SDK exception in that route.
+
+## Transient event discovery (S04, v1.3)
+
+`POST /api/events/search` and `/api/v2/events/search` accept the unchanged
+EventSearchRequest and return `transient-event-search-response.schema.json`.
+`/api/v1/events/search` keeps the unchanged persistent EventSearchResponse scaffold.
+The new response is a separate type, not a union and not a persistent EventRecord.
+The legacy POI, event, session, request and route schemas are unchanged.
+
+| Envelope field | Meaning |
+| --- | --- |
+| `request_id` | Original caller UUID |
+| `contract_version` | Exactly `1.3.0` |
+| `status` | `partial` for conditional cards/listings, `unknown` without defensible data, `unavailable` for required-provider failure |
+| `provider_status`, `provider_code` | D03 provider state and a bounded safe code; no raw provider errors |
+| `live_web_search` | `not_run`, `passed` or `failed`; discoveries require completed search evidence |
+| `items` | At most three independent TransientEventCard alternatives |
+| `listings` | At most ten unchanged D03 NormalizedEvent objects; these are discoveries, not confirmed recommendations |
+| `sources` | At most 100 transient source references; every nested session/listing/venue URL is included |
+| `warnings` | Existing warning codes and localized messages; partial responses require warnings |
+| `excluded_sessions`, `rejected_events` | Nonnegative discarded-row counts; these do not measure city coverage |
+
+A bounded live search cannot prove complete absence: this response rejects
+`no_match`. Current D03 always has unknown ticket availability, so cards remain
+`fit_status=unknown`, and `ok` cannot be produced. Provider failure is never
+converted to no_match. A partial response can contain only listings, unlike the
+persistent search envelope. No raw SearchEvidence text, citation context, tool
+payload or normalization prompt is returned through HTTP.
+
+TransientEventSource contains `source_id`, `url`, `retrieved_at`, nullable
+`source_updated_at`, and literal false `storage_allowed`/`indexing_allowed` flags.
+`retrieved_at` is the caller's observation anchor from D03, not a guaranteed
+origin-page fetch time or source modification time. Unknown modification times
+stay null. These flags describe the transient event payload; a linked permitted
+OSM POI does not grant rights over the event site's content. Source IDs are unique;
+a URL may retain both its original POI source identity and a runtime URL identity.
+Runtime identities use `event-source:` plus the first 24 SHA-256 hex characters
+of the exact normalized URL string. Source URLs cannot contain credentials.
+
+Each card contains an `event` header (`id`, `title`, nullable `city`, `venue_name`,
+`venue_address`, and its actual parent `source_id`), one unchanged D03
+NormalizedSession in `session`, `source_ids`, existing `reason_codes` and
+`activity_code` (`other` when no category is established), nullable
+`visit_minutes_estimate`, `route_status`, `travel_minutes_estimate`, `fit_status`,
+`missing_fields`, `explanation`, `generated_locale`, and `action`. The header has
+no duplicate sessions list. The session retains its own independently grounded
+city/venue/source, nullable starts/ends, `price_from`, currency/kind/conditions,
+field verification and unknown ticket availability. Parent venue facts are not
+silently inherited by a session page.
+
+Card sources must include the actual event parent source and the session source;
+the navigation action must point to a cited source URL. Venue source URLs also
+appear in the envelope; nested venue `source_ids` keep their original permitted
+POI identities. A field check must reference the same session, source URL, exact
+field value and an observation at least as recent as its evidence anchor.
+`verification_status=verified` covers only the listed checks, not the whole event.
+
+Unknown `ends_at`, travel and source verification remain explicit missing fields.
+`ticket_availability` is always missing in current D03. `price_from` is a lower
+bound, including when its kind is regular; it never establishes a hard budget
+fit. Absent indoor facts do not support `indoor_match`. Missing-field strings are
+bounded to 32 and checked against `codes.json.transient_event_missing_fields`;
+the existing persistent missing-field enum remains unchanged. Optional visit
+allowances are backend suggestions labelled with `visit_duration_estimate`,
+separate from actual session start/end facts.
+
+Pydantic additionally enforces source references, eligibility, distinct session
+cards, session/event parent IDs, temporal ordering and DTO count bounds. Only
+scheduled Astana sessions with a known start and no exclusion reasons become
+cards. The runtime service, using an explicit aware clock, also excludes past,
+wrong-date, cancelled and unreachable-in-time sessions; a schema alone cannot
+establish that a session is still in the future. Listings may retain incomplete
+sessions for inspection without representing them as recommendations. No runtime
+event payload is written to the corpus, cached for indexing or embedded.
+
+Before the route shortlist, S04 deduplicates only a fully known exact identity:
+normalized title, venue name, venue address and start instant. Source-scoped
+listings remain separate. A source-bound explicit cancellation adds
+`source_cancellation` to session `exclusion_reasons`; a cancellation conflicting
+with an identical session from another source adds `unresolved_cancellation` to
+that copy. Neither can become a recommendation. Extracted status and source
+references remain visible. These are exclusion diagnostics, not new reason-code
+enum members. The narrow text guard does not recognize every cancellation phrase
+or independently verify source truth; conditional policies, negations and other
+dated sessions are not treated as proof of cancellation.
+
+All `transient-event-*.test.json` examples are explicitly synthetic. They verify
+wire structure and honest uncertainty, never live web access or real event facts.
+Existing frontend consumers need D04 wiring for this new response; no frontend
+or Damir-owned event module is changed by the contract addition.
 
 ## Walking route (S02, v1.2)
 
