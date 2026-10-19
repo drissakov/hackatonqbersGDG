@@ -2,10 +2,11 @@ import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { Coordinates } from '../lib/types'
 import type { Destination } from './DestinationDetails'
+import { StreetMap } from './StreetMap'
 
 type MapApi = Awaited<ReturnType<(typeof import('@2gis/mapgl'))['load']>>
 
-/** Coordinates only: no guessed streets, destination coordinates or route geometry. */
+/** Real basemaps and sourced points; route summaries never become guessed lines. */
 export function DestinationMap({
   origin,
   destinations,
@@ -105,14 +106,11 @@ export function DestinationMap({
   }, [publicKey, pointKey, mapKey])
 
   if (allPoints.length === 0) return <p>{t('map.noPoints')}</p>
-  const minLat = Math.min(...allPoints.map((point) => point.latitude)) - 0.003
-  const maxLat = Math.max(...allPoints.map((point) => point.latitude)) + 0.003
-  const minLon = Math.min(...allPoints.map((point) => point.longitude)) - 0.005
-  const maxLon = Math.max(...allPoints.map((point) => point.longitude)) + 0.005
-  const x = (point: Coordinates) =>
-    28 + (344 * (point.longitude - minLon)) / (maxLon - minLon)
-  const y = (point: Coordinates) =>
-    190 - (160 * (point.latitude - minLat)) / (maxLat - minLat)
+  const selected = visible.find((item) => item.id === selectedId)
+  const walkingUrl =
+    origin && selected?.location
+      ? `https://2gis.ru/astana/directions/tab/pedestrian/points/${origin.longitude},${origin.latitude}|${selected.location.longitude},${selected.location.latitude}`
+      : null
   return (
     <>
       {publicKey ? (
@@ -129,50 +127,27 @@ export function DestinationMap({
           {t(state === 'failed' ? 'map.unavailable' : 'location.mapLoading')}
         </p>
       ) : null}
-      <svg
-        className="coordinate-map"
-        viewBox="0 0 400 220"
-        role="img"
-        aria-label={t('map.coordinateView')}
-      >
-        <title>{t('map.coordinateView')}</title>
-        <path
-          d="M0 55H400M0 110H400M0 165H400M100 0V220M200 0V220M300 0V220"
-          className="coordinate-grid"
+      {!publicKey || state === 'failed' ? (
+        <StreetMap
+          origin={origin}
+          destinations={visible}
+          selectedId={selectedId}
+          onSelect={onSelect}
         />
-        {origin ? (
-          <g>
-            <circle
-              cx={x(origin)}
-              cy={y(origin)}
-              r="9"
-              className="origin-pin"
-            />
-            <text x={x(origin)} y={y(origin) - 16} textAnchor="middle">
-              {t('map.origin')}
-            </text>
-          </g>
+      ) : null}
+      <div className="map-caption">
+        <p className="field-hint">{t('map.interactionHint')}</p>
+        {walkingUrl ? (
+          <a
+            className="map-route-link"
+            href={walkingUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {t('map.openWalkingRoute')} <span aria-hidden="true">↗</span>
+          </a>
         ) : null}
-        {points.map((point) => (
-          <g key={point.id}>
-            <circle
-              cx={x(point.location)}
-              cy={y(point.location)}
-              r={point.id === selectedId ? 13 : 10}
-              className="destination-pin"
-            />
-            <text
-              x={x(point.location)}
-              y={y(point.location) + 4}
-              textAnchor="middle"
-              className="pin-number"
-            >
-              {point.index + 1}
-            </text>
-          </g>
-        ))}
-      </svg>
-      <p className="field-hint">{t('map.coordinateView')}</p>
+      </div>
       <ol className="map-legend">
         {visible.map((item, index) => (
           <li key={item.id}>

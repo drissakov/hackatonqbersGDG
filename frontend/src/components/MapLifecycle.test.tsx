@@ -237,7 +237,7 @@ describe('optional MapGL lifecycle', () => {
     ).toHaveAttribute('aria-pressed', 'true')
   })
 
-  it('releases all destination markers and the map after provider failure while preserving coordinate fallback', async () => {
+  it('releases all destination markers and the map after provider failure while preserving the street map fallback', async () => {
     const view = render(
       <DestinationMap
         origin={origin}
@@ -250,7 +250,7 @@ describe('optional MapGL lifecycle', () => {
     act(() => mock.maps[0].handlers.get('error')?.({ lngLat: [] }))
     expect(screen.getByText(i18n.t('map.unavailable'))).toBeVisible()
     expect(
-      screen.getByRole('img', { name: i18n.t('map.coordinateView') }),
+      screen.getByRole('region', { name: i18n.t('map.streetView') }),
     ).toBeVisible()
     expect(mock.maps[0].destroy).toHaveBeenCalledOnce()
     for (const marker of mock.markers)

@@ -110,8 +110,12 @@ generated citation paragraphs and raw server warning messages are not UI copy.
 Editing query, origin or any filter cancels the old search and route and clears
 their results. Request generations and abort signals reject late completions.
 Only up to three alternatives appear. Their known coordinates and the origin
-are shown on a coordinate map, with optional 2GIS basemap when configured. No
-route line is invented. The route panel reports outbound/return separately,
+are shown on an interactive OpenStreetMap street map without an API key, or
+on the optional 2GIS basemap when configured. Markers select destinations;
+zoom, drag and fit controls keep the starting point and alternatives usable.
+Only visible OSM tiles are requested, with browser caching and visible attribution.
+No route line is invented: a walking-directions link opens the selected endpoints
+in 2GIS. The route panel reports outbound/return separately,
 provider attribution and approximate destination; card route values are labelled
 as the search snapshot. Ambiguous event-session venues have no routed point.
 GPS denial leaves manual coordinates available. Only language preference is
