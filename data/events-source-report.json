@@ -1,0 +1,148 @@
+{
+  "task_id": "D03",
+  "shared_contract_version": "1.1.0",
+  "observed_at": "2026-10-19T01:24:01.714643+00:00",
+  "artifact_role": "Manual minimal-fact verification report; not a production corpus or test fixture.",
+  "acquisition": "Public page opened using the research web tool, not OpenAI Responses.",
+  "source_timestamp": null,
+  "fetched_at_semantics": "Time the evidence was inspected; not a guaranteed origin-server fetch time.",
+  "live_responses_web_search": {
+    "status": "not_run",
+    "code": "shared_web_search_method_missing",
+    "shared_method_present": false,
+    "calls_measured": 0,
+    "latency_ms": null
+  },
+  "source_policy": [
+    {
+      "domain": "ticketon.kz",
+      "runtime_search_allowed_by_brief": true,
+      "storage_allowed": false,
+      "indexing_allowed": false,
+      "rights_basis_url": null,
+      "coverage": "not_measured"
+    },
+    {
+      "domain": "astanaballet.com",
+      "runtime_search_allowed_by_brief": true,
+      "storage_allowed": false,
+      "indexing_allowed": false,
+      "rights_basis_url": null,
+      "coverage": "not_measured"
+    },
+    {
+      "domain": "astanaopera.kz",
+      "runtime_search_allowed_by_brief": true,
+      "storage_allowed": false,
+      "indexing_allowed": false,
+      "rights_basis_url": null,
+      "coverage": "not_measured"
+    },
+    {
+      "domain": "visitastana.kz",
+      "runtime_search_allowed_by_brief": true,
+      "storage_allowed": false,
+      "indexing_allowed": false,
+      "rights_basis_url": null,
+      "coverage": "not_measured"
+    }
+  ],
+  "observations": [
+    {
+      "url": "https://astanaballet.com/en/posters",
+      "status": "public_page_read",
+      "supported_fields": [
+        "title",
+        "city",
+        "venue_address",
+        "day_month_hint"
+      ],
+      "limits": "Listing page has day/month and clock, but no explicit session year; no confirmed session, end, price or ticket availability."
+    },
+    {
+      "url": "https://www.astanaballet.com/en/posters?page=1",
+      "status": "fetch_failed",
+      "code": "http_502"
+    },
+    {
+      "url": "https://www.astanaballet.com/kz/posters",
+      "status": "fetch_failed",
+      "code": "fetch_timeout"
+    },
+    {
+      "url": "https://astanaopera.kz/ru/afisha?lang=en",
+      "status": "public_page_read_without_session_data",
+      "limits": "Rendered research output did not contain usable event/session facts."
+    }
+  ],
+  "citations": [
+    {
+      "url": "https://astanaballet.com/en/posters",
+      "fields": [
+        "title",
+        "venue_address",
+        "day_month_hint"
+      ],
+      "locator": "Performance schedule, fourth entry, and contact footer",
+      "kind": "manual_public_page_reference; not an API url_citation annotation"
+    }
+  ],
+  "real_example": {
+    "provider_status": "partial",
+    "provider_code": "manual_listing_only",
+    "live_web_search": "not_run",
+    "evidence": null,
+    "events": [
+      {
+        "event_id": "ac63b547a173c796d555336d",
+        "title": "The Heritage of the Great Steppe",
+        "source_url": "https://astanaballet.com/en/posters",
+        "source_fetched_at": "2026-10-19T01:24:01.714643Z",
+        "city": "Astana",
+        "venue_name": "Astana Ballet",
+        "venue_address": "Uly Dala dangyly, 43",
+        "venue": {
+          "poi_id": null,
+          "location": null,
+          "basis": "unknown",
+          "source_ids": [],
+          "source_urls": [],
+          "coordinate_accuracy": "unknown",
+          "geography_basis": "unknown"
+        },
+        "status": "listing",
+        "schedule_hints": [
+          "24 October"
+        ],
+        "missing_fields": [
+          "session_year",
+          "starts_at",
+          "ends_at",
+          "price_from",
+          "currency",
+          "price_conditions",
+          "ticket_availability",
+          "location",
+          "sessions"
+        ],
+        "sessions": []
+      }
+    ],
+    "excluded_sessions": 0,
+    "rejected_events": 0
+  },
+  "consumer_notes": [
+    "Do not ingest or embed this research report; no reviewed event-site storage rights.",
+    "No Ticketon scraper, CAPTCHA workaround, hidden endpoint or ticket inventory request was used.",
+    "No year was inferred from retrieval date, neighboring news or selected request date.",
+    "The source report has no copied article text, photographs or provider raw payloads."
+  ],
+  "independent_poi_check": {
+    "status": "passed",
+    "records_validated": 985,
+    "corpus_sha256": "acfd1406ff9e976a672712fa58798b814685e49474dd2b70dedfc47efda9324a",
+    "input": "Existing D02 ignored canonical OSM export, read-only; not copied into D03.",
+    "venue_match_basis": "unknown",
+    "limitation": "Exact source-language name/address did not resolve to one independent POI; coordinates remain null."
+  }
+}
