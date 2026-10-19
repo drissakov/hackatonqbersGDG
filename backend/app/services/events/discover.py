@@ -2,12 +2,13 @@
 
 import asyncio
 import json
+import logging
 import math
 import re
 from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
 from typing import Protocol, cast
-from urllib.parse import urlsplit
+from urllib.parse import urlsplit, urlunsplit
 from zoneinfo import ZoneInfo
 
 from pydantic import ValidationError
@@ -30,6 +31,7 @@ ALLOWED_DOMAINS = (
     "visitastana.kz",
 )
 ASTANA_TIMEZONE = ZoneInfo("Asia/Almaty")
+logger = logging.getLogger(__name__)
 DEFAULT_DISCOVERY_DAYS = 30
 PARAGRAPH_BREAK = re.compile(r"\n[ \t\r]*\n")
 
@@ -83,11 +85,16 @@ def parse_search_evidence(raw: Mapping[str, object], *, fetched_at: datetime) ->
         if not isinstance(item, Mapping) or item.get("type") != "web_search_call":
             continue
         action = item.get("action")
-        if (
-            item.get("status") != "completed"
-            or not isinstance(action, Mapping)
-            or action.get("type") != "search"
-        ):
+        if item.get("status") != "completed" or not isinstance(action, Mapping):
+            continue
+        if action.get("type") in ("open_page", "find_in_page"):
+            url = _allowed_url(action.get("url"))
+            if url:
+                if url not in urls and len(urls) >= 100:
+                    raise ProviderError("web_search_sources_invalid")
+                urls[url] = EvidenceSource(url=url, fetched_at=fetched_at)
+            continue
+        if action.get("type") != "search":
             continue
         search_used = True
         sources = action.get("sources")
@@ -107,6 +114,8 @@ def parse_search_evidence(raw: Mapping[str, object], *, fetched_at: datetime) ->
         raise ProviderError("web_search_sources_missing")
     text_parts: list[str] = []
     citations: list[Citation] = []
+    identities = {_citation_identity(url) for url in urls}
+    citation_count = unobserved_urls = invalid_offsets = invalid_titles = 0
     offset = 0
     for item in output:
         if not isinstance(item, Mapping) or item.get("type") != "message":
@@ -140,18 +149,29 @@ def parse_search_evidence(raw: Mapping[str, object], *, fetched_at: datetime) ->
             for annotation in annotations:
                 if not isinstance(annotation, Mapping) or annotation.get("type") != "url_citation":
                     continue
+                citation_count += 1
                 url = _allowed_url(annotation.get("url"))
                 start, end = annotation.get("start_index"), annotation.get("end_index")
                 title = annotation.get("title")
+                if url is None or _citation_identity(url) not in identities:
+                    unobserved_urls += 1
+                    continue
                 if (
-                    url not in urls
-                    or type(start) is not int
+                    type(start) is not int
                     or type(end) is not int
                     or not 0 <= start < end <= len(text)
-                    or not isinstance(title, str)
-                    or len(title) > 1000
                 ):
+                    invalid_offsets += 1
                     continue
+                if not isinstance(title, str) or len(title) > 1000:
+                    invalid_titles += 1
+                    continue
+                if url not in urls:
+                    if len(urls) >= 100:
+                        raise ProviderError("web_search_sources_invalid")
+                    # Preserve the provider's displayed citation URL. Only its
+                    # known attribution marker may differ from the observed page.
+                    urls[url] = EvidenceSource(url=url, fetched_at=fetched_at)
                 if len(citations) >= 100:
                     raise ProviderError("web_search_annotations_invalid")
                 paragraph_end = max(
@@ -186,10 +206,30 @@ def parse_search_evidence(raw: Mapping[str, object], *, fetched_at: datetime) ->
             text_parts.append(text)
             offset += len(text) + 1
     if not citations:
+        logger.warning(
+            "event_citations_missing sources=%d annotations=%d unobserved_urls=%d "
+            "invalid_offsets=%d invalid_titles=%d",
+            len(urls),
+            citation_count,
+            unobserved_urls,
+            invalid_offsets,
+            invalid_titles,
+        )
         raise ProviderError("web_search_citations_missing")
     return SearchEvidence(
         text="\n".join(text_parts), sources=list(urls.values()), citations=citations
     )
+
+
+def _citation_identity(url: str) -> str:
+    """Ignore only the Responses attribution marker, preserving business parameters."""
+    parsed = urlsplit(url)
+    query = "&".join(
+        part
+        for part in parsed.query.split("&")
+        if part not in {"utm_source=openai", "utm_source=chatgpt.com"}
+    )
+    return urlunsplit(parsed._replace(query=query))
 
 
 def build_search_prompt(request: EventSearchRequest, *, selected_at: datetime) -> str:

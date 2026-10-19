@@ -89,3 +89,21 @@ bounded tool action (three total) for missing session evidence. The existing
 discovery and UI timeouts are unchanged. Rejected timestamps emit only static
 diagnostic codes; no source text, dates, queries, GPS or exception bodies are
 logged. The follow-up passed **1063 tests, 17 skipped**, Ruff checks and format.
+
+## Citation provenance correction
+
+The second live checkpoint still returned `web_search_citations_missing`.
+Review identified another reproducible parser mismatch: completed page-open
+and find actions were ignored even though they explicitly identify a consulted
+page. These URLs now join the bounded source set, while a completed search
+remains mandatory. Failed/incomplete page actions cannot add provenance.
+
+Only the known provider attribution markers `utm_source=openai` and
+`utm_source=chatgpt.com` may differ between an observed and displayed citation
+URL. The original citation URL is retained. Other query parameters, paths,
+fragments and domains remain exact; at most 100 combined sources/aliases are
+accepted. Missing citations emit only integer counters for rejected URL,
+offset and title fields. No provider bodies are logged.
+
+This correction passed **1077 tests, 17 skipped**, compileall, Ruff check,
+Ruff format (79 files), contract drift (13 artifacts) and diff checks.
