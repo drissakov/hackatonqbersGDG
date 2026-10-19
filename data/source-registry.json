@@ -1,0 +1,165 @@
+{
+  "attribution": "© OpenStreetMap contributors",
+  "boundary_source_id": "relation/3087155",
+  "boundary_url": "https://www.openstreetmap.org/relation/3087155",
+  "categories": {
+    "culture": [
+      [
+        "amenity",
+        "theatre"
+      ],
+      [
+        "amenity",
+        "arts_centre"
+      ],
+      [
+        "amenity",
+        "library"
+      ],
+      [
+        "tourism",
+        "gallery"
+      ],
+      [
+        "historic",
+        "monument"
+      ],
+      [
+        "historic",
+        "memorial"
+      ]
+    ],
+    "entertainment": [
+      [
+        "amenity",
+        "cinema"
+      ],
+      [
+        "leisure",
+        "amusement_arcade"
+      ],
+      [
+        "leisure",
+        "bowling_alley"
+      ],
+      [
+        "leisure",
+        "water_park"
+      ],
+      [
+        "leisure",
+        "playground"
+      ],
+      [
+        "tourism",
+        "theme_park"
+      ],
+      [
+        "tourism",
+        "zoo"
+      ]
+    ],
+    "food": [
+      [
+        "amenity",
+        "cafe"
+      ],
+      [
+        "amenity",
+        "restaurant"
+      ],
+      [
+        "amenity",
+        "fast_food"
+      ],
+      [
+        "amenity",
+        "food_court"
+      ],
+      [
+        "amenity",
+        "ice_cream"
+      ],
+      [
+        "amenity",
+        "bar"
+      ],
+      [
+        "amenity",
+        "pub"
+      ]
+    ],
+    "museum": [
+      [
+        "tourism",
+        "museum"
+      ]
+    ],
+    "shopping": [
+      [
+        "shop",
+        "mall"
+      ],
+      [
+        "amenity",
+        "marketplace"
+      ]
+    ],
+    "sport": [
+      [
+        "leisure",
+        "sports_centre"
+      ],
+      [
+        "leisure",
+        "fitness_centre"
+      ],
+      [
+        "leisure",
+        "stadium"
+      ],
+      [
+        "leisure",
+        "swimming_pool"
+      ],
+      [
+        "leisure",
+        "ice_rink"
+      ],
+      [
+        "leisure",
+        "pitch"
+      ]
+    ],
+    "walk": [
+      [
+        "leisure",
+        "park"
+      ],
+      [
+        "leisure",
+        "garden"
+      ],
+      [
+        "leisure",
+        "nature_reserve"
+      ],
+      [
+        "tourism",
+        "viewpoint"
+      ]
+    ]
+  },
+  "endpoint": "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
+  "fetched_at": "2026-10-19T00:17:48.702014+00:00",
+  "indexing_allowed": true,
+  "license": "ODbL-1.0",
+  "license_url": "https://opendatacommons.org/licenses/odbl/1-0/",
+  "permission_scope": "OSM only. No 2GIS payloads or other providers.",
+  "provider": "osm",
+  "rights_basis_url": "https://www.openstreetmap.org/copyright",
+  "source_timestamp": "2026-10-19T00:16:36Z",
+  "storage_allowed": true,
+  "url": "https://www.openstreetmap.org/copyright",
+  "verified_at": null
+}

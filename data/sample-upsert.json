@@ -1,0 +1,12 @@
+{
+  "check": "first_10_real_contract_records",
+  "duration_seconds": 20.53,
+  "records_count": 10,
+  "upsert": {
+    "inserted": 10,
+    "rejected": 0,
+    "rejections": [],
+    "status": "completed",
+    "updated": 0
+  }
+}
