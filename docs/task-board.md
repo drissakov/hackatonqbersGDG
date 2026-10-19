@@ -25,7 +25,7 @@ must confirm scope at handoff.
 - [x] S01 — database/API implementation and deployment configuration delivered; REVIEW passed 129 tests including isolated SQL checks. Real Supabase migrations/upsert/coverage passed. First HTTPS deployment and managed Data API/exposed-schema verification remain explicit not_run gates; see `handoffs/S01.md`.
 - [ ] D01 — frontend and HTTP 503 fix are published in origin/main; live acceptance with S01 remains pending. This S01 commit does not mark Damir's task complete.
 - [x] S02 — amended 2GIS adapter and walking route contract v1.2 delivered and reviewed. Real walking/Places/discovery remain not_run without confirmed keys/rights; Astana IDs remain unknown. Implementation checkpoint: 183 passed, 11 skipped; tests were not rerun after REVIEW fixes at the user's request. See `handoffs/S02.md`.
-- [x] D02 — repeatable Astana OSM importer, canonical export and coverage/quality reports delivered; 985 real POIs loaded through S01, with 222 tests passed and 11 isolated SQL tests skipped. See `handoffs/D02.md` for replay evidence, transfer artifacts and known limits.
+- [x] D02 — repeatable Astana OSM importer, canonical export and coverage/quality reports delivered; 985 real POIs loaded through S01. Contract 1.2.0 test-fixture follow-up completed and reviewed: 290 tests passed and 11 isolated SQL tests skipped. See `handoffs/D02.md` for original delivery, follow-up checks, replay evidence, transfer artifacts and known limits.
 - [ ] S03–S08 / D03–D08 — planned, not implemented here.
 
 The user's 2026-10-19 S02 request replaces the original stage-02 backend scope
