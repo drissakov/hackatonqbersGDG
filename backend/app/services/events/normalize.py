@@ -307,7 +307,8 @@ def _source_timestamps(
 
 
 def _source_presentation(value: str) -> str:
-    """Remove paired inline markup and horizontal spacing without joining paragraphs."""
+    """Remove inline presentation without changing words or joining paragraphs."""
+    value = value.translate(str.maketrans({char: " " for char in '"«»“”„‟'}))
     markup = re.compile(r"(?<!\w)(?P<marker>\*\*|__|\*|_|`)(?P<body>[^\r\n]+?)(?P=marker)(?!\w)")
     for _ in range(3):
         value = markup.sub(lambda match: match["body"], value)

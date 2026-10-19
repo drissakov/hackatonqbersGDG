@@ -282,6 +282,7 @@ def test_invalid_nonempty_model_timestamp_is_not_replaced_by_source_derivation()
     "quote",
     [
         "Дата проведения: 30 октября 2026 года; Время: 19:00",
+        "«Дата проведения: 30 октября 2026 года»; «Время: 19:00»",
         "Дата проведения: 30 октября 2026 года",
     ],
 )
@@ -302,6 +303,7 @@ def test_literal_markdown_quote_can_use_the_same_validated_source_facts(value):
     ("quote", "spans"),
     [
         ("Date: 30 October; Time: 19:00", ["30 October 2026, 19:00"]),
+        ('Date: 30 October 20"26; Time: 19:00', ["30 October 2026, 19:00"]),
         ("Date: 30 October 2026; Time: 19:00", ["31 October 2026, 19:00"]),
         ("Date: 30 October 2026; Time: 19:00", ["30 October 2026, 20:00"]),
         ("Date: 30 October 2026; Time: 19:00", ["30 October 2026", "Time: 19:00"]),
