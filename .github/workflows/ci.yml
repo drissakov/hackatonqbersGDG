@@ -56,7 +56,7 @@ jobs:
       - name: Run isolated database integration tests
         env:
           TEST_DATABASE_URL: postgresql://postgres:synthetic-ci-only@localhost:5432/qadam_test?sslmode=require
-        run: python -m pytest backend/tests/test_repository_integration.py -q
+        run: python -m pytest backend/tests/test_repository_integration.py backend/tests/test_retrieval_integration.py -q
   image:
     runs-on: ubuntu-latest
     steps:

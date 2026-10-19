@@ -2,7 +2,7 @@
 
 Each contributor has **24 active hours** (48 person-hours total). Windows are
 relative to that contributor's start; they are not promises of wall-clock time.
-S00, S01, the amended S02 and D02 were explicitly authorized in their task chats.
+S00, S01, the amended S02, S03 and D02 were explicitly authorized in their task chats.
 Later rows are coordination plans, not authorization to implement them. Owners
 must confirm scope at handoff.
 
@@ -26,13 +26,14 @@ must confirm scope at handoff.
 - [ ] D01 — frontend and HTTP 503 fix are published in origin/main; live acceptance with S01 remains pending. This S01 commit does not mark Damir's task complete.
 - [x] S02 — amended 2GIS adapter and walking route contract v1.2 delivered and reviewed. Real walking/Places/discovery remain not_run without confirmed keys/rights; Astana IDs remain unknown. Implementation checkpoint: 183 passed, 11 skipped; tests were not rerun after REVIEW fixes at the user's request. See `handoffs/S02.md`.
 - [x] D02 — repeatable Astana OSM importer, canonical export and coverage/quality reports delivered; 985 real POIs loaded through S01. Contract 1.2.0 test-fixture follow-up completed and reviewed: 290 tests passed and 11 isolated SQL tests skipped. See `handoffs/D02.md` for original delivery, follow-up checks, replay evidence, transfer artifacts and known limits.
-- [ ] S03–S08 / D03–D08 — planned, not implemented here.
+- [x] S03 — real-corpus intent and retrieval delivered and reviewed: 985 OSM POIs indexed with 1536-dimensional embeddings; unchanged replay skipped all 985 without API calls. REVIEW fixed constraint preservation and concurrent index/import issues with focused checks; full SQL/provider checks were not repeated at the user's request. See `handoffs/S03.md`.
+- [ ] S04–S08 / D03–D08 — planned, not implemented here.
 
 The user's 2026-10-19 S02 request replaces the original stage-02 backend scope
 with optional 2GIS Places/walking integration previously listed under S04. This
 delivery does not mark S04 complete or authorize further stages. The D02 handoff
-is now available; S03 still requires separate authorization. Remaining stage
-allocation needs coordination.
+is now available; S03 implementation, review, commit and push were explicitly
+authorized on 2026-10-19. Remaining stage allocation needs coordination.
 
 ## Shared-file coordination
 
