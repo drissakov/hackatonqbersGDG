@@ -28,7 +28,7 @@ def load_corpus(jsonl: Path, manifest_path: Path) -> tuple[dict, dict, dict]:
     digest = hashlib.sha256(payload).hexdigest()
     if (
         manifest.get("format") != "qadam-poi-export-v1"
-        or manifest.get("contract_version") not in {"1.1.0", "1.2.0"}
+        or manifest.get("contract_version") not in {"1.1.0", "1.2.0", "1.3.0"}
         or manifest.get("provider") != "osm"
         or manifest.get("city") != "astana"
         or manifest.get("sidecar_required") is not True
