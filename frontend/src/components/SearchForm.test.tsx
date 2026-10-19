@@ -33,6 +33,61 @@ async function withQuery() {
 }
 
 describe('SearchForm contract constraints', () => {
+  it.each([
+    ['search.minutes', 'search.minutesInvalid'],
+    ['search.budget', 'search.budgetInvalid'],
+    ['location.latitude', 'location.coordinatesInvalid'],
+    ['location.longitude', 'location.coordinatesInvalid'],
+    ['search.dateTime', 'search.dateTimeInvalid'],
+  ])(
+    'rejects browser badInput in %s instead of sending an omitted constraint',
+    async (label, message) => {
+      const { onSubmit, user } = await withQuery()
+      const input = screen.getByLabelText(label) as HTMLInputElement
+      // Browsers expose an empty value for incomplete number/date input, while
+      // validity.badInput distinguishes it from the person's deliberate clearing.
+      Object.defineProperty(input, 'validity', {
+        configurable: true,
+        get: () => ({ badInput: true }),
+      })
+      await user.click(screen.getByRole('button', { name: 'search.submit' }))
+      expect(onSubmit).not.toHaveBeenCalled()
+      expect(screen.getByText(message)).toBeVisible()
+      expect(input).toHaveFocus()
+    },
+  )
+
+  it('invalidates the previous intent even when a browser input event has an empty badInput value', async () => {
+    const onInputChange = vi.fn()
+    render(
+      <SearchForm
+        onSubmit={vi.fn()}
+        onInputChange={onInputChange}
+        loading={false}
+        mode="recommendations"
+      />,
+    )
+    const input = screen.getByLabelText('search.minutes') as HTMLInputElement
+    Object.defineProperty(input, 'validity', {
+      configurable: true,
+      get: () => ({ badInput: true }),
+    })
+    fireEvent.input(input, { target: { value: '' } })
+    expect(onInputChange).toHaveBeenCalledOnce()
+  })
+
+  it('focuses the first invalid field before a later invalid constraint', async () => {
+    const user = userEvent.setup()
+    render(
+      <SearchForm onSubmit={vi.fn()} loading={false} mode="recommendations" />,
+    )
+    fireEvent.change(screen.getByLabelText('search.minutes'), {
+      target: { value: '-1' },
+    })
+    await user.click(screen.getByRole('button', { name: 'search.submit' }))
+    expect(screen.getByLabelText('search.query')).toHaveFocus()
+  })
+
   it('keeps untouched defaults nonexplicit and does not invent coordinates', async () => {
     const { onSubmit, user } = await withQuery()
     await user.click(screen.getByRole('button', { name: 'search.submit' }))

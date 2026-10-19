@@ -41,7 +41,12 @@ export function MapPicker({
   const marker = useRef<MarkerInstance | null>(null)
   const api = useRef<MapApi | null>(null)
   const selectRef = useRef(onSelect)
-  const [state, setState] = useState<'loading' | 'ready' | 'failed'>('loading')
+  const releaseMap = useRef<() => void>(() => undefined)
+  const [mapState, setMapState] = useState<{
+    key: string
+    value: 'ready' | 'failed'
+  } | null>(null)
+  const state = mapState?.key === publicKey ? mapState.value : 'loading'
 
   useEffect(() => {
     selectRef.current = onSelect
@@ -49,14 +54,30 @@ export function MapPicker({
 
   useEffect(() => {
     let active = true
-    let cleanup: () => void = () => undefined
+    let instance: MapInstance | null = null
+    const cleanup = () => {
+      const currentMarker = marker.current
+      marker.current = null
+      const current = instance
+      instance = null
+      map.current = null
+      api.current = null
+      currentMarker?.destroy()
+      current?.destroy()
+    }
+    releaseMap.current = cleanup
+    const fail = () => {
+      if (!active) return
+      cleanup()
+      setMapState({ key: publicKey, value: 'failed' })
+    }
     // A map center is only the initial viewport, never an inferred starting point.
     void import('@2gis/mapgl')
       .then(({ load }) => load())
       .then((loadedApi) => {
         if (!active || !container.current) return
         api.current = loadedApi
-        const instance = new loadedApi.Map(container.current, {
+        instance = new loadedApi.Map(container.current, {
           key: publicKey,
           center: [71.43, 51.13],
           zoom: 11,
@@ -65,26 +86,20 @@ export function MapPicker({
         instance.on('click', ({ lngLat }) => {
           if (
             active &&
+            instance !== null &&
             Number.isFinite(lngLat[0]) &&
-            Number.isFinite(lngLat[1])
+            Number.isFinite(lngLat[1]) &&
+            lngLat[0] >= -180 &&
+            lngLat[0] <= 180 &&
+            lngLat[1] >= -90 &&
+            lngLat[1] <= 90
           )
             selectRef.current(lngLat[1], lngLat[0])
         })
-        instance.on('error', () => {
-          if (active) setState('failed')
-        })
-        setState('ready')
-        cleanup = () => {
-          marker.current?.destroy()
-          marker.current = null
-          instance.destroy()
-          map.current = null
-          api.current = null
-        }
+        instance.on('error', fail)
+        setMapState({ key: publicKey, value: 'ready' })
       })
-      .catch(() => {
-        if (active) setState('failed')
-      })
+      .catch(fail)
     return () => {
       active = false
       cleanup()
@@ -93,12 +108,27 @@ export function MapPicker({
 
   useEffect(() => {
     if (state !== 'ready' || !map.current || !api.current) return
+    const instance = map.current
+    const loadedApi = api.current
+    let active = true
     marker.current?.destroy()
     marker.current = null
     const coordinates = validPoint(latitude, longitude)
     if (coordinates)
-      marker.current = new api.current.Marker(map.current, { coordinates })
-  }, [latitude, longitude, state])
+      void Promise.resolve()
+        .then(() => {
+          if (active && map.current === instance)
+            marker.current = new loadedApi.Marker(instance, { coordinates })
+        })
+        .catch(() => {
+          if (!active || map.current !== instance) return
+          releaseMap.current()
+          setMapState({ key: publicKey, value: 'failed' })
+        })
+    return () => {
+      active = false
+    }
+  }, [latitude, longitude, state, publicKey])
 
   return (
     <div className="optional-map">

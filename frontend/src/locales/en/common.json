@@ -7,7 +7,9 @@
     "footer": "One destination. Clear sources. Room for uncertainty.",
     "skip": "Skip to search"
   },
-  "language": { "label": "Interface language" },
+  "language": {
+    "label": "Interface language"
+  },
   "search": {
     "title": "Plan one good outing",
     "query": "What would you like to do?",
@@ -65,8 +67,8 @@
     "partial": "Some details are missing. Check the uncertainty shown on each option.",
     "ok": "Options for your outing",
     "healthChecking": "Checking API…",
-    "healthOk": "API online",
-    "healthError": "API unavailable",
+    "healthOk": "Server online",
+    "healthError": "Server unavailable",
     "endpointUnavailable": "This search endpoint is not available yet. No live result was returned.",
     "retry": "Try again",
     "results": "Your options",
@@ -74,17 +76,60 @@
     "places": "Places",
     "events": "Events"
   },
+  "events": {
+    "listing": "Listing · session unconfirmed",
+    "searchStatus": "Source search",
+    "searchStates": {
+      "passed": "Web search was used",
+      "not_run": "Not run",
+      "failed": "Failed"
+    },
+    "discovered": "Event found in sources",
+    "sessionFacts": "Discovered session details",
+    "price": "Price in source",
+    "from": "From",
+    "promotion": "Promotional price",
+    "currencyUnknown": "currency unknown",
+    "checkedFields": "Only these fields were checked",
+    "discoveredOnly": "Discovered details; session fields have not been independently checked.",
+    "scheduleHint": "Schedule wording from source (not a confirmed session)",
+    "noSession": "No eligible session with a supported date and time was found. This remains a listing.",
+    "ticketsUnknown": "Ticket availability is unknown. Check with the source.",
+    "fitUnknown": "Time, budget and travel fit are unconfirmed. An unknown end time cannot prove the event fits your window.",
+    "observed": "Search observed",
+    "observationNotice": "This is the search observation time, not the page publication time or a guarantee of current availability.",
+    "citations": "Search citations",
+    "citationNotice": "These links were cited by the generated search response. Session facts and ticket availability need confirmation with the source.",
+    "fields": {
+      "city": "City",
+      "venue_name": "Venue",
+      "venue_address": "Venue address",
+      "starts_at": "Start time",
+      "ends_at": "End time",
+      "price_from": "Price from",
+      "currency": "Currency",
+      "price_conditions": "Price conditions",
+      "status": "Session status",
+      "location": "Coordinates",
+      "sessions": "Session date and time"
+    },
+    "checkTickets": "Check tickets",
+    "activity": "Check the venue, session time and ticket details with the source before deciding to attend.",
+    "reason": "This event was found in search sources. Its fit with your constraints remains unconfirmed.",
+    "venueSources": "Independent venue coordinate sources",
+    "venueNotice": "Venue coordinates were matched independently by name and address. Their accuracy and an accessible entrance remain unverified."
+  },
   "dev": {
     "title": "Synthetic preview · development only",
     "description": "Contract examples are fictional. They are not real city places or events.",
     "preview": "Preview contract example",
     "live": "Return to live API",
-    "englishNotice": "Source and generated fixture text is English and is shown unchanged."
+    "englishNotice": "Synthetic source names and source text keep their original language. Explanations use local activity and reason codes when the generated language differs."
   },
   "card": {
     "price": "Per person",
     "visit": "Visit estimate",
-    "travel": "Travel",
+    "travel": "Walking time",
     "route": "Route information",
     "fit": "Preference fit",
     "unknown": "Unknown",
@@ -102,9 +147,19 @@
     "end": "Ends",
     "session": "Session status",
     "test": "Synthetic test only",
-    "estimateNotice": "Visit and estimated travel times are estimates. Confirm details with the source.",
+    "estimateNotice": "Visit duration is an estimate. Walking time is separate; unknown travel does not confirm a time fit.",
     "timezone": "Times shown in Astana (Asia/Almaty)",
-    "unsafeLink": "Source link is unavailable"
+    "unsafeLink": "Source link is unavailable",
+    "category": "Category",
+    "sourceFacts": "Facts from sources",
+    "idea": "Suggested action · model idea",
+    "localizedSummary": "Summary from activity and reason codes",
+    "explanationFallback": "Activity: {{activity}}. Reasons: {{reasons}}. Confirm the source details before visiting.",
+    "reasonUnknown": "Reason unconfirmed",
+    "availability": "Availability",
+    "select": "Show details and walking route",
+    "selected": "Selected · details and walking route",
+    "searchSnapshot": "Route status at search time; selected route details are below."
   },
   "source": {
     "title": "Sources & freshness",
@@ -211,11 +266,45 @@
       "test_fixture": "Synthetic fixture",
       "other": "Other source"
     },
-    "action_code": { "open_source": "View source", "open_map": "Open map" },
+    "action_code": {
+      "open_source": "View source",
+      "open_map": "Open map"
+    },
     "session_status": {
       "scheduled": "Scheduled",
       "cancelled": "Cancelled",
       "unknown": "Status unknown"
     }
+  },
+  "activityAction": {
+    "walk": "Take a walk around this place.",
+    "museum": "Visit the museum and explore its exhibits.",
+    "food": "Stop here for a meal or a drink.",
+    "culture": "Explore a cultural activity at this place.",
+    "sport": "Plan a sports activity at this place.",
+    "shopping": "Browse the shops at this place.",
+    "entertainment": "Try an entertainment activity at this place.",
+    "other": "Explore this place and check its available activities."
+  },
+  "map": {
+    "title": "Starting point and alternatives",
+    "origin": "Starting point",
+    "alternative": "Alternative {{index}}",
+    "unavailable": "Map unavailable. Place details and route status remain below.",
+    "noPoints": "No destination coordinates are available.",
+    "select": "Select {{name}}",
+    "coordinateView": "Coordinate map · no street or route geometry"
+  },
+  "route": {
+    "select": "Select an option to check its walking route.",
+    "loading": "Checking walking route…",
+    "missingOrigin": "Choose a starting point to check the walking route.",
+    "unavailable": "Walking route provider is unavailable. Travel time remains unknown.",
+    "walking": "Walk to destination",
+    "return": "Return walk",
+    "noGeometry": "Route geometry is unavailable. A line is not shown.",
+    "error": "The walking route request failed. Try again.",
+    "notSelected": "No destination selected.",
+    "approximateDestination": "Destination is approximate; an accessible entrance has not been verified."
   }
 }

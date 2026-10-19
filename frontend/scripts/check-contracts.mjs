@@ -4,11 +4,24 @@ import ts from 'typescript'
 const root = new URL('../../', import.meta.url)
 const readJson = async (path) =>
   JSON.parse(await readFile(new URL(path, root), 'utf8'))
-const [codes, request, recommendations, events, types] = await Promise.all([
+const [
+  codes,
+  request,
+  recommendations,
+  legacyEvents,
+  events,
+  routeRequest,
+  routeResponse,
+  types,
+] = await Promise.all([
   readJson('contracts/codes.json'),
   readJson('contracts/recommendation-request.schema.json'),
   readJson('contracts/recommendation-response.schema.json'),
   readJson('contracts/event-search-response.schema.json'),
+  // Integration 1.3 snapshot stays frontend-owned until the shared delivery.
+  readJson('frontend/src/lib/event-search-response.schema.json'),
+  readJson('contracts/route-request.schema.json'),
+  readJson('contracts/route-response.schema.json'),
   readFile(new URL('frontend/src/lib/types.ts', root), 'utf8'),
 ])
 const source = ts.createSourceFile(
@@ -41,6 +54,24 @@ function sameValues(actual, expected, label) {
   )
 }
 
+// The transient discovery extension must preserve every legacy property and
+// definition. Shared contract edits belong to Sabyrzhan, never this checker.
+for (const [name, schema] of Object.entries(legacyEvents.$defs))
+  check(
+    JSON.stringify(events.$defs[name]) === JSON.stringify(schema),
+    `Event snapshot changed legacy definition ${name}`,
+  )
+for (const [name, schema] of Object.entries(legacyEvents.properties))
+  check(
+    JSON.stringify(events.properties[name]) === JSON.stringify(schema),
+    `Event snapshot changed legacy field ${name}`,
+  )
+sameValues(
+  events.required,
+  legacyEvents.required,
+  'Event legacy required fields',
+)
+
 const unions = {
   Locale: 'locale',
   ResponseStatus: 'response_status',
@@ -58,6 +89,11 @@ for (const [name, key] of Object.entries(unions)) {
   check(type, `Missing TypeScript union ${name}`)
   sameValues(literalValues(type), codes[key], name)
 }
+sameValues(
+  literalValues(aliases.get('RouteFailureReason')),
+  routeResponse.$defs.RouteLeg.properties.reason.anyOf[0].enum,
+  'RouteFailureReason',
+)
 
 function literalValues(type) {
   if (ts.isParenthesizedTypeNode(type)) return literalValues(type.type)
@@ -90,6 +126,10 @@ function interfaceFields(name) {
 
 const interfaces = [
   ['SearchRequest', request],
+  ['RouteRequest', routeRequest],
+  ['RouteResponse', routeResponse],
+  ['RouteLeg', routeResponse.$defs.RouteLeg],
+  ['RouteProvenance', routeResponse.$defs.RouteProvenance],
   ['SearchResponse', recommendations],
   ['Coordinates', recommendations.$defs.Coordinates],
   ['Source', recommendations.$defs.Source],
@@ -100,6 +140,15 @@ const interfaces = [
   ['EventRecord', events.$defs.EventRecord],
   ['EventSession', events.$defs.EventSession],
   ['EventCardData', events.$defs.EventCard],
+  ['EventSearchResponse', events],
+  ['EventEvidenceSource', events.$defs.EventDiscoverySource],
+  ['EventCitation', events.$defs.EventDiscoveryCitation],
+  ['EventEvidence', events.$defs.EventDiscoveryEvidence],
+  ['EventVenue', events.$defs.EventDiscoveryVenue],
+  ['EventFieldCheck', events.$defs.EventDiscoveryFieldCheck],
+  ['DiscoveredSession', events.$defs.EventDiscoverySession],
+  ['DiscoveredEvent', events.$defs.EventDiscoveryEvent],
+  ['EventDiscovery', events.$defs.EventDiscoveryPayload],
   ['SearchWarning', recommendations.$defs.Warning],
 ]
 for (const [name, schema] of interfaces)
@@ -144,7 +193,15 @@ function checkKeywords(schema) {
   for (const child of schema.anyOf ?? []) checkKeywords(child)
   if (schema.items) checkKeywords(schema.items)
 }
-for (const schema of [request, recommendations, events]) checkKeywords(schema)
+for (const schema of [
+  request,
+  recommendations,
+  legacyEvents,
+  events,
+  routeRequest,
+  routeResponse,
+])
+  checkKeywords(schema)
 console.log(
-  `Contract v${codes.contract_version}: frontend enums, field names and runtime schema keywords match.`,
+  `Shared v${codes.contract_version} and pending event v1.3 snapshot: frontend enums, field names, compatibility and runtime schema keywords match.`,
 )

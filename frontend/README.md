@@ -1,7 +1,8 @@
 # Qadam Astana frontend
 
-D01 React/Vite/TypeScript screen for place and event searches in kk/ru/en.
-Consumes [API contract v1.0.0](../contracts/api-v1.md). Node.js 24 was tested;
+D04 React/Vite/TypeScript single-page place and event search in kk/ru/en.
+Consumes [shared API v1.2](../contracts/api-v1.md) plus the pending S03/D03
+event-discovery v1.3 extension described below. Node.js 24 was tested;
 `package-lock.json` locks the installed dependency tree.
 
 ## Setup and development
@@ -25,11 +26,20 @@ Open `http://127.0.0.1:5173`. Vite proxies relative `/api` requests to
 rejects other origins. `GET /api/health` checks process health, not search or
 database readiness.
 
-The supplied backend implements health. The reserved search paths
-`POST /api/v1/recommendations` and `POST /api/v1/events/search` still return 404
-in this checkout. The UI reports that the endpoint is unavailable; it never
-replaces a failed API request with mock results. A real successful search remains
-blocked until Sabyrzhan supplies the implemented API.
+The client calls `POST /api/recommendations`, `POST /api/events/search` and, only
+after selecting an alternative with a known origin/destination, `POST /api/route`.
+No failed API request is replaced with fixtures. On this committed base
+(`origin/main ba6039e`) search handlers are still 503 scaffolds. Real searches
+require Sabyrzhan's pending S03/D03 integration, currently running separately on
+port 8006. D04 does not modify that backend or claim S04 constraint evaluation.
+
+`src/lib/event-search-response.schema.json` is a frontend-owned, semantic copy
+of that existing integration's v1.3 response schema. It validates ephemeral D03
+listings/session evidence without editing the shared contracts. The contract
+check verifies the shared v1.2 definitions and fields remain compatible with this
+snapshot. Sabyrzhan must review/publish v1.3, then the snapshot should be replaced
+with the shared generated schema. No event-source storage/indexing rights follow
+from this adapter.
 
 ## Checks and build
 
@@ -82,6 +92,26 @@ Dates use Astana wall time (`Asia/Almaty`), amounts use KZT per person, and
 unknown values remain unknown. Default form values are not explicit constraints
 until the person changes them.
 
+Changing language re-renders existing facts and local reason/activity codes. It
+does not repeat a search, rebuild a route or reload the optional map. Free
+explanations appear only when `generated_locale` matches; otherwise a local
+template uses the codes. The next explicit search sends the current locale.
+Source names, addresses and source schedule wording retain their original text;
+generated citation paragraphs and raw server warning messages are not UI copy.
+
+Editing query, origin or any filter cancels the old search and route and clears
+their results. Request generations and abort signals reject late completions.
+Only up to three alternatives appear. Their known coordinates and the origin
+are shown on a coordinate map, with optional 2GIS basemap when configured. No
+route line is invented. The route panel reports outbound/return separately,
+provider attribution and approximate destination; card route values are labelled
+as the search snapshot. Ambiguous event-session venues have no routed point.
+GPS denial leaves manual coordinates available. Only language preference is
+persisted; results, queries and route data stay in memory.
+
+Ticket actions open a confirmed source (or sourced booking URL) to check details;
+availability remains unknown and the app does not offer a purchase.
+
 ## Development fixtures
 
 The expandable development preview deliberately loads synthetic examples from
@@ -89,5 +119,5 @@ The expandable development preview deliberately loads synthetic examples from
 source names and facts are not invented translations. Real API mode is the
 default. Fixture controls and fixture JSON are excluded from production builds.
 
-See [D01 handoff](../docs/handoffs/D01.md) for actual verification results,
-remaining integration blockers and the deployment handoff.
+See [D04 handoff](../docs/handoffs/D04.md) for commands, actual checks, live API
+scenarios, integration dependencies and the next consumer.

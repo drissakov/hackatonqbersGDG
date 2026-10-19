@@ -1,13 +1,22 @@
 import requestSchema from '../../../contracts/recommendation-request.schema.json'
 import recommendationSchema from '../../../contracts/recommendation-response.schema.json'
-import eventSchema from '../../../contracts/event-search-response.schema.json'
+import routeRequestSchema from '../../../contracts/route-request.schema.json'
+import routeResponseSchema from '../../../contracts/route-response.schema.json'
+// Pending Sabyrzhan's shared 1.3 delivery: the reviewed integration snapshot
+// extends the checked-in event contract without changing its legacy fields.
+import eventSchema from './event-search-response.schema.json'
 import type {
   CardDetails,
+  DiscoveredSession,
   EventCardData,
+  EventDiscovery,
   EventSearchResponse,
+  EventVenue,
   Locale,
   RecommendationCard,
   RecommendationResponse,
+  RouteRequest,
+  RouteResponse,
   SearchRequest,
   SearchResponse,
   Source,
@@ -251,6 +260,110 @@ function cardIsValid(card: CardDetails, locale: Locale): boolean {
   )
 }
 
+function normalizeDiscoveryFactories(discovery: EventDiscovery): void {
+  discovery.events ??= []
+  for (const event of discovery.events) {
+    for (const venue of [
+      event.venue,
+      ...event.sessions.map((session) => session.venue),
+    ]) {
+      venue.source_ids ??= []
+      venue.source_urls ??= []
+    }
+    for (const session of event.sessions) session.verified_fields ??= []
+  }
+}
+
+function venueIsValid(venue: EventVenue): boolean {
+  if (venue.basis !== 'name_address_astana_permitted_poi')
+    return venue.poi_id === null && venue.location === null
+  return Boolean(
+    venue.poi_id &&
+    venue.location &&
+    venue.source_ids.length &&
+    venue.source_urls.length &&
+    venue.geography_basis === 'central_astana_bbox',
+  )
+}
+
+function fieldChecksAreValid(session: DiscoveredSession): boolean {
+  return session.verified_fields.every((check) => {
+    const actual = session[check.field]
+    const sameValue =
+      check.field === 'starts_at' || check.field === 'ends_at'
+        ? typeof check.value === 'string' &&
+          typeof actual === 'string' &&
+          validDateTime(check.value) &&
+          Date.parse(actual) === Date.parse(check.value)
+        : actual === check.value
+    return (
+      actual !== null &&
+      sameValue &&
+      check.session_id === session.session_id &&
+      check.source_url === session.source_url &&
+      Date.parse(check.checked_at) >= Date.parse(session.source_fetched_at)
+    )
+  })
+}
+
+function discoveryIsValid(discovery: EventDiscovery): boolean {
+  const evidence = discovery.evidence
+  if (discovery.events.length > 0 && discovery.provider_status !== 'partial')
+    return false
+  if (discovery.events.length > 0 && !evidence) return false
+  if (
+    discovery.live_web_search === 'passed' &&
+    (!evidence || !evidence.sources.length || !evidence.citations.length)
+  )
+    return false
+  if (!evidence) return discovery.events.length === 0
+  const responseText = Array.from(evidence.text)
+  const urls = new Set(evidence.sources.map((source) => source.url))
+  const eventIds = discovery.events.map((event) => event.event_id)
+  const sessionIds = discovery.events.flatMap((event) =>
+    event.sessions.map((session) => session.session_id),
+  )
+  return (
+    urls.size === evidence.sources.length &&
+    new Set(eventIds).size === eventIds.length &&
+    new Set(sessionIds).size === sessionIds.length &&
+    evidence.sources.every(
+      (source) => !source.storage_allowed && !source.indexing_allowed,
+    ) &&
+    evidence.citations.every(
+      (citation) =>
+        urls.has(citation.url) &&
+        citation.end_index > citation.start_index &&
+        citation.end_index <= responseText.length &&
+        responseText
+          .slice(citation.start_index, citation.end_index)
+          .join('') === citation.text,
+    ) &&
+    discovery.events.every(
+      (event) =>
+        urls.has(event.source_url) &&
+        venueIsValid(event.venue) &&
+        event.sessions.every(
+          (session) =>
+            session.event_id === event.event_id &&
+            urls.has(session.source_url) &&
+            venueIsValid(session.venue) &&
+            session.ticket_availability === 'unknown' &&
+            (!session.recommendation_candidate ||
+              (session.status === 'scheduled' &&
+                session.starts_at !== null &&
+                session.exclusion_reasons.length === 0)) &&
+            (session.ends_at === null ||
+              (session.starts_at !== null &&
+                Date.parse(session.ends_at) > Date.parse(session.starts_at))) &&
+            (session.verification_status === 'verified') ===
+              Boolean(session.verified_fields.length) &&
+            fieldChecksAreValid(session),
+        ),
+    )
+  )
+}
+
 export function parseSearchResponse(
   value: unknown,
   kind: 'recommendations',
@@ -271,6 +384,11 @@ export function parseSearchResponse(
   if (!conforms(copy, schema, schema, true))
     throw new ApiError('invalid_response')
   const result = copy as SearchResponse<RecommendationCard | EventCardData>
+  // Warning.fields uses a Pydantic default factory absent from JSON Schema.
+  for (const warning of result.warnings) warning.fields ??= []
+  const discovery =
+    kind === 'events' ? (copy as EventSearchResponse).discovery : null
+  if (discovery) normalizeDiscoveryFactories(discovery)
   if (result.items.some((item) => item.generated_locale !== locale))
     throw new ApiError('locale_mismatch')
   const hasItems = result.status === 'ok' || result.status === 'partial'
@@ -281,8 +399,13 @@ export function parseSearchResponse(
     'poi' in item ? item.poi.id : item.session.id,
   )
   const valid =
-    hasItems === Boolean(result.items.length) &&
+    hasItems === Boolean(result.items.length || discovery?.events.length) &&
     (result.status !== 'partial' || result.warnings.length > 0) &&
+    (!discovery ||
+      (result.items.length === 0 &&
+        result.sources.length === 0 &&
+        result.status === discovery.provider_status &&
+        discoveryIsValid(discovery))) &&
     uniqueSources(result.sources) &&
     result.sources.every(sourceIsValid) &&
     new Set(identities).size === identities.length &&
@@ -331,6 +454,8 @@ function apiBase(): string {
 }
 
 const timeoutMs = 20_000
+const recommendationTimeoutMs = 80_000
+const eventTimeoutMs = 100_000
 
 interface JsonResponse {
   data: unknown
@@ -339,9 +464,10 @@ interface JsonResponse {
 
 async function request(
   path: string,
-  body?: SearchRequest,
+  body?: SearchRequest | RouteRequest,
   signal?: AbortSignal,
   allowUnavailable = false,
+  requestTimeoutMs = timeoutMs,
 ): Promise<JsonResponse> {
   const base = apiBase()
   if (signal?.aborted) throw new ApiError('aborted')
@@ -352,7 +478,7 @@ async function request(
   const timer = window.setTimeout(() => {
     timedOut = true
     controller.abort()
-  }, timeoutMs)
+  }, requestTimeoutMs)
   try {
     const response = await fetch(`${base}${path}`, {
       method: body ? 'POST' : 'GET',
@@ -414,9 +540,10 @@ function validateSearchResponse<
 >(response: JsonResponse, parse: (value: unknown) => T, requestId?: string): T {
   try {
     const result = parse(response.data)
-    // A search 503 may carry only the validated unavailable envelope.
+    // Unavailable search envelopes use 503; completed searches use 200.
     if (
-      (response.status === 503 && result.status !== 'unavailable') ||
+      (response.status !== 200 && response.status !== 503) ||
+      (response.status === 503) !== (result.status === 'unavailable') ||
       (requestId && result.request_id !== requestId)
     )
       throw new ApiError('invalid_response')
@@ -460,7 +587,13 @@ export async function searchRecommendations(
 ): Promise<RecommendationResponse> {
   validateRequest(body)
   return validateSearchResponse(
-    await request('/v1/recommendations', body, signal, true),
+    await request(
+      '/recommendations',
+      body,
+      signal,
+      true,
+      recommendationTimeoutMs,
+    ),
     (value) =>
       parseSearchResponse(value, 'recommendations', body.locale ?? 'kk'),
     body.request_id,
@@ -473,8 +606,95 @@ export async function searchEvents(
 ): Promise<EventSearchResponse> {
   validateRequest(body)
   return validateSearchResponse(
-    await request('/v1/events/search', body, signal, true),
+    await request('/events/search', body, signal, true, eventTimeoutMs),
     (value) => parseSearchResponse(value, 'events', body.locale ?? 'kk'),
     body.request_id,
   )
+}
+
+export function parseRouteResponse(value: unknown): RouteResponse {
+  const copy: unknown = structuredClone(value)
+  if (!conforms(copy, routeResponseSchema, routeResponseSchema, true))
+    throw new ApiError('invalid_response')
+  const result = copy as RouteResponse
+  // Pydantic default factories are not emitted as JSON Schema defaults.
+  result.outbound ??= {
+    status: 'unavailable',
+    reason: 'disabled',
+    distance_meters: null,
+    duration_seconds: null,
+    provenance: null,
+  }
+  result.return_route ??= {
+    status: 'not_requested',
+    reason: 'not_requested',
+    distance_meters: null,
+    duration_seconds: null,
+    provenance: null,
+  }
+  for (const warning of result.warnings) warning.fields ??= []
+  const legs = [result.outbound, result.return_route]
+  if (
+    result.outbound.status === 'not_requested' ||
+    legs.some((leg) => {
+      const known = leg.status === 'known'
+      return (
+        known !==
+          (leg.distance_meters !== null &&
+            leg.duration_seconds !== null &&
+            leg.provenance !== null) ||
+        (known && leg.reason !== null) ||
+        (!known &&
+          (leg.reason === null ||
+            leg.distance_meters !== null ||
+            leg.duration_seconds !== null ||
+            leg.provenance !== null)) ||
+        (leg.status === 'not_requested') !== (leg.reason === 'not_requested')
+      )
+    })
+  )
+    throw new ApiError('invalid_response')
+  const requested = legs.filter((leg) => leg.status !== 'not_requested')
+  const expectedStatus = requested.every((leg) => leg.status === 'known')
+    ? 'known'
+    : requested.some((leg) => leg.status === 'unavailable')
+      ? 'unavailable'
+      : 'unknown'
+  const expectedMinutes =
+    expectedStatus === 'known'
+      ? Math.ceil(
+          requested.reduce((sum, leg) => sum + leg.duration_seconds!, 0) / 60,
+        )
+      : null
+  if (
+    result.status !== expectedStatus ||
+    result.travel_minutes_estimate !== expectedMinutes
+  )
+    throw new ApiError('invalid_response')
+  return result
+}
+
+export async function getRoute(
+  body: RouteRequest,
+  signal?: AbortSignal,
+): Promise<RouteResponse> {
+  if (!conforms(body, routeRequestSchema, routeRequestSchema, false))
+    throw new ApiError('invalid_request')
+  const response = await request('/route', body, signal, true)
+  try {
+    const result = parseRouteResponse(response.data)
+    if (
+      (response.status !== 200 && response.status !== 503) ||
+      (body.request_id && result.request_id !== body.request_id) ||
+      (response.status === 503) !== (result.status === 'unavailable') ||
+      (result.return_route.status !== 'not_requested') !==
+        Boolean(body.return_to_start)
+    )
+      throw new ApiError('invalid_response')
+    return result
+  } catch (error) {
+    if (response.status === 503 && error instanceof ApiError)
+      throw new ApiError(error.code, response.status)
+    throw error
+  }
 }

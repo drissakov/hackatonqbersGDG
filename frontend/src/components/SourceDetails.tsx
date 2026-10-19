@@ -18,6 +18,19 @@ export function SourceDetails({
   const uniqueSources = [
     ...new Map(sources.map((source) => [source.source_id, source])).values(),
   ]
+  const uniqueProvenance = [
+    ...new Map(
+      provenance.map((fact) => [
+        JSON.stringify([
+          fact.source_id,
+          fact.external_id,
+          [...new Set(fact.fields)].sort(),
+          fact.observed_at,
+        ]),
+        fact,
+      ]),
+    ).values(),
+  ]
   return (
     <details className="source-details">
       <summary>{t('source.title')}</summary>
@@ -28,7 +41,7 @@ export function SourceDetails({
           {uniqueSources.map((source) => {
             const url = safeExternalUrl(source.url)
             const rightsUrl = safeExternalUrl(source.rights_basis_url)
-            const facts = provenance.filter(
+            const facts = uniqueProvenance.filter(
               (entry) => entry.source_id === source.source_id,
             )
             return (
@@ -53,7 +66,9 @@ export function SourceDetails({
                   </div>
                   <div>
                     <dt>{t('source.license')}</dt>
-                    <dd>{source.license ?? t('source.unknown')}</dd>
+                    <dd lang={source.license ? '' : locale}>
+                      {source.license ?? t('source.unknown')}
+                    </dd>
                   </div>
                   {rightsUrl ? (
                     <div>
