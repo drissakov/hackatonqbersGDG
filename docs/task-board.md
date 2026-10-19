@@ -2,14 +2,15 @@
 
 Each contributor has **24 active hours** (48 person-hours total). Windows are
 relative to that contributor's start; they are not promises of wall-clock time.
-S00, S01 and D02 were explicitly authorized in this chat. Later rows are coordination
-plans, not authorization to implement them. Owners must confirm scope at handoff.
+S00, S01, the amended S02 and D02 were explicitly authorized in their task chats.
+Later rows are coordination plans, not authorization to implement them. Owners
+must confirm scope at handoff.
 
 | Stage | Active hours | Sabyrzhan task and ownership | Damir task and ownership | Dependency / exit gate |
 | --- | --- | --- | --- | --- |
 | 00 | 0–1 (1h) | S00: shared contract, server/settings/client interfaces, safe preflight, keyless health | D00: frontend scaffold and kk/ru/en foundation | Common contract + runnable health delivered for D01 |
 | 01 | 1–3 (2h) | S01: Supabase schema, PostGIS/pgvector migrations, POI repository implementation | D01: contract-based search form/cards, API transport and fixture states | Use S00 upsert and HTTP contracts; health already belongs to S00 |
-| 02 | 3–6 (3h) | S02: validated API input and database-backed POI retrieval boundary | D02: automatic permitted Astana-wide ingestion/data and coverage report | Persist through upsert_pois; no unlicensed 2GIS corpus |
+| 02 | 3–6 (3h) | S02: optional 2GIS Places and independent walking routes, per the user's scope amendment | D02: automatic permitted Astana-wide ingestion/data and coverage report | D02 persists through upsert_pois; S02 runtime rights/access gates and route contract v1.2; no unlicensed 2GIS corpus |
 | 03 | 6–9 (3h) | S03: embedding/RAG retrieval and source grounding | D03: frontend recommendations and language rendering | Real records and 1536-dimension embeddings; no invented facts |
 | 04 | 9–12 (3h) | S04: optional 2GIS route integration and time-fit checks | D04: event ingestion/services and separate event/session view | Shared contracts owned by Sabyrzhan; event service owned by Damir |
 | 05 | 12–16 (4h) | S05: weather/indoor handling and constraint integration | D05: live API wiring, location/time/budget controls and states | Preserve unknown/unavailable/no_match and explicit constraints |
@@ -23,8 +24,15 @@ plans, not authorization to implement them. Owners must confirm scope at handoff
 - [ ] D00 — in parallel according to the user; no completion evidence available here.
 - [x] S01 — database/API implementation and deployment configuration delivered; REVIEW passed 129 tests including isolated SQL checks. Real Supabase migrations/upsert/coverage passed. First HTTPS deployment and managed Data API/exposed-schema verification remain explicit not_run gates; see `handoffs/S01.md`.
 - [ ] D01 — frontend and HTTP 503 fix are published in origin/main; live acceptance with S01 remains pending. This S01 commit does not mark Damir's task complete.
+- [x] S02 — amended 2GIS adapter and walking route contract v1.2 delivered and reviewed. Real walking/Places/discovery remain not_run without confirmed keys/rights; Astana IDs remain unknown. Implementation checkpoint: 183 passed, 11 skipped; tests were not rerun after REVIEW fixes at the user's request. See `handoffs/S02.md`.
 - [x] D02 — repeatable Astana OSM importer, canonical export and coverage/quality reports delivered; 985 real POIs loaded through S01, with 222 tests passed and 11 isolated SQL tests skipped. See `handoffs/D02.md` for replay evidence, transfer artifacts and known limits.
-- [ ] S02–S08 / D03–D08 — planned, not implemented here.
+- [ ] S03–S08 / D03–D08 — planned, not implemented here.
+
+The user's 2026-10-19 S02 request replaces the original stage-02 backend scope
+with optional 2GIS Places/walking integration previously listed under S04. This
+delivery does not mark S04 complete or authorize further stages. The D02 handoff
+is now available; S03 still requires separate authorization. Remaining stage
+allocation needs coordination.
 
 ## Shared-file coordination
 

@@ -8,7 +8,7 @@ from threading import Lock
 from typing import Annotated, Literal
 from uuid import UUID, uuid4
 
-from fastapi import Depends, FastAPI, Request
+from fastapi import Depends, FastAPI, Request, Response
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.routing import APIRoute
@@ -26,10 +26,12 @@ from backend.app.schemas import (
     POIRecord,
     RecommendationRequest,
     RecommendationResponse,
+    RouteLeg,
     RouteRequest,
     RouteResponse,
     Warning,
 )
+from backend.app.services.twogis import TwoGISAdapter
 from backend.app.settings import get_settings
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -39,10 +41,34 @@ UNAVAILABLE_MESSAGES = {
     "ru": "Сервис пока недоступен. Повторите попытку позже.",
     "en": "This service is not available yet. Please try again later.",
 }
+ROUTE_MESSAGES = {
+    "kk": {
+        "unknown": "Жаяу маршрут анықталмады. Жол уақыты белгісіз.",
+        "origin": "Жаяу маршрут үшін бастапқы нүктені көрсетіңіз.",
+        "approximate": "Мақсат нүктесі жуық, қолжетімді кіреберіс расталмаған.",
+    },
+    "ru": {
+        "unknown": "Пеший маршрут не определён. Время пути неизвестно.",
+        "origin": "Укажите начальную точку для пешего маршрута.",
+        "approximate": "Точка назначения приблизительная; доступный вход не подтверждён.",
+    },
+    "en": {
+        "unknown": "A walking route could not be determined. Travel time is unknown.",
+        "origin": "Provide a starting point for the walking route.",
+        "approximate": "The destination is approximate; an accessible entrance is not confirmed.",
+    },
+}
 
 
 class HealthResponse(BaseModel):
     status: Literal["ok"] = "ok"
+
+
+def get_twogis() -> TwoGISAdapter | None:
+    try:
+        return TwoGISAdapter(get_settings())
+    except ValidationError:
+        return None
 
 
 def get_repository(request: Request) -> POIRepository:
@@ -120,7 +146,7 @@ def create_app(*, spa_dir: Path | None = None) -> FastAPI:
             if application.state.pool:
                 await asyncio.to_thread(application.state.pool.close)
 
-    application = FastAPI(title="Qadam Astana API", version="1.1.0", lifespan=lifespan)
+    application = FastAPI(title="Qadam Astana API", version="1.2.0", lifespan=lifespan)
     application.add_middleware(SafeErrorMiddleware)
     application.state.pool = None
     application.state.repository = None
@@ -192,12 +218,65 @@ def create_app(*, spa_dir: Path | None = None) -> FastAPI:
             ],
         )
 
-    @application.post("/api/v1/route", include_in_schema=False, status_code=503)
-    @application.post("/api/route", response_model=RouteResponse, status_code=503)
-    async def route(body: RouteRequest):
+    @application.post("/api/v1/route", include_in_schema=False)
+    @application.post(
+        "/api/route",
+        response_model=RouteResponse,
+        responses={503: {"model": RouteResponse, "description": "Routing unavailable"}},
+    )
+    async def route(
+        body: RouteRequest,
+        response: Response,
+        adapter: Annotated[TwoGISAdapter | None, Depends(get_twogis)],
+    ):
+        response.headers["Cache-Control"] = "no-store"
+        if adapter is None:
+            outbound = RouteLeg(status="unavailable", reason="invalid_settings")
+            back = (
+                outbound
+                if body.return_to_start
+                else RouteLeg(status="not_requested", reason="not_requested")
+            )
+        else:
+            outbound, back = await adapter.route(body)
+        legs = [outbound, back] if body.return_to_start else [outbound]
+        minutes = None
+        warnings = []
+        if any(leg.status == "unavailable" for leg in legs):
+            status = "unavailable"
+            response.status_code = 503
+            warnings.append(
+                Warning(code="route_unavailable", message=UNAVAILABLE_MESSAGES[body.locale])
+            )
+        elif any(leg.status == "unknown" for leg in legs):
+            status = "unknown"
+            response.status_code = 200
+            warnings.append(
+                Warning(code="data_unknown", message=ROUTE_MESSAGES[body.locale]["unknown"])
+            )
+        else:
+            status = "known"
+            response.status_code = 200
+            minutes = (sum(leg.duration_seconds for leg in legs) + 59) // 60
+        if body.origin is None:
+            warnings.append(
+                Warning(
+                    code="missing_input",
+                    message=ROUTE_MESSAGES[body.locale]["origin"],
+                    fields=["origin"],
+                )
+            )
+        if any(leg.status == "known" for leg in legs):
+            warnings.append(
+                Warning(code="data_unknown", message=ROUTE_MESSAGES[body.locale]["approximate"])
+            )
         return RouteResponse(
             request_id=body.request_id,
-            warnings=[Warning(code="route_unavailable", message=UNAVAILABLE_MESSAGES[body.locale])],
+            status=status,
+            travel_minutes_estimate=minutes,
+            outbound=outbound,
+            return_route=back,
+            warnings=warnings,
         )
 
     @application.get("/api/dev/pois", include_in_schema=False)

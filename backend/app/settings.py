@@ -28,6 +28,11 @@ class Settings(BaseSettings):
     openai_embedding_dimensions: int = Field(default=1536, ge=1536, le=1536)
     twogis_api_key: SecretStr = SecretStr("")
     twogis_enabled: bool = False
+    twogis_places_allowed: bool = False
+    twogis_routing_allowed: bool = False
+    twogis_discovery_allowed: bool = False
+    twogis_region_api_key: SecretStr = SecretStr("")
+    twogis_rights_basis: str = ""
     app_timezone: str = "Asia/Almaty"
     default_locale: Literal["kk", "ru", "en"] = "kk"
 

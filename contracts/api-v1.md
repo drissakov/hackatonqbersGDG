@@ -1,4 +1,4 @@
-# Qadam Astana API contract v1.1.0
+# Qadam Astana API contract v1.2.0
 
 Owner: Sabyrzhan. Consumers: Damir's frontend, ingestion and event service.
 Python source of truth: `backend/app/schemas.py`; generated JSON Schema and
@@ -9,15 +9,20 @@ response consistency. Contract changes need the owner's review and synchronized
 examples. Codes are stable machine values; UI labels belong to Damir's kk/ru/en
 translations.
 
-## HTTP surface and S01 implementation boundary
+S02's route-only v1.2 extension and summary output were explicitly approved by
+the user on 2026-10-19. Search, POI, event, coverage and route request shapes are
+unchanged. Existing unavailable route examples remain valid. D04 must consume
+the expanded route response; teammate acknowledgement is not claimed.
 
-| Method | Path | Request / response | S01 state |
+## HTTP surface and current implementation boundary
+
+| Method | Path | Request / response | Current state |
 | --- | --- | --- | --- |
 | GET | `/api/health` | No body -> `{"status":"ok"}` | Implemented; process health only |
 | GET | `/api/coverage` | No body / coverage-response | Real DB counters, 200; DB unavailable 503 |
 | POST | `/api/recommendations` | recommendation-request / recommendation-response | Scaffold, 503 unavailable |
 | POST | `/api/events/search` | event-search-request / event-search-response | Scaffold, 503 unavailable |
-| POST | `/api/route` | route-request / route-response | Scaffold, 503 unavailable, null travel time |
+| POST | `/api/route` | route-request / route-response | S02 optional walking; 200 known/unknown, 503 unavailable |
 | GET | `/api/dev/pois` | Explicit synthetic POI fixture | Only APP_ENV=development/test AND DEV_FIXTURE_MODE=true; otherwise 404 |
 
 All wire bodies are JSON, snake_case. `/api/health` has no request_id envelope,
@@ -40,6 +45,85 @@ provider bodies, secrets or raw input values. Error responses use
 (500 code `internal_error`, empty fields). Coverage infrastructure failure uses
 503 code `database_unavailable`. Invalid request_id is replaced by a generated UUID
 for error correlation. Never expose a raw Pydantic/SDK exception in that route.
+
+## Walking route (S02, v1.2)
+
+`POST /api/route` and `/api/v1/route` accept the unchanged RouteRequest:
+`request_id` (UUID, generated when absent), optional `origin`, required
+`destination`, `return_to_start=false`, `locale=kk|ru|en` (default kk).
+Coordinates are named `{latitude, longitude}` in WGS84 degrees. A null origin
+never becomes a city center. Unknown extra fields are rejected with 422.
+
+| Response field | Meaning |
+| --- | --- |
+| request_id | Echoed UUID |
+| status | `known`: all requested legs succeeded; `unknown`: route/input could not be determined; `unavailable`: at least one required provider leg could not run |
+| travel_minutes_estimate | `ceil(sum(duration_seconds) / 60)` only when all requested legs are known; otherwise null |
+| outbound | Leg from origin to selected destination |
+| return_route | Independent reversed request when return_to_start=true; otherwise `not_requested` with null metrics |
+| destination_precision | `approximate`: the coordinate is not a verified accessible entrance |
+| warnings | Localized warnings; data_unknown marks approximate destination, missing_input marks absent origin |
+
+Each leg contains `status=known|unknown|unavailable|not_requested`, nullable
+`distance_meters`, `duration_seconds`, `provenance`, `reason`. Known legs require
+nonnegative integer metrics and provenance. Other legs require a reason and
+null metrics/provenance. Provider meter/second values are rounded upward if
+fractional; the total is rounded upward once after summing leg seconds. Zero is
+valid. Safety bounds reject a leg over 1,000 km or seven days as invalid_response.
+No straight-line estimate or doubled outbound time is used. A successful leg
+remains visible when another fails, but no complete trip total is reported.
+`known` means a provider result, not guaranteed travel time or entrance access.
+
+Provenance contains provider=twogis, a fixed keyless endpoint, retrieved_at,
+transport=walking, provider_locale=ru|en and storage_allowed/indexing_allowed/
+ai_allowed=false. No request coordinates or provider body is included.
+No geometry is returned: S02 explicitly uses output=summary. A future geometry
+extension needs separate agreement; WKT must never be passed off as GeoJSON.
+
+| Condition | HTTP / response |
+| --- | --- |
+| All requested walking legs succeed | 200 known, total minutes |
+| ROUTE_NOT_FOUND / ROUTE_DOES_NOT_EXISTS | 200 unknown, leg reason=route_not_found |
+| Origin absent, routing enabled and approved | 200 unknown, reason=missing_origin |
+| Disabled / missing key / unconfirmed rights / invalid settings | 503 unavailable, reason=disabled / key_missing / rights_unconfirmed / invalid_settings |
+| Timeout / network error / 401 or 403 / 429 / other HTTP failure | 503 unavailable, reason=timeout / network_error / access_denied / rate_limited / http_error |
+| HTTP 200 FAIL/POINT_EXCLUDED/ATTRACT_FAIL/unrecognized status | 503 unavailable, reason=provider_fail |
+| HTTP 200 OK without a valid result/metrics | 503 unavailable, reason=invalid_response |
+
+Unavailability takes precedence over unknown when combining requested legs.
+When disabled and origin is absent, 503 is preserved and a missing_input warning
+is added. Provider failures never become no_match. Raw provider messages are
+discarded. No automatic retries, Origin/Referer spoofing or alternative provider.
+
+Server configuration requires TWOGIS_ENABLED=true, the separate capability
+TWOGIS_ROUTING_ALLOWED=true and a nonblank TWOGIS_RIGHTS_BASIS identifying a
+reviewed project-specific grant, plus TWOGIS_API_KEY. A working key alone does
+not establish use rights. Defaults are off. The adapter never reads
+VITE_TWOGIS_MAP_KEY. Before displaying live 2GIS-derived output, D04 must apply
+the agreed provider attribution and confirm its runtime display scenario is
+covered; enabling the backend is not frontend acceptance.
+
+Routing maps ru -> ru, en -> en and kk -> ru explicitly. Places uses the
+documented ru_KZ, en_RU, kk_KZ values (no blind kk or undocumented en_KZ).
+This is provider language selection, not translation of source facts.
+
+Places is an internal live adapter method, not a new public endpoint or
+recommendation/ranking source. It independently requires PLACES and DISCOVERY
+capabilities and reviewed runtime rights. Region discovery uses the separately
+entitled TWOGIS_REGION_API_KEY; category/Places calls use TWOGIS_API_KEY. Region
+IDs come only from an unambiguous Astana region search, never example constants.
+Additional Places fields are limited to items.point,items.region_id,items.rubrics;
+at most three results are projected to name/id/point/rubric IDs and separate
+ephemeral provenance. Coordinates are approximate and unknown coordinates stay
+null. Storage, indexing, ranking and AI use remain disallowed. No catalog data
+is sent to the repository, OpenAI, fixtures, dumps or logs.
+
+For Places searches only, HTTP 200 with meta.code=404,
+meta.error.type=itemNotFound and no result is a documented empty search and
+returns no_match. A successful meta.code=200/items=[] search is also no_match.
+Other HTTP/provider errors remain unavailable. Region discovery stays strict:
+failure to confirm Astana must never become an empty city corpus. See
+[Places troubleshooting](https://docs.2gis.com/en/api/search/places/troubleshooting).
 
 ## Search request
 
@@ -239,9 +323,10 @@ zero counts. Unavailable/unmigrated tables return 503, never zero-count success.
 completeness, freshness or a quality guarantee. See coverage-response.schema.json.
 
 RouteRequest has request_id, nullable origin, required destination coordinates,
-return_to_start and locale. The S01 route scaffold returns HTTP 503 with
-`status=unavailable`, `travel_minutes_estimate=null`, localized warnings and the
-same request_id. No provider route call or fallback time estimate is made.
+return_to_start and locale. S02 replaces the S01 scaffold with the optional
+[walking route v1.2](#walking-route-s02-v12): approved enabled calls can return
+200 known/unknown; disabled or unavailable routing returns 503 with null total.
+The request_id is preserved. No straight-line fallback time is generated.
 
 S01 database access uses TLS, Session pooler on Supabase port 5432 and a lazy
 bounded pool (default three connections per process). Migrations are an explicit
@@ -262,6 +347,11 @@ OPENAI_EMBEDDING_MODEL=text-embedding-3-large
 OPENAI_EMBEDDING_DIMENSIONS=1536
 TWOGIS_API_KEY=
 TWOGIS_ENABLED=false
+TWOGIS_PLACES_ALLOWED=false
+TWOGIS_ROUTING_ALLOWED=false
+TWOGIS_DISCOVERY_ALLOWED=false
+TWOGIS_REGION_API_KEY=
+TWOGIS_RIGHTS_BASIS=
 APP_TIMEZONE=Asia/Almaty
 DEFAULT_LOCALE=kk
 ```
