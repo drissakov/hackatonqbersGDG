@@ -1,5 +1,6 @@
 """Synthetic cited date phrases exercise session grounding without provider calls."""
 
+import logging
 from datetime import datetime
 
 import pytest
@@ -125,3 +126,72 @@ def test_twelve_hour_clock_does_not_confirm_an_incorrect_morning_start(quote):
 def test_local_clock_can_precede_an_unrelated_sentence_about_a_timezone():
     phrase = "19 October 2026 at 19:00. UTC appears in an unrelated synthetic sentence."
     assert _timestamp(START, "19 October 2026", [phrase]) is not None
+
+
+@pytest.mark.parametrize(
+    ("date", "phrase"),
+    [
+        ("30 октября 2026", "30 октября 2026 года. Время: 19:00"),
+        ("30 октября 2026", "30 октября 2026 г. Время начала: 19:00"),
+        ("30 October 2026", "30 October 2026; start time: 19:00"),
+        ("30 қазан 2026", "30 қазан 2026 жыл. Уақыты:19:00"),
+        ("30 октября 2026", "30 октября 2026 года\nНачало: 19:00"),
+        ("30 October 2026", "30 October 2026\r\nTime: 19:00"),
+        ("30 қазан 2026", "30 қазан 2026 жылы\nБасталу уақыты: сағат 19:00"),
+        ("30 October 2026", "30 October 2026. **Start time:** 19:00"),
+    ],
+)
+@pytest.mark.parametrize("quote_kind", ["date_only", "full_phrase"])
+def test_date_binds_to_known_time_label_without_crossing_prose(date, phrase, quote_kind):
+    value = "2026-10-30T19:00:00+05:00"
+    quote = date if quote_kind == "date_only" else phrase
+    assert _timestamp(value, quote, [f"Synthetic event: {phrase}."]) is not None
+
+
+@pytest.mark.parametrize(
+    ("date", "phrase"),
+    [
+        ("30 October 2026", "30 October 2026\n\nTime: 19:00"),
+        ("30 October 2026", "30 October 2026. Another synthetic event. Time: 19:00"),
+        ("30 October 2026", "30 October 2026; 31 October 2026; start time: 19:00"),
+        ("30 October 2026", "30 October 2026. Time: 18:00; another start time: 19:00"),
+        ("30 октября 2026", "30 октября 2026 года. Время окончания: 19:00"),
+        ("30 October 2026", "30 October 2026. Time: 19:00 UTC"),
+        ("30 October 2026", "30 October 2026. Time: 19:00+00:00"),
+        ("30 October 2026", "30 October 2026. Time: 19:00 PM"),
+    ],
+)
+def test_time_labels_do_not_relax_session_or_clock_boundaries(date, phrase):
+    assert _timestamp("2026-10-30T19:00:00+05:00", date, [phrase]) is None
+
+
+@pytest.mark.parametrize(
+    ("value", "quote", "spans", "code"),
+    [
+        (None, "Synthetic date quote", ["Synthetic date quote"], "extracted_datetime_missing"),
+        (START, "Synthetic quote", ["Different synthetic quote"], "source_quote_not_literal"),
+        (START, "19 October", ["19 October, 19:00"], "source_year_missing"),
+        (
+            START,
+            "19 October 2030",
+            ["19 October 2030, 19:00"],
+            "source_date_mismatch_or_unsupported",
+        ),
+        (START, "19 October 2026", ["19 October 2026. Synthetic prose. 19:00"], "clock_not_bound"),
+        (START, "19 October 2026", ["19 October 2026, 19:00 UTC"], "clock_suffix_unsupported"),
+    ],
+)
+def test_failed_timestamp_logs_only_a_static_reason(value, quote, spans, code, caplog):
+    with caplog.at_level(logging.WARNING, logger="backend.app.services.events.normalize"):
+        assert _timestamp(value, quote, spans) is None
+    assert len(caplog.records) == 1
+    record = caplog.records[0]
+    assert record.msg == "event_timestamp_unknown code=%s"
+    assert record.args == (code,)
+    assert record.getMessage() == f"event_timestamp_unknown code={code}"
+
+
+def test_expected_missing_timestamp_does_not_emit_a_warning(caplog):
+    with caplog.at_level(logging.WARNING, logger="backend.app.services.events.normalize"):
+        assert _timestamp(None, None, []) is None
+    assert caplog.records == []

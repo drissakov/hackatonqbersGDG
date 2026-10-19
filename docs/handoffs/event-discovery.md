@@ -73,3 +73,19 @@ yet verified. The user explicitly authorized COMMIT, PUSH and deployment on
 an exact dated event, confirm source/date rendering, and repeat a constrained
 query without weakening its restrictions. No claim of complete city coverage
 or guaranteed ticket availability is made.
+
+## First live checkpoint and focused follow-up
+
+Commit `76731c7` passed all four GitHub CI jobs and reached Render `live`.
+The default query returned two calendar listings (`partial`); the exact
+Ticketon concert was retained, but its extracted start still normalized to
+unknown. A repeat returned `web_search_citations_missing`. A positive dated
+card was therefore not claimed at that checkpoint.
+
+The authorized follow-up adds known date/time label layouts (for example,
+`date year. Time: 19:00`) without accepting arbitrary prose between them.
+Search now targets individual event pages first and permits one additional
+bounded tool action (three total) for missing session evidence. The existing
+discovery and UI timeouts are unchanged. Rejected timestamps emit only static
+diagnostic codes; no source text, dates, queries, GPS or exception bodies are
+logged. The follow-up passed **1063 tests, 17 skipped**, Ruff checks and format.

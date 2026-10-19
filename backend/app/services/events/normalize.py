@@ -1,6 +1,7 @@
-"""Pure, conservative normalization. Extraction is discovery, never verification."""
+"""Conservative normalization. Extraction is discovery, never verification."""
 
 import hashlib
+import logging
 import re
 from collections.abc import Sequence
 from datetime import UTC, datetime
@@ -25,6 +26,7 @@ from backend.app.services.events.models import (
 )
 from backend.app.services.events.venue import match_venue, normalize_venue_text
 
+logger = logging.getLogger(__name__)
 ASTANA_TIMEZONE = ZoneInfo("Asia/Almaty")
 ASTANA_NAMES = {"astana", "астана", "astana qalasy", "астана қаласы", "астана қ.", "г. астана"}
 MONTH_NAMES = (
@@ -111,20 +113,26 @@ def _timestamp(
     value: str | None, source_text: str | None, supporting_spans: Sequence[str]
 ) -> datetime | None:
     # Never invent a year from the query, publication date or retrieval time.
-    if not value or not source_text or not re.match(r"^\d{4}-\d{2}-\d{2}T", value):
+    if not value:
+        if source_text:
+            return _unknown_timestamp("extracted_datetime_missing")
         return None
+    if not source_text:
+        return _unknown_timestamp("source_quote_missing")
+    if not re.match(r"^\d{4}-\d{2}-\d{2}T", value):
+        return _unknown_timestamp("datetime_format_invalid")
     try:
         parsed = datetime.fromisoformat(value)
         require_aware(parsed)
         local = parsed.astimezone(ASTANA_TIMEZONE)
     except (ValueError, OverflowError):
-        return None
+        return _unknown_timestamp("datetime_invalid_or_naive")
     # Seconds/microseconds need explicit precision support before they can be facts.
     if local.second or local.microsecond:
-        return None
+        return _unknown_timestamp("datetime_precision_unsupported")
     supported = [span for span in supporting_spans if source_text in span]
     if not supported:
-        return None
+        return _unknown_timestamp("source_quote_not_literal")
     text = source_text.casefold()
     day, month, year = local.day, local.month, local.year
     names = "|".join(MONTH_NAMES[month - 1])
@@ -138,14 +146,27 @@ def _timestamp(
         rf"(?<!\d){year}[ \t]+жылғы[ \t]+0?{day}[ \t]+(?:{names})\b",
     )
     if not any(re.search(pattern, text) for pattern in dates):
-        return None
+        return _unknown_timestamp(
+            "source_date_mismatch_or_unsupported"
+            if re.search(r"(?<!\d)\d{4}(?!\d)", text)
+            else "source_year_missing"
+        )
     clock = rf"0?{local.hour}[:.]{local.minute:02d}(?::00(?:\.0+)?)?(?!\d)(?![:.]\d)"
     # Bind one date to its following clock, rather than combining tokens from
     # different sessions or jumping across prose inside a cited paragraph.
-    separator = (
-        r"(?:[*_`]{0,3}[ \t]*(?:(?:года|г\.?)(?!\w)[ \t]*)?"
-        r"(?:[,;:|—–t-][ \t]*)?(?:(?:at|в|сағат)(?!\w)[ \t]+)?[*_`]{0,3})"
+    date_ending = r"[*_`]{0,3}[ \t]*(?:(?:года|г\.?|жыл(?:ы|ғы)?)(?!\w)[ \t]*)?"
+    inline_separator = r"(?:[,;:|—–t-][ \t]*)?(?:(?:at|в|сағат)(?!\w)[ \t]+)?[*_`]{0,3}"
+    time_label = (
+        r"(?:время(?:[ \t]+начала)?|начало(?:[ \t]+сеанса)?|start[ \t]+time|starts?|time"
+        r"|басталу[ \t]+уақыты|уақыты|басталуы)"
     )
+    labeled_separator = (
+        r"(?:[.,;:|—–-][ \t]*)?(?:\r?\n[ \t]*)?[*_`]{0,3}"
+        + time_label
+        + r"(?!\w)[ \t]*(?::[ \t]*)?[*_`]{0,3}[ \t]*"
+        r"(?:(?:at|в|сағат)(?!\w)[ \t]+)?[*_`]{0,3}"
+    )
+    separator = date_ending + "(?:" + inline_separator + "|" + labeled_separator + ")"
     anchors = [re.compile(pattern + separator + clock) for pattern in dates]
     # Extraction may quote just the explicit date. Extend only that exact quoted
     # occurrence to an immediately following clock in the same source span.
@@ -155,6 +176,7 @@ def _timestamp(
         r"(?::[0-5]\d(?:\.\d+)?)?(?!\d)(?![:.]\d)"
     )
     quote_has_clock = re.search(quoted_clock, text) is not None
+    unsupported_suffix = False
     for span in supported:
         folded_span = span.casefold()
         for occurrence in re.finditer(re.escape(text), folded_span):
@@ -171,6 +193,15 @@ def _timestamp(
                     # actual span too: extraction may omit the timezone suffix.
                     if not UNSUPPORTED_CLOCK_SUFFIX.match(folded_span, match.end()):
                         return parsed
+                    unsupported_suffix = True
+    return _unknown_timestamp(
+        "clock_suffix_unsupported" if unsupported_suffix else "clock_not_bound"
+    )
+
+
+def _unknown_timestamp(code: str) -> None:
+    """Log only a caller-selected static reason, never source or request data."""
+    logger.warning("event_timestamp_unknown code=%s", code)
     return None
 
 
