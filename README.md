@@ -1,4 +1,32 @@
+<div align="center">
+
+<img src="frontend/public/favicon.svg" alt="Qadam Astana logo" width="80" height="80" />
+
 # Qadam Astana
+
+**One destination in Astana, chosen around your time and starting point.**
+
+[![Live demo on Render](https://img.shields.io/badge/Live_demo-Render-46E3B7?style=for-the-badge&logo=render&logoColor=white)](https://qadam-astana.onrender.com/)
+[![CI](https://github.com/drissakov/hackatonqbersGDG/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/drissakov/hackatonqbersGDG/actions/workflows/ci.yml)
+[![Languages: kk, ru, en](https://img.shields.io/badge/Languages-kk%20%2F%20ru%20%2F%20en-F4D267?style=for-the-badge)](#what-is-available)
+
+![React 19](https://img.shields.io/badge/React-19-149ECA?logo=react&logoColor=white)
+![TypeScript 6](https://img.shields.io/badge/TypeScript-6-3178C6?logo=typescript&logoColor=white)
+![Vite 8](https://img.shields.io/badge/Vite-8-646CFF?logo=vite&logoColor=white)
+![Python 3.12](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
+![Supabase](https://img.shields.io/badge/Supabase-3FCF8E?logo=supabase&logoColor=white)
+![OpenAI Responses](https://img.shields.io/badge/OpenAI-Responses-412991)
+
+[Open live demo](https://qadam-astana.onrender.com/) ·
+[Run locally](#local-start-windows-powershell) ·
+[Technology stack](#technology-stack) ·
+[Demo script](docs/submission/demo-script.md) ·
+[API contract](contracts/api-v1.md)
+
+</div>
+
+## About the project
 
 Choose a place or event in Astana that fits your time, location and per-person
 budget. Qadam Astana offers up to three independent destinations with sources,
@@ -9,6 +37,23 @@ POI search, source-grounded explanations, separate live event discovery and
 optional walking routes. POI search needs configured providers and a populated
 database; live event discovery needs its provider but can run without the POI
 database. Starting the application alone does not make search available.
+
+## Live deployment
+
+**[Open Qadam Astana on Render](https://qadam-astana.onrender.com/)**
+
+| Link                                                           | Purpose                                      |
+| -------------------------------------------------------------- | -------------------------------------------- |
+| [Application](https://qadam-astana.onrender.com/)              | Public frontend and same-origin API          |
+| [Health](https://qadam-astana.onrender.com/api/health)         | Process liveness, expected `{"status":"ok"}` |
+| [Interactive API docs](https://qadam-astana.onrender.com/docs) | FastAPI endpoint reference                   |
+
+The application and health endpoint returned HTTP 200 when checked on
+**2026-10-19**. This check does not establish provider readiness or a complete
+recommendation fit. Render automatic deployment is disabled in
+[the Blueprint](render.yaml), so the deployed revision can differ from GitHub
+`main`. Deployment evidence is recorded in
+[the runtime integration handoff](docs/handoffs/runtime-integration.md).
 
 ## What is available
 
@@ -27,12 +72,62 @@ database. Starting the application alone does not make search available.
 There are no accounts, location/query history, ticket purchases or multi-stop
 itineraries. Only the interface language preference is stored in the browser.
 
+## How a request works
+
+1. **Describe an activity.** Choose a place or event search, then supply a
+   starting point, available minutes and any explicit constraints.
+2. **Retrieve candidates.** POI search combines lexical matching and vector
+   retrieval over the permitted corpus. Event discovery uses a separate live
+   web-search flow with transient sources.
+3. **Evaluate known facts.** The backend checks the stated constraints and
+   available route/session evidence. Missing facts remain unknown.
+4. **Choose one destination.** Inspect up to three alternatives, their reasons,
+   visit estimates and source links. Select a card to inspect its walking route
+   when origin, destination and the optional provider are available.
+
+Generated explanations describe retrieved evidence. They do not establish
+opening hours, prices, route times or ticket availability.
+
+## Technology stack
+
+| Layer                | Technology                                         | Role in the prototype                                                  |
+| -------------------- | -------------------------------------------------- | ---------------------------------------------------------------------- |
+| Frontend             | React 19, TypeScript 6, Vite 8                     | Search form, result cards, explicit constraints and API transport      |
+| Localization         | i18next, react-i18next                             | Local kk/ru/en dictionaries and language switching                     |
+| Backend              | Python 3.12, FastAPI, Pydantic                     | HTTP API, validation, constraint evaluation and response contracts     |
+| Configuration        | pydantic-settings, Uvicorn                         | Server environment settings and ASGI process                           |
+| Database             | Supabase PostgreSQL, psycopg                       | POI records, source provenance and bounded database connections        |
+| Spatial search       | PostGIS                                            | WGS84 coordinates and geographic candidate retrieval                   |
+| Semantic retrieval   | pgvector, OpenAI embeddings                        | Vector search with the configured 1536-dimensional index               |
+| AI                   | Official OpenAI SDK, Responses API                 | Intent extraction, grounded explanations and event discovery           |
+| Place data           | OpenStreetMap                                      | Permitted POI import with attribution, timestamps and quality reports  |
+| Optional maps/routes | 2GIS MapGL and server adapters                     | Map selection and walking routes, gated by separate keys/access/rights |
+| Verification         | Vitest, Testing Library, pytest, Ruff, JSON Schema | UI behavior, backend checks and shared-contract validation             |
+| Delivery             | Docker, GitHub Actions, Render                     | Frontend build, isolated verification and same-origin hosting          |
+
+Exact versions come from [the frontend lockfile](frontend/package-lock.json)
+and [backend requirements](backend/requirements.txt) with
+[constraints](backend/constraints.txt). The recorded corpus contains 985 POIs
+across seven categories; this count does not imply complete city coverage.
+
 ## Local start: Windows PowerShell
 
 Use **Python 3.12** (the CI/Docker version) and **Node.js 24.15 or newer on the
 24.x line**. Keep the full repository layout: the frontend imports schemas from
 its sibling `contracts/` directory. The commands below avoid virtual environment
 activation and the PowerShell `npm.ps1` wrapper.
+
+### 0. Clone the repository
+
+Skip this step if you already have a checkout:
+
+```powershell
+git clone https://github.com/drissakov/hackatonqbersGDG.git
+cd hackatonqbersGDG
+```
+
+The following quick start opens the UI and keyless health endpoint. For real
+place/event searches, also complete [Configure real search](#configure-real-search).
 
 ### 1. Start the backend
 
@@ -55,6 +150,8 @@ Expected JSON: `{"status":"ok"}`. Health checks process liveness; it does not
 prove database or provider readiness. Interactive API docs:
 <http://127.0.0.1:8000/docs>.
 
+Keep the backend terminal running while using the frontend.
+
 ### 2. Start the frontend
 
 In a separate PowerShell terminal, starting at the repository root:
@@ -73,6 +170,41 @@ synthetic examples, which are excluded from production builds.
 Without provider/database configuration you can check startup, health and UI
 failure states. Follow the next section to enable real search.
 
+### 3. Open the right local URL
+
+| Address                            | What runs there                                       |
+| ---------------------------------- | ----------------------------------------------------- |
+| <http://127.0.0.1:5173>            | Vite development UI                                   |
+| <http://127.0.0.1:8000/api/health> | Backend process health                                |
+| <http://127.0.0.1:8000/docs>       | Interactive API documentation                         |
+| <http://127.0.0.1:4173>            | Production frontend preview, after the commands below |
+
+For demo recording, keep the backend running and use a production build. From
+`frontend/`, stop the Vite development process if needed, then run:
+
+```powershell
+npm.cmd run build
+npm.cmd run check:build
+npm.cmd run preview
+```
+
+Open <http://127.0.0.1:4173>. Both Vite development and preview forward `/api` to
+port 8000. The production build excludes development fixture controls.
+
+### Alternative: serve the built UI and API in one process
+
+After building the frontend, stop the existing backend on port 8000 and run
+from the repository root:
+
+```powershell
+.\.venv\Scripts\python.exe -m scripts.serve
+```
+
+Open <http://127.0.0.1:8000>. This serves `frontend/dist/` and `/api` together,
+without a separate Vite process. The production entrypoint honors `PORT`
+(default 8000) and binds `0.0.0.0`; the two-terminal development setup above
+binds to localhost.
+
 ## Configure real search
 
 Create the local backend settings file only if it is absent:
@@ -88,6 +220,14 @@ after changing settings.
 
 Ordinary place/event searches can incur OpenAI API charges, as can corpus
 embedding and provider preflight probes.
+
+| Capability               | Required setup                                                                     |
+| ------------------------ | ---------------------------------------------------------------------------------- |
+| UI and health            | Installed dependencies; no provider keys or database needed                        |
+| POI recommendations      | Configured OpenAI access plus a migrated, populated and indexed database           |
+| Live event discovery     | Configured OpenAI/web-search access; POI database optionally enriches exact venues |
+| Walking routes           | Optional server 2GIS capability with confirmed access and reviewed runtime rights  |
+| Interactive 2GIS basemap | Optional public MapGL key; independent of server routing access                    |
 
 | Setting                                                  | Purpose                                                                          |
 | -------------------------------------------------------- | -------------------------------------------------------------------------------- |
@@ -298,6 +438,18 @@ synthetic text and may incur charges; 2GIS smoke requires confirmed access and
 rights. Missing credentials/connectivity are recorded as `not_run`, not success.
 Record actual live outcomes in the relevant handoff.
 
+## Local troubleshooting
+
+| Symptom                         | First check                                                                                                                      |
+| ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| UI opens but searches fail      | Check backend port 8000, `/api/health`, then provider/database setup; health alone is not search readiness                       |
+| HTTP 503 or `unavailable`       | A required provider/corpus is unavailable or unconfigured; inspect safe server diagnostics rather than treating this as no match |
+| Unknown route or total time fit | Keep the uncertainty visible; routing is optional and a visit estimate alone does not confirm the total trip                     |
+| Port already in use             | Stop the previous dev, preview or backend process before starting another on the same port                                       |
+| PowerShell blocks `npm.ps1`     | Use the documented `npm.cmd` commands; no execution-policy change is needed                                                      |
+| Backend reads no settings       | Configure `backend/.env` or process environment variables, then restart the backend                                              |
+| Fresh corpus cannot be indexed  | Check the manifest-version compatibility blocker documented above; do not relabel an export to bypass validation                 |
+
 ## Docker and deployment
 
 Build from the repository root so Docker can access frontend and contracts:
@@ -320,6 +472,8 @@ deployment. The Blueprint file alone is not evidence of a live deployment.
 
 ## Project documentation and collaboration
 
+- [Demo script and exact A/B/C inputs](docs/submission/demo-script.md)
+- [Seven-slide submission outline](docs/submission/slides-outline.md)
 - [Working agreement and ownership](AGENTS.md)
 - [Project brief](docs/project-brief.md) and [task board](docs/task-board.md)
 - [Shared API contract](contracts/api-v1.md)
