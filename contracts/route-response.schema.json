@@ -18,6 +18,151 @@
       "title": "MissingField",
       "type": "string"
     },
+    "RouteLeg": {
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "enum": [
+            "known",
+            "unknown",
+            "unavailable",
+            "not_requested"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "distance_meters": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Distance Meters"
+        },
+        "duration_seconds": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Duration Seconds"
+        },
+        "provenance": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RouteProvenance"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "enum": [
+                "invalid_settings",
+                "disabled",
+                "key_missing",
+                "rights_unconfirmed",
+                "access_denied",
+                "timeout",
+                "rate_limited",
+                "http_error",
+                "network_error",
+                "provider_fail",
+                "route_not_found",
+                "invalid_response",
+                "missing_origin",
+                "not_requested"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reason"
+        }
+      },
+      "required": [
+        "status"
+      ],
+      "title": "RouteLeg",
+      "type": "object"
+    },
+    "RouteProvenance": {
+      "additionalProperties": false,
+      "properties": {
+        "provider": {
+          "const": "twogis",
+          "default": "twogis",
+          "title": "Provider",
+          "type": "string"
+        },
+        "endpoint": {
+          "const": "https://routing.api.2gis.com/routing/7.0.0/global",
+          "default": "https://routing.api.2gis.com/routing/7.0.0/global",
+          "title": "Endpoint",
+          "type": "string"
+        },
+        "retrieved_at": {
+          "format": "date-time",
+          "title": "Retrieved At",
+          "type": "string"
+        },
+        "transport": {
+          "const": "walking",
+          "default": "walking",
+          "title": "Transport",
+          "type": "string"
+        },
+        "provider_locale": {
+          "enum": [
+            "ru",
+            "en"
+          ],
+          "title": "Provider Locale",
+          "type": "string"
+        },
+        "storage_allowed": {
+          "const": false,
+          "default": false,
+          "title": "Storage Allowed",
+          "type": "boolean"
+        },
+        "indexing_allowed": {
+          "const": false,
+          "default": false,
+          "title": "Indexing Allowed",
+          "type": "boolean"
+        },
+        "ai_allowed": {
+          "const": false,
+          "default": false,
+          "title": "Ai Allowed",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "retrieved_at",
+        "provider_locale"
+      ],
+      "title": "RouteProvenance",
+      "type": "object"
+    },
     "Warning": {
       "additionalProperties": false,
       "properties": {
@@ -67,15 +212,39 @@
       "type": "string"
     },
     "status": {
-      "const": "unavailable",
       "default": "unavailable",
+      "enum": [
+        "known",
+        "unknown",
+        "unavailable"
+      ],
       "title": "Status",
       "type": "string"
     },
     "travel_minutes_estimate": {
+      "anyOf": [
+        {
+          "minimum": 0,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
       "default": null,
-      "title": "Travel Minutes Estimate",
-      "type": "null"
+      "title": "Travel Minutes Estimate"
+    },
+    "outbound": {
+      "$ref": "#/$defs/RouteLeg"
+    },
+    "return_route": {
+      "$ref": "#/$defs/RouteLeg"
+    },
+    "destination_precision": {
+      "const": "approximate",
+      "default": "approximate",
+      "title": "Destination Precision",
+      "type": "string"
     },
     "warnings": {
       "items": {

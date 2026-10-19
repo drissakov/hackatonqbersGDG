@@ -66,5 +66,9 @@
   {
     "file": "route-response.test.json",
     "schema": "route-response.schema.json"
+  },
+  {
+    "file": "route-known.test.json",
+    "schema": "route-response.schema.json"
   }
 ]

@@ -1,0 +1,50 @@
+{
+  "request_id": "00000000-0000-4000-8000-000000000001",
+  "status": "known",
+  "travel_minutes_estimate": 4,
+  "outbound": {
+    "status": "known",
+    "distance_meters": 100,
+    "duration_seconds": 61,
+    "provenance": {
+      "provider": "twogis",
+      "endpoint": "https://routing.api.2gis.com/routing/7.0.0/global",
+      "retrieved_at": "2030-01-15T12:00:00Z",
+      "transport": "walking",
+      "provider_locale": "en",
+      "storage_allowed": false,
+      "indexing_allowed": false,
+      "ai_allowed": false
+    },
+    "reason": null
+  },
+  "return_route": {
+    "status": "known",
+    "distance_meters": 150,
+    "duration_seconds": 120,
+    "provenance": {
+      "provider": "twogis",
+      "endpoint": "https://routing.api.2gis.com/routing/7.0.0/global",
+      "retrieved_at": "2030-01-15T12:00:01Z",
+      "transport": "walking",
+      "provider_locale": "en",
+      "storage_allowed": false,
+      "indexing_allowed": false,
+      "ai_allowed": false
+    },
+    "reason": null
+  },
+  "destination_precision": "approximate",
+  "warnings": [
+    {
+      "code": "test_data",
+      "message": "Synthetic contract example; not a real provider response.",
+      "fields": []
+    },
+    {
+      "code": "data_unknown",
+      "message": "The destination is approximate; an accessible entrance is not confirmed.",
+      "fields": []
+    }
+  ]
+}

@@ -97,7 +97,7 @@ with S01; `city_coverage=unknown` must not be presented as complete city coverag
 | GET | `/api/coverage` | 200 real DB counters; 503 if unavailable/unmigrated |
 | POST | `/api/recommendations` | 503, contract envelope with unavailable status |
 | POST | `/api/events/search` | 503, separate event envelope, unavailable status |
-| POST | `/api/route` | 503, unavailable with null travel time |
+| POST | `/api/route` | Optional S02 walking: 200 known/unknown; disabled/unavailable 503, null total |
 
 S00 `/api/v1/recommendations`, `/api/v1/events/search` remain aliases;
 `/api/v1/route` also works. Invalid input is sanitized JSON 422, internal failure
@@ -105,6 +105,24 @@ is generic JSON 500, and unknown `/api` paths are JSON 404. The SPA fallback
 never captures `/api`. D01 must inspect non-2xx JSON instead of turning 503 into
 an empty successful search. Request/response schemas and synthetic examples live
 in `contracts/`. No event service implementation is modified by S01.
+
+S02's approved [route contract v1.2](contracts/api-v1.md#walking-route-s02-v12)
+adds separate outbound/return_route metrics in meters/seconds, ephemeral
+provenance and approximate destination warnings. Return travel is an independent
+walking request; a failed leg leaves the total unknown. No geometry in S02.
+2GIS remains disabled until server endpoint access AND project-specific runtime
+rights are confirmed. See the separate capability gates in backend/.env.example;
+TWOGIS_ENABLED alone is insufficient. Places is an internal live query only,
+with no corpus, ranking or AI use. No new production dependency or DB migration.
+
+```powershell
+.\.venv\Scripts\python.exe scripts/twogis_smoke.py
+```
+
+This probes two public Astana landmark pairs (including opposite Esil banks)
+and independent return legs, plus permitted discovery/Places, without printing
+coordinates, keys or payloads. Exit 0 means all probes passed, 1 failure, 2 not_run.
+Current access/rights blockers and D04 states: [S02 handoff](docs/handoffs/S02.md).
 
 Unexpected HTTP exceptions are caught before the ASGI server can log their raw
 messages. Only a generated request_id and a stable internal_error code are

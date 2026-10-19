@@ -402,8 +402,85 @@ class RouteRequest(ContractModel):
     locale: Locale = "kk"
 
 
+RouteFailureReason = Literal[
+    "invalid_settings",
+    "disabled",
+    "key_missing",
+    "rights_unconfirmed",
+    "access_denied",
+    "timeout",
+    "rate_limited",
+    "http_error",
+    "network_error",
+    "provider_fail",
+    "route_not_found",
+    "invalid_response",
+    "missing_origin",
+    "not_requested",
+]
+
+
+class RouteProvenance(ContractModel):
+    provider: Literal["twogis"] = "twogis"
+    endpoint: Literal["https://routing.api.2gis.com/routing/7.0.0/global"] = (
+        "https://routing.api.2gis.com/routing/7.0.0/global"
+    )
+    retrieved_at: AwareDatetime
+    transport: Literal["walking"] = "walking"
+    provider_locale: Literal["ru", "en"]
+    storage_allowed: Literal[False] = False
+    indexing_allowed: Literal[False] = False
+    ai_allowed: Literal[False] = False
+
+
+class RouteLeg(ContractModel):
+    status: Literal["known", "unknown", "unavailable", "not_requested"]
+    distance_meters: Annotated[int, Field(ge=0, strict=True)] | None = None
+    duration_seconds: Annotated[int, Field(ge=0, strict=True)] | None = None
+    provenance: RouteProvenance | None = None
+    reason: RouteFailureReason | None = None
+
+    @model_validator(mode="after")
+    def metrics_require_success(self) -> Self:
+        metrics = (self.distance_meters, self.duration_seconds, self.provenance)
+        if self.status == "known":
+            if any(value is None for value in metrics) or self.reason is not None:
+                raise ValueError("Known routes require metrics/provenance and no failure reason")
+        elif any(value is not None for value in metrics) or self.reason is None:
+            raise ValueError("Unsuccessful routes require a reason and cannot contain metrics")
+        if (self.status == "not_requested") != (self.reason == "not_requested"):
+            raise ValueError("not_requested status and reason must agree")
+        return self
+
+
 class RouteResponse(ContractModel):
     request_id: UUID
-    status: Literal["unavailable"] = "unavailable"
-    travel_minutes_estimate: None = None
+    status: Literal["known", "unknown", "unavailable"] = "unavailable"
+    travel_minutes_estimate: Annotated[int, Field(ge=0, strict=True)] | None = None
+    outbound: RouteLeg = Field(
+        default_factory=lambda: RouteLeg(status="unavailable", reason="disabled")
+    )
+    return_route: RouteLeg = Field(
+        default_factory=lambda: RouteLeg(status="not_requested", reason="not_requested")
+    )
+    destination_precision: Literal["approximate"] = "approximate"
     warnings: list[Warning]
+
+    @model_validator(mode="after")
+    def total_requires_all_requested_legs(self) -> Self:
+        legs = [self.outbound]
+        if self.outbound.status == "not_requested":
+            raise ValueError("Outbound route must be requested")
+        if self.return_route.status != "not_requested":
+            legs.append(self.return_route)
+        if all(leg.status == "known" for leg in legs):
+            expected_status = "known"
+            expected_minutes = (sum(leg.duration_seconds for leg in legs) + 59) // 60
+        else:
+            expected_status = (
+                "unavailable" if any(leg.status == "unavailable" for leg in legs) else "unknown"
+            )
+            expected_minutes = None
+        if self.status != expected_status or self.travel_minutes_estimate != expected_minutes:
+            raise ValueError("Route status and total must reflect all requested legs")
+        return self
