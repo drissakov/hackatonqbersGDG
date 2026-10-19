@@ -67,11 +67,27 @@ def unsupported_requirements(query: str) -> list[str]:
             r"\bтих\w*|\bтишин\w*|\bспокойн\w*|\bүнсіз\w*|\bтыныш\w*|\bшусыз\w*|"
             r"\bquiet\w*|\bsilent\w*|\bpeaceful\b"
         ),
-        "power_outlets": r"розет\w*|қуатта\w*|тоқ\s+көзі|\boutlets?\b|\bsockets?\b",
+        "power_outlets": (
+            r"розет\w*|қуатта\w*|зарядта\w*|(?:тоқ|ток|қуат)\s+көзі|"
+            r"\b(?:под)?заряд(?:и\w*|к\w*|н\w*)|\b(?:под)?заряж\w*|"
+            r"\boutlets?\b|\bsockets?\b|\b(?:re)?charg(?:ing|ers?)\b|"
+            r"\b(?:re)?charge\s+(?:(?:my|the|a|our|your)\s+)?"
+            r"(?:laptop|phone|tablet|device|battery|car)\b"
+        ),
         "accessibility": (
             r"доступн\w*\s+(?:сред\w*|для\s+(?:коляс\w*|инвалид\w*))|"
             r"доступность|безбарьер\w*|пандус\w*|коляс\w*|арбамен|арбаға|кедергісіз\w*|"
             r"\bwheelchair\w*|\baccessible\b|\baccessibility\b|\bstep[ -]free\b"
+        ),
+        "child_suitability": (
+            r"\bреб[её]н\w*|\bдет(?:и|ей|ям|ьми|ок|ск\w*)\b|\bмалыш\w*|"
+            r"\bмладен\w*|\bподрост\w*|\bвозраст\w*|\bсемейн\w*|"
+            r"\bбала(?:лар\w*|мен|м\w*|ға|ны|ның|дан|да|сы\w*)?\b|"
+            r"\bжас(?:қа|тағы|тан|ты)?\b|\bнәрест\w*|\bбүлдіршін\w*|\bотбас\w*|"
+            r"\b(?:child(?:ren)?|kids?|bab(?:y|ies)|toddlers?|infants?|teen(?:ager)?s?|"
+            r"minors?|famil(?:y|ies))\b|\b\w+[ -](?:year|month)[ -]olds?\b|"
+            r"\bage[ -]+(?:restrictions?|limits?|appropriate|suitab\w*)\b|"
+            r"\ball\s+ages\b|\badults?[ -]only\b"
         ),
     }
     return [name for name, pattern in patterns.items() if re.search(pattern, query, re.I)]
