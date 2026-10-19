@@ -275,3 +275,62 @@ def test_missing_timestamp_derivation_requires_the_callers_grounded_city_opt_in(
 def test_invalid_nonempty_model_timestamp_is_not_replaced_by_source_derivation():
     quote = "30 October 2026, 19:00"
     assert _timestamp("invalid", quote, [quote], derive_missing=True) is None
+
+
+@pytest.mark.parametrize("value", [None, "2026-10-30T19:00:00+05:00"])
+@pytest.mark.parametrize(
+    "quote",
+    [
+        "Дата проведения: 30 октября 2026 года; Время: 19:00",
+        "Дата проведения: 30 октября 2026 года",
+    ],
+)
+def test_reformatted_quote_must_agree_with_the_actual_source_date_and_clock(value, quote):
+    actual = "Synthetic event. **Дата проведения:** 30 октября 2026 года; **Время**: 19:00"
+    assert _timestamp(value, quote, [actual], derive_missing=True) == datetime.fromisoformat(
+        "2026-10-30T19:00:00+05:00"
+    )
+
+
+@pytest.mark.parametrize("value", [None, "2026-10-30T19:00:00+05:00"])
+def test_literal_markdown_quote_can_use_the_same_validated_source_facts(value):
+    actual = "30 октября 2026 года; **Время**: 19:00"
+    assert _timestamp(value, actual, [actual], derive_missing=True) is not None
+
+
+@pytest.mark.parametrize(
+    ("quote", "spans"),
+    [
+        ("Date: 30 October; Time: 19:00", ["30 October 2026, 19:00"]),
+        ("Date: 30 October 2026; Time: 19:00", ["31 October 2026, 19:00"]),
+        ("Date: 30 October 2026; Time: 19:00", ["30 October 2026, 20:00"]),
+        ("Date: 30 October 2026; Time: 19:00", ["30 October 2026", "Time: 19:00"]),
+        ("Date: 30 October 2026; Time: 19:00", ["30 October 2026\n\nTime: 19:00"]),
+        ("Date: 30 October 2026; Time: 19:00", ["30 October 2026. Other event. Time: 19:00"]),
+        (
+            "Date: 30 October 2026; Time: 19:00",
+            ["30 October 2026, 19:00; 30 October 2026, 20:00"],
+        ),
+        (
+            "Date: 30 October 2026; Time: 19:00",
+            ["30 October 2026, 19:00", "30 October 2026, 20:00"],
+        ),
+        ("Date: 30 October 2026; Time: 19:00", ["30 October 2026, 19:00 UTC"]),
+        ("Date: 30 October 2026; Time: 19:00 UTC", ["30 October 2026, 19:00"]),
+    ],
+)
+def test_equivalent_quote_cannot_change_missing_conflicting_or_ambiguous_source_facts(quote, spans):
+    assert _timestamp(None, quote, spans, derive_missing=True) is None
+
+
+def test_equivalent_quote_cannot_replace_a_conflicting_nonempty_model_time():
+    actual = "30 October 2026, 19:00"
+    assert (
+        _timestamp(
+            "2026-10-30T20:00:00+05:00",
+            "Date: 30 October 2026; Time: 19:00",
+            [actual],
+            derive_missing=True,
+        )
+        is None
+    )

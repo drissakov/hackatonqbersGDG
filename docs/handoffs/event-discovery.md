@@ -145,3 +145,17 @@ rejection logs contain only static codes. Pre-publication checks:
 **1124 passed, 17 skipped**; compileall, Ruff check/format (81 files), 13
 generated contract artifacts and diff checks passed. Independent synthetic
 edge-case review found no actionable issues in the timestamp fallback.
+
+## Equivalent schedule facts
+
+The fifth live checkpoint still found a real linked event but rejected its
+start with `source_quote_not_literal`: structured extraction reformatted the
+source date/time labels. Literal substring equality alone therefore lost
+otherwise explicit schedule facts. This checkpoint was not a successful dated
+event acceptance.
+
+The focused follow-up compares explicit schedule facts against the actual
+same-URL citation context. It preserves date/clock binding and requires the
+event year in the evidence. Markdown formatting cannot supply or alter a fact;
+ambiguous dates, other-source facts and unsupported timezone suffixes remain
+unknown. No query date or current year is used as source evidence.

@@ -116,6 +116,7 @@ def _timestamp(
     *,
     derive_missing: bool = False,
     _diagnose: bool = True,
+    _max_clock_gap: int | None = None,
 ) -> datetime | None:
     def reject(code: str) -> None:
         return _unknown_timestamp(code) if _diagnose else None
@@ -125,10 +126,16 @@ def _timestamp(
         if source_text:
             if value is None and derive_missing:
                 if not any(source_text in span for span in supporting_spans):
+                    equivalent = _equivalent_source_timestamp(source_text, supporting_spans)
+                    if equivalent is not None:
+                        return equivalent
                     return reject("source_quote_not_literal")
                 derived = _source_timestamp(source_text, supporting_spans)
                 if derived is not None:
                     return derived
+                equivalent = _equivalent_source_timestamp(source_text, supporting_spans)
+                if equivalent is not None:
+                    return equivalent
             return reject("extracted_datetime_missing")
         return None
     if not source_text:
@@ -146,6 +153,10 @@ def _timestamp(
         return reject("datetime_precision_unsupported")
     supported = [span for span in supporting_spans if source_text in span]
     if not supported:
+        if derive_missing:
+            equivalent = _equivalent_source_timestamp(source_text, supporting_spans)
+            if equivalent is not None and equivalent == parsed:
+                return parsed
         return reject("source_quote_not_literal")
     text = source_text.casefold()
     day, month, year = local.day, local.month, local.year
@@ -181,7 +192,7 @@ def _timestamp(
         r"(?:(?:at|в|сағат)(?!\w)[ \t]+)?[*_`]{0,3}"
     )
     separator = date_ending + "(?:" + inline_separator + "|" + labeled_separator + ")"
-    anchors = [re.compile(pattern + separator + clock) for pattern in dates]
+    anchors = [re.compile(pattern + "(?P<gap>" + separator + ")" + clock) for pattern in dates]
     # Extraction may quote just the explicit date. Extend only that exact quoted
     # occurrence to an immediately following clock in the same source span.
     # A quote with its own clock cannot be replaced by another session's time.
@@ -198,6 +209,8 @@ def _timestamp(
                 for match in pattern.finditer(folded_span, occurrence.start()):
                     if match.start() >= occurrence.end():
                         break
+                    if _max_clock_gap is not None and len(match["gap"]) > _max_clock_gap:
+                        continue
                     if quote_has_clock:
                         if match.end() > occurrence.end():
                             continue
@@ -208,14 +221,21 @@ def _timestamp(
                     if not UNSUPPORTED_CLOCK_SUFFIX.match(folded_span, match.end()):
                         return parsed
                     unsupported_suffix = True
+    if derive_missing and not unsupported_suffix:
+        equivalent = _equivalent_source_timestamp(source_text, supporting_spans)
+        if equivalent is not None and equivalent == parsed:
+            return parsed
     return reject("clock_suffix_unsupported" if unsupported_suffix else "clock_not_bound")
 
 
 def _source_timestamp(source_text: str, supporting_spans: Sequence[str]) -> datetime | None:
     """Derive one explicit local date/clock, then reuse the source-bound validator."""
-    supported = [span for span in supporting_spans if source_text in span]
-    if not supported:
-        return None
+    verified = _source_timestamps(source_text, supporting_spans)
+    return next(iter(verified)) if verified is not None and len(verified) == 1 else None
+
+
+def _source_dates(source_text: str) -> set[tuple[int, int, int]] | None:
+    """Read explicit years and calendar fields only; None means the bound was exceeded."""
     months = {name: month for month, names in enumerate(MONTH_NAMES, 1) for name in names}
     month_names = "|".join(re.escape(name) for name in months)
     date_patterns = (
@@ -234,8 +254,23 @@ def _source_timestamp(source_text: str, supporting_spans: Sequence[str]) -> date
             dates.add((int(values["year"]), month, int(values["day"])))
             if len(dates) > 32:
                 return None
-    if not dates:
+    return dates
+
+
+def _source_timestamps(
+    source_text: str,
+    supporting_spans: Sequence[str],
+    *,
+    _max_clock_gap: int | None = None,
+) -> set[datetime] | None:
+    supported = [span for span in supporting_spans if source_text in span]
+    if not supported:
+        return set()
+    dates = _source_dates(source_text)
+    if dates is None:
         return None
+    if not dates:
+        return set()
     # Clock discovery is bounded to the literal quote and its immediate tail.
     # The validator below still rejects prose, other sessions and blank paragraphs.
     scopes = [source_text]
@@ -259,12 +294,57 @@ def _source_timestamp(source_text: str, supporting_spans: Sequence[str]) -> date
                 value = datetime(year, month, day, hour, minute, tzinfo=ASTANA_TIMEZONE)
             except ValueError:
                 continue
-            accepted = _timestamp(value.isoformat(), source_text, supporting_spans, _diagnose=False)
+            accepted = _timestamp(
+                value.isoformat(),
+                source_text,
+                supporting_spans,
+                _diagnose=False,
+                _max_clock_gap=_max_clock_gap,
+            )
             if accepted is not None:
                 verified.add(accepted)
-                if len(verified) > 1:
-                    return None
-    return next(iter(verified)) if verified else None
+    return verified
+
+
+def _source_presentation(value: str) -> str:
+    """Remove paired inline markup and horizontal spacing without joining paragraphs."""
+    markup = re.compile(r"(?<!\w)(?P<marker>\*\*|__|\*|_|`)(?P<body>[^\r\n]+?)(?P=marker)(?!\w)")
+    for _ in range(3):
+        value = markup.sub(lambda match: match["body"], value)
+    return re.sub(r"[^\S\r\n]", " ", value)
+
+
+def _equivalent_source_timestamp(
+    source_text: str, supporting_spans: Sequence[str]
+) -> datetime | None:
+    """Accept presentation changes only when one actual source-bound instant agrees."""
+    quote = _source_presentation(source_text)
+    expected_dates = _source_dates(quote)
+    if expected_dates is None or len(expected_dates) != 1:
+        return None
+    has_clock = re.search(
+        r"(?<!\d)(?:[01]?\d|2[0-3])[:.][0-5]\d"
+        r"(?::[0-5]\d(?:\.\d+)?)?(?!\d)(?![:.]\d)",
+        quote,
+    )
+    expected = _source_timestamp(quote, [quote]) if has_clock else None
+    if has_clock and expected is None:
+        return None
+    observed: set[datetime] = set()
+    for span in supporting_spans:
+        actual = _source_presentation(span)
+        candidates = _source_timestamps(actual, [actual], _max_clock_gap=80)
+        if candidates is None:
+            return None
+        observed.update(candidates)
+        if len(observed) > 1:
+            return None
+    if len(observed) != 1:
+        return None
+    accepted = next(iter(observed))
+    if (accepted.year, accepted.month, accepted.day) not in expected_dates:
+        return None
+    return accepted if expected is None or accepted == expected else None
 
 
 def _unknown_timestamp(code: str) -> None:
