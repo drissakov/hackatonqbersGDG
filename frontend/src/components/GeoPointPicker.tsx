@@ -136,6 +136,10 @@ export function GeoPointPicker({
             max={90}
             step="any"
             value={latitude}
+            onInput={(event) => {
+              if (event.currentTarget.validity.badInput)
+                changeManual(event.currentTarget.value, longitude)
+            }}
             onChange={(event) => changeManual(event.target.value, longitude)}
             aria-invalid={Boolean(error)}
             aria-describedby={error ? 'origin-error' : undefined}
@@ -152,6 +156,10 @@ export function GeoPointPicker({
             max={180}
             step="any"
             value={longitude}
+            onInput={(event) => {
+              if (event.currentTarget.validity.badInput)
+                changeManual(latitude, event.currentTarget.value)
+            }}
             onChange={(event) => changeManual(latitude, event.target.value)}
             aria-invalid={Boolean(error)}
             aria-describedby={error ? 'origin-error' : undefined}

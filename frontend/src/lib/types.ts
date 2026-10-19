@@ -1,4 +1,4 @@
-/** Contract v1.0.0. Response types include the Pydantic defaults applied by api.ts. */
+/** Shared wire contract. Response types include defaults applied by api.ts. */
 export type Locale = 'kk' | 'ru' | 'en'
 export type ResponseStatus =
   'ok' | 'partial' | 'unknown' | 'unavailable' | 'no_match'
@@ -73,6 +73,59 @@ export interface SearchRequest {
   indoor_only?: boolean
   date_time?: string | null
   explicit_fields?: ConstraintField[]
+}
+
+export interface RouteRequest {
+  request_id?: string
+  origin?: Coordinates | null
+  destination: Coordinates
+  return_to_start?: boolean
+  locale?: Locale
+}
+
+export type RouteFailureReason =
+  | 'invalid_settings'
+  | 'disabled'
+  | 'key_missing'
+  | 'rights_unconfirmed'
+  | 'access_denied'
+  | 'timeout'
+  | 'rate_limited'
+  | 'http_error'
+  | 'network_error'
+  | 'provider_fail'
+  | 'route_not_found'
+  | 'invalid_response'
+  | 'missing_origin'
+  | 'not_requested'
+
+export interface RouteProvenance {
+  provider: 'twogis'
+  endpoint: 'https://routing.api.2gis.com/routing/7.0.0/global'
+  retrieved_at: string
+  transport: 'walking'
+  provider_locale: 'ru' | 'en'
+  storage_allowed: false
+  indexing_allowed: false
+  ai_allowed: false
+}
+
+export interface RouteLeg {
+  status: 'known' | 'unknown' | 'unavailable' | 'not_requested'
+  distance_meters: number | null
+  duration_seconds: number | null
+  provenance: RouteProvenance | null
+  reason: RouteFailureReason | null
+}
+
+export interface RouteResponse {
+  request_id: string
+  status: 'known' | 'unknown' | 'unavailable'
+  travel_minutes_estimate: number | null
+  outbound: RouteLeg
+  return_route: RouteLeg
+  destination_precision: 'approximate'
+  warnings: SearchWarning[]
 }
 
 export interface Source {
@@ -173,4 +226,106 @@ export interface SearchResponse<T extends CardDetails> {
   request_id: string
 }
 export type RecommendationResponse = SearchResponse<RecommendationCard>
-export type EventSearchResponse = SearchResponse<EventCardData>
+export interface EventSearchResponse extends SearchResponse<EventCardData> {
+  discovery?: EventDiscovery | null
+}
+
+/** Ephemeral discovery facts; these are not persistent EventRecord sources. */
+export interface EventEvidenceSource {
+  url: string
+  fetched_at: string
+  storage_allowed: false
+  indexing_allowed: false
+}
+
+export interface EventCitation {
+  url: string
+  title: string
+  start_index: number
+  end_index: number
+  text: string
+  context: string
+}
+
+export interface EventEvidence {
+  text: string
+  sources: EventEvidenceSource[]
+  citations: EventCitation[]
+}
+
+export interface EventVenue {
+  poi_id: string | null
+  location: Coordinates | null
+  basis: 'name_address_astana_permitted_poi' | 'unknown' | 'ambiguous'
+  source_ids: string[]
+  source_urls: string[]
+  coordinate_accuracy: 'unknown'
+  geography_basis: 'central_astana_bbox' | 'unknown'
+}
+
+export interface EventFieldCheck {
+  session_id: string
+  field:
+    | 'city'
+    | 'venue_name'
+    | 'venue_address'
+    | 'starts_at'
+    | 'ends_at'
+    | 'price_from'
+    | 'currency'
+    | 'price_conditions'
+    | 'status'
+  value: string | number
+  source_url: string
+  checked_at: string
+  method: 'manual_source' | 'licensed_feed'
+}
+
+export interface DiscoveredSession {
+  session_id: string
+  event_id: string
+  source_url: string
+  source_fetched_at: string
+  city: string | null
+  venue_name: string | null
+  venue_address: string | null
+  venue: EventVenue
+  starts_at: string | null
+  ends_at: string | null
+  price_from: number | null
+  currency: 'KZT' | null
+  price_conditions: string | null
+  price_kind: 'starting' | 'regular' | 'promotion' | 'unknown'
+  status: 'scheduled' | 'cancelled' | 'unknown'
+  verification_status: 'discovered' | 'verified'
+  verified_fields: EventFieldCheck[]
+  ticket_availability: 'unknown'
+  missing_fields: string[]
+  recommendation_candidate: boolean
+  exclusion_reasons: string[]
+}
+
+export interface DiscoveredEvent {
+  event_id: string
+  title: string
+  source_url: string
+  source_fetched_at: string
+  city: string | null
+  venue_name: string | null
+  venue_address: string | null
+  venue: EventVenue
+  status: 'listing' | 'discovered'
+  schedule_hints: string[]
+  missing_fields: string[]
+  sessions: DiscoveredSession[]
+}
+
+export interface EventDiscovery {
+  provider_status: ResponseStatus
+  provider_code: string | null
+  live_web_search: 'not_run' | 'passed' | 'failed'
+  evidence: EventEvidence | null
+  events: DiscoveredEvent[]
+  excluded_sessions: number
+  rejected_events: number
+}

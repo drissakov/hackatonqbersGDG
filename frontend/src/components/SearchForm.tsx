@@ -8,6 +8,7 @@ import type { PointSource } from './GeoPointPicker'
 
 interface SearchFormProps {
   onSubmit: (request: SearchRequest) => void
+  onInputChange?: () => void
   loading: boolean
   mode: 'recommendations' | 'events'
 }
@@ -23,7 +24,12 @@ function optionalInteger(value: string): number | null {
   return value.trim() === '' ? null : Number(value)
 }
 
-export function SearchForm({ onSubmit, loading, mode }: SearchFormProps) {
+export function SearchForm({
+  onSubmit,
+  onInputChange,
+  loading,
+  mode,
+}: SearchFormProps) {
   const { t, i18n } = useTranslation()
   const [query, setQuery] = useState('')
   const [latitude, setLatitude] = useState('')
@@ -38,6 +44,7 @@ export function SearchForm({ onSubmit, loading, mode }: SearchFormProps) {
   const [errors, setErrors] = useState<Partial<Record<FormError, string>>>({})
 
   function markExplicit(field: ConstraintField) {
+    onInputChange?.()
     setExplicitFields((current) =>
       current.includes(field) ? current : [...current, field],
     )
@@ -60,6 +67,11 @@ export function SearchForm({ onSubmit, loading, mode }: SearchFormProps) {
     if (loading) return
 
     const nextErrors: Partial<Record<FormError, string>> = {}
+    const form = event.currentTarget
+    const badInput = (name: string) => {
+      const control = form.elements.namedItem(name)
+      return control instanceof HTMLInputElement && control.validity.badInput
+    }
     const trimmedQuery = query.trim()
     const availableMinutes = optionalInteger(minutes)
     const budgetKzt = optionalInteger(budget)
@@ -72,6 +84,8 @@ export function SearchForm({ onSubmit, loading, mode }: SearchFormProps) {
     else if (trimmedQuery.length > 2000)
       nextErrors.query = 'search.queryTooLong'
     if (
+      badInput('latitude') ||
+      badInput('longitude') ||
       hasLatitude !== hasLongitude ||
       (hasLatitude &&
         (!Number.isFinite(lat) ||
@@ -83,25 +97,46 @@ export function SearchForm({ onSubmit, loading, mode }: SearchFormProps) {
     )
       nextErrors.origin = 'location.coordinatesInvalid'
     if (
-      availableMinutes !== null &&
-      (!Number.isInteger(availableMinutes) ||
-        availableMinutes < 1 ||
-        availableMinutes > 1440)
+      badInput('available_minutes') ||
+      (availableMinutes !== null &&
+        (!Number.isInteger(availableMinutes) ||
+          availableMinutes < 1 ||
+          availableMinutes > 1440))
     ) {
       nextErrors.available_minutes = 'search.minutesInvalid'
     }
     if (
-      budgetKzt !== null &&
-      (!Number.isSafeInteger(budgetKzt) || budgetKzt < 0)
+      badInput('budget_kzt_per_person') ||
+      (budgetKzt !== null &&
+        (!Number.isSafeInteger(budgetKzt) || budgetKzt < 0))
     ) {
       nextErrors.budget_kzt_per_person = 'search.budgetInvalid'
     }
     const awareDateTime = dateTime ? astanaDateTimeToIso(dateTime) : null
-    if (dateTime && !awareDateTime)
+    if (badInput('date_time') || (dateTime && !awareDateTime))
       nextErrors.date_time = 'search.dateTimeInvalid'
 
     setErrors(nextErrors)
-    if (Object.keys(nextErrors).length > 0) return
+    const firstError = Object.keys(nextErrors)[0] as FormError | undefined
+    if (firstError) {
+      const originField = badInput('latitude')
+        ? 'latitude'
+        : badInput('longitude')
+          ? 'longitude'
+          : !hasLatitude || !Number.isFinite(lat) || lat < -90 || lat > 90
+            ? 'latitude'
+            : 'longitude'
+      const names: Record<FormError, string> = {
+        query: 'query',
+        origin: originField,
+        available_minutes: 'available_minutes',
+        budget_kzt_per_person: 'budget_kzt_per_person',
+        date_time: 'date_time',
+      }
+      const control = form.elements.namedItem(names[firstError])
+      if (control instanceof HTMLElement) control.focus()
+      return
+    }
 
     const locale: Locale =
       i18n.resolvedLanguage === 'ru' || i18n.resolvedLanguage === 'en'
@@ -125,6 +160,21 @@ export function SearchForm({ onSubmit, loading, mode }: SearchFormProps) {
       className="search-form"
       onSubmit={submit}
       noValidate
+      autoComplete="off"
+      onInputCapture={(event) => {
+        const control = event.target
+        if (
+          !(control instanceof HTMLInputElement) ||
+          !control.validity.badInput
+        )
+          return
+        if (
+          control.name === 'available_minutes' ||
+          control.name === 'budget_kzt_per_person' ||
+          control.name === 'date_time'
+        )
+          markExplicit(control.name)
+      }}
       aria-busy={loading}
     >
       <label className="field query-field" htmlFor="search-query">
@@ -138,6 +188,7 @@ export function SearchForm({ onSubmit, loading, mode }: SearchFormProps) {
           aria-invalid={Boolean(errors.query)}
           aria-describedby={errors.query ? 'query-error' : undefined}
           onChange={(event) => {
+            onInputChange?.()
             setQuery(event.target.value)
             setErrors((current) => ({ ...current, query: undefined }))
           }}

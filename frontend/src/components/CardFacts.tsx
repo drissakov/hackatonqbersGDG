@@ -6,12 +6,19 @@ import { safeExternalUrl } from '../lib/links'
 export function CardFacts({
   card,
   locale,
+  sourceUrl,
+  ticketAction = false,
 }: {
   card: CardDetails
   locale: Locale
+  sourceUrl: string | null
+  ticketAction?: boolean
 }) {
   const { t } = useTranslation()
-  const actionUrl = safeExternalUrl(card.action.url)
+  const actionUrl = safeExternalUrl(sourceUrl)
+  const activity = t(`activityAction.${card.activity_code}`)
+  const hasExplanation =
+    card.generated_locale === locale && card.explanation.trim().length > 0
   return (
     <>
       <dl className="card-facts">
@@ -28,6 +35,11 @@ export function CardFacts({
           <dd>{t(`codes.route_status.${card.route_status}`)}</dd>
         </div>
       </dl>
+      <p className="field-hint">{t('card.searchSnapshot')}</p>
+      <div className="card-idea">
+        <h4>{t('card.idea')}</h4>
+        <p>{activity}</p>
+      </div>
       <div className="card-reasons">
         <h4>{t('card.why')}</h4>
         <ul className="reason-list">
@@ -38,12 +50,21 @@ export function CardFacts({
       </div>
       <div className="card-explanation">
         <h4>
-          {t('card.explanation')}{' '}
-          <span lang={card.generated_locale}>
-            ({card.generated_locale.toUpperCase()})
-          </span>
+          {t(hasExplanation ? 'card.explanation' : 'card.localizedSummary')}
         </h4>
-        <p lang={card.generated_locale}>{card.explanation}</p>
+        <p lang={locale}>
+          {hasExplanation
+            ? card.explanation
+            : t('card.explanationFallback', {
+                activity: t(`codes.activity_code.${card.activity_code}`),
+                reasons:
+                  card.reason_codes.length > 0
+                    ? card.reason_codes
+                        .map((reason) => t(`codes.reason_codes.${reason}`))
+                        .join('; ')
+                    : t('card.reasonUnknown'),
+              })}
+        </p>
       </div>
       {card.missing_fields.length > 0 ? (
         <div className="missing-details">
@@ -63,7 +84,11 @@ export function CardFacts({
           target="_blank"
           rel="noopener noreferrer"
         >
-          {t(`codes.action_code.${card.action.code}`)}{' '}
+          {t(
+            ticketAction
+              ? 'events.checkTickets'
+              : 'codes.action_code.open_source',
+          )}{' '}
           <span aria-hidden="true">↗</span>
         </a>
       ) : (

@@ -4,6 +4,10 @@ import { LanguageSwitch } from './components/LanguageSwitch'
 import { SearchForm } from './components/SearchForm'
 import { ResultCard } from './components/ResultCard'
 import { EventCard } from './components/EventCard'
+import { DiscoveredEventCard } from './components/DiscoveredEventCard'
+import { EventSearchSources } from './components/EventSearchSources'
+import { DestinationDetails } from './components/DestinationDetails'
+import type { Destination } from './components/DestinationDetails'
 import {
   ApiError,
   checkHealth,
@@ -13,12 +17,37 @@ import {
 import { resolvedLocale } from './i18n'
 import type {
   EventSearchResponse,
+  DiscoveredEvent,
   RecommendationResponse,
   ResponseStatus,
   SearchRequest,
 } from './lib/types'
 
 type Kind = 'recommendations' | 'events'
+function eventLocation(event: DiscoveredEvent) {
+  const candidates = event.sessions.filter(
+    (session) => session.recommendation_candidate,
+  )
+  if (candidates.length === 0) return event.venue.location
+  const first = candidates[0].venue.location
+  if (
+    !first ||
+    candidates.some(
+      (session) =>
+        !session.venue.location ||
+        session.venue.location.latitude !== first.latitude ||
+        session.venue.location.longitude !== first.longitude,
+    )
+  )
+    return null
+  if (
+    event.venue.location &&
+    (event.venue.location.latitude !== first.latitude ||
+      event.venue.location.longitude !== first.longitude)
+  )
+    return null
+  return first
+}
 type Result =
   | { kind: 'recommendations'; response: RecommendationResponse }
   | { kind: 'events'; response: EventSearchResponse }
@@ -27,7 +56,7 @@ const DevPreview = import.meta.env.DEV
   : null
 
 export default function App() {
-  const { t, i18n } = useTranslation()
+  const { t } = useTranslation()
   const locale = resolvedLocale()
   const [kind, setKind] = useState<Kind>('recommendations')
   const [health, setHealth] = useState<'checking' | 'ok' | 'error'>('checking')
@@ -40,6 +69,7 @@ export default function App() {
   const request = useRef<AbortController | null>(null)
   const generation = useRef(0)
   const [previous, setPrevious] = useState<SearchRequest | null>(null)
+  const [selectedId, setSelectedId] = useState<string | null>(null)
 
   useEffect(() => {
     const controller = new AbortController()
@@ -60,16 +90,15 @@ export default function App() {
     setSynthetic(false)
     setError(null)
     setPrevious(null)
+    setSelectedId(null)
   }, [])
 
   useEffect(() => {
-    i18n.on('languageChanged', resetSearch)
     return () => {
-      i18n.off('languageChanged', resetSearch)
       request.current?.abort()
       generation.current += 1
     }
-  }, [i18n, resetSearch])
+  }, [])
 
   function changeKind(next: Kind) {
     if (next === kind) return
@@ -88,6 +117,7 @@ export default function App() {
     setResult(null)
     setError(null)
     setSynthetic(false)
+    setSelectedId(null)
     try {
       const next: Result =
         kind === 'events'
@@ -137,6 +167,26 @@ export default function App() {
 
   const response = result?.response
   const stateKey = response?.status === 'no_match' ? 'empty' : response?.status
+  const destinations: Destination[] =
+    result?.kind === 'recommendations'
+      ? result.response.items.slice(0, 3).map(({ poi }) => ({
+          id: poi.id,
+          name: poi.name,
+          location: poi.location,
+        }))
+      : result?.kind === 'events'
+        ? result.response.discovery
+          ? result.response.discovery.events.slice(0, 3).map((event) => ({
+              id: event.event_id,
+              name: event.title,
+              location: eventLocation(event),
+            }))
+          : result.response.items.slice(0, 3).map(({ session, event }) => ({
+              id: session.id,
+              name: event.title,
+              location: session.location,
+            }))
+        : []
   return (
     <>
       <a className="skip-link" href="#search">
@@ -205,6 +255,7 @@ export default function App() {
               </button>
             </div>
             <SearchForm
+              onInputChange={resetSearch}
               onSubmit={(body) => {
                 void submit(body)
               }}
@@ -327,6 +378,14 @@ export default function App() {
                       {t('dev.description')} {t('dev.englishNotice')}
                     </p>
                   )}
+                  {result.kind === 'events' && result.response.discovery ? (
+                    <p className="event-notice">
+                      {t('events.searchStatus')}:{' '}
+                      {t(
+                        `events.searchStates.${result.response.discovery.live_web_search}`,
+                      )}
+                    </p>
+                  ) : null}
                   {response.warnings.length > 0 && (
                     <ul className="warning-list">
                       {response.warnings.map((warning, index) => (
@@ -335,32 +394,73 @@ export default function App() {
                           {warning.fields.length > 0
                             ? `: ${warning.fields.map((field) => t(`codes.missing_fields.${field}`)).join(', ')}`
                             : ''}
-                          <p lang={synthetic ? 'en' : locale}>
-                            {warning.message}
-                          </p>
                         </li>
                       ))}
                     </ul>
                   )}
+                  {result.kind === 'events' &&
+                  result.response.discovery?.events.length === 0 &&
+                  result.response.discovery.evidence ? (
+                    <EventSearchSources
+                      citations={result.response.discovery.evidence.citations}
+                    />
+                  ) : null}
                   <div className="result-list">
                     {result.kind === 'recommendations'
-                      ? result.response.items.map((card) => (
-                          <ResultCard
-                            key={card.poi.id}
-                            card={card}
-                            locale={locale}
-                            sources={result.response.sources}
-                          />
-                        ))
-                      : result.response.items.map((card) => (
-                          <EventCard
-                            key={card.session.id}
-                            card={card}
-                            locale={locale}
-                            sources={result.response.sources}
-                          />
-                        ))}
+                      ? result.response.items
+                          .slice(0, 3)
+                          .map((card) => (
+                            <ResultCard
+                              key={card.poi.id}
+                              card={card}
+                              locale={locale}
+                              sources={result.response.sources}
+                              selected={selectedId === card.poi.id}
+                              onSelect={() => setSelectedId(card.poi.id)}
+                            />
+                          ))
+                      : result.response.items
+                          .slice(0, 3)
+                          .map((card) => (
+                            <EventCard
+                              key={card.session.id}
+                              card={card}
+                              locale={locale}
+                              sources={result.response.sources}
+                              selected={selectedId === card.session.id}
+                              onSelect={() => setSelectedId(card.session.id)}
+                            />
+                          ))}
+                    {result.kind === 'events' && result.response.discovery
+                      ? result.response.discovery.events
+                          .slice(0, 3)
+                          .map((event) => (
+                            <DiscoveredEventCard
+                              key={event.event_id}
+                              event={event}
+                              citations={
+                                result.response.discovery?.evidence
+                                  ?.citations ?? []
+                              }
+                              locale={locale}
+                              selected={selectedId === event.event_id}
+                              onSelect={() => setSelectedId(event.event_id)}
+                            />
+                          ))
+                      : null}
                   </div>
+                  {destinations.length > 0 && (
+                    <DestinationDetails
+                      key={response.request_id}
+                      destinations={destinations}
+                      origin={previous?.origin ?? null}
+                      returnToStart={previous?.return_to_start ?? false}
+                      locale={locale}
+                      selectedId={selectedId}
+                      onSelect={setSelectedId}
+                      synthetic={synthetic}
+                    />
+                  )}
                 </div>
               )}
             </div>

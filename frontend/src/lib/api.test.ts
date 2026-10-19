@@ -5,11 +5,23 @@ import events from '../../../contracts/examples/event-search-response.test.json'
 import {
   ApiError,
   checkHealth,
+  getRoute,
+  parseRouteResponse,
   parseSearchResponse,
   searchEvents,
   searchRecommendations,
 } from './api'
-import type { Locale, SearchRequest } from './types'
+import type {
+  Locale,
+  RouteLeg,
+  RouteRequest,
+  RouteResponse,
+  SearchRequest,
+} from './types'
+import {
+  syntheticDiscoveryResponse,
+  syntheticSession,
+} from '../test/eventDiscovery'
 
 const body: SearchRequest = {
   request_id: recommendation.request_id,
@@ -79,7 +91,7 @@ describe('same-origin API transport', () => {
     const response = await searchRecommendations(body)
     expect(response.status).toBe('ok')
     expect(fetch).toHaveBeenCalledWith(
-      '/api/v1/recommendations',
+      '/api/recommendations',
       expect.objectContaining({
         method: 'POST',
         body: JSON.stringify(body),
@@ -101,7 +113,7 @@ describe('same-origin API transport', () => {
       items: [{ session: { ends_at: null } }],
     })
     expect(fetch).toHaveBeenCalledWith(
-      '/api/v1/events/search',
+      '/api/events/search',
       expect.objectContaining({ method: 'POST' }),
     )
   })
@@ -188,7 +200,26 @@ describe('same-origin API transport', () => {
       cards: recommendation,
     },
     { name: 'events', search: searchEvents, cards: events },
-  ])('HTTP 503 $name boundary', ({ search, cards }) => {
+  ])('HTTP 503 $name boundary', ({ name, search, cards }) => {
+    it.each([
+      { status: 200, unavailable: true },
+      { status: 201, unavailable: false },
+    ])(
+      'rejects an inconsistent successful HTTP/domain status: $status',
+      async ({ status, unavailable }) => {
+        vi.stubGlobal(
+          'fetch',
+          vi
+            .fn()
+            .mockResolvedValue(
+              json(unavailable ? unavailableResponse('en') : cards, status),
+            ),
+        )
+        await expect(search(body)).rejects.toMatchObject({
+          code: 'invalid_response',
+        })
+      },
+    )
     it.each<Locale>(['kk', 'ru', 'en'])(
       'returns a validated unavailable envelope for the requested %s locale',
       async (locale) => {
@@ -198,7 +229,9 @@ describe('same-origin API transport', () => {
 
         const result = await search({ ...body, locale })
 
-        expect(result).toEqual(envelope)
+        expect(result).toEqual(
+          name === 'events' ? { ...envelope, discovery: null } : envelope,
+        )
         expect(result.items).toEqual([])
         expect(result.sources).toEqual([])
         expect(result.warnings).toEqual(envelope.warnings)
@@ -350,7 +383,7 @@ describe('same-origin API transport', () => {
         code: 'timeout',
       })
       await bodyStarted
-      await vi.advanceTimersByTimeAsync(20_000)
+      await vi.advanceTimersByTimeAsync(name === 'events' ? 100_000 : 80_000)
       await rejected
       expect(vi.getTimerCount()).toBe(0)
     })
@@ -448,6 +481,33 @@ describe('same-origin API transport', () => {
     expect(vi.getTimerCount()).toBe(0)
   })
 
+  it('allows the recommendation provider pipeline beyond health timeout and aborts at its own deadline', async () => {
+    vi.useFakeTimers()
+    let signal: AbortSignal | null | undefined
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation(
+        (_url, options: RequestInit) =>
+          new Promise((_resolve, reject) => {
+            signal = options.signal
+            signal!.addEventListener('abort', () =>
+              reject(new DOMException('Aborted', 'AbortError')),
+            )
+          }),
+      ),
+    )
+    const promise = searchRecommendations(body)
+    const rejected = expect(promise).rejects.toMatchObject({ code: 'timeout' })
+    await vi.advanceTimersByTimeAsync(20_000)
+    expect(signal!.aborted).toBe(false)
+    await vi.advanceTimersByTimeAsync(59_999)
+    expect(signal!.aborted).toBe(false)
+    await vi.advanceTimersByTimeAsync(1)
+    await rejected
+    expect(signal!.aborted).toBe(true)
+    expect(vi.getTimerCount()).toBe(0)
+  })
+
   it('rejects mismatched response correlation IDs', async () => {
     vi.stubGlobal(
       'fetch',
@@ -469,7 +529,10 @@ describe('v1 runtime response boundaries', () => {
     expect(parseSearchResponse(partial, 'recommendations', 'en')).toEqual(
       partial,
     )
-    expect(parseSearchResponse(events, 'events', 'en')).toEqual(events)
+    expect(parseSearchResponse(events, 'events', 'en')).toEqual({
+      ...events,
+      discovery: null,
+    })
   })
 
   it('applies declared response defaults without mutating the wire payload', () => {
@@ -484,6 +547,32 @@ describe('v1 runtime response boundaries', () => {
     expect(parsed.sources[0].indexing_allowed).toBe(false)
     expect(source).not.toHaveProperty('indexing_allowed')
   })
+
+  it.each(['recommendations', 'events'] as const)(
+    'fills optional warning fields for %s without mutating the wire body',
+    (kind) => {
+      const wire = {
+        request_id: recommendation.request_id,
+        status: 'unavailable',
+        items: [],
+        sources: [],
+        warnings: [{ code: 'provider_unavailable', message: 'Unavailable' }],
+      }
+      const parsed =
+        kind === 'events'
+          ? parseSearchResponse(wire, kind, 'en')
+          : parseSearchResponse(wire, kind, 'en')
+      expect(parsed.warnings[0].fields).toEqual([])
+      expect(wire.warnings[0]).not.toHaveProperty('fields')
+      expect(() =>
+        parseSearchResponse(
+          { ...wire, warnings: [{ ...wire.warnings[0], fields: null }] },
+          'recommendations',
+          'en',
+        ),
+      ).toThrowError(new ApiError('invalid_response'))
+    },
+  )
 
   it('rejects generated output in a different language', () => {
     expect(() =>
@@ -528,6 +617,20 @@ describe('v1 runtime response boundaries', () => {
     (value: typeof recommendation) => {
       Object.assign(value, { extra: 'unexpected' })
     },
+    (value: typeof recommendation) => {
+      delete (value.items[0] as Partial<(typeof value.items)[0]>).reason_codes
+    },
+    (value: typeof recommendation) => {
+      delete (value.items[0] as Partial<(typeof value.items)[0]>).provenance
+    },
+    (value: typeof recommendation) => {
+      const poi = value.items[0].poi
+      delete (poi as Partial<typeof poi>).sources
+    },
+    (value: typeof recommendation) => {
+      const poi = value.items[0].poi
+      delete (poi as Partial<typeof poi>).provenance
+    },
   ])('rejects structurally invalid or dishonest alternatives', (mutate) => {
     const value = structuredClone(recommendation)
     mutate(value)
@@ -567,5 +670,444 @@ describe('v1 runtime response boundaries', () => {
     expect(() => parseSearchResponse(wrongTime, 'events', 'en')).toThrowError(
       new ApiError('invalid_response'),
     )
+  })
+})
+
+describe('transient D03 response boundary', () => {
+  it('normalizes omitted discovery factory fields without mutating valid wire data', () => {
+    const empty = {
+      ...unavailableResponse('en'),
+      discovery: { provider_status: 'unavailable', live_web_search: 'not_run' },
+    }
+    expect(
+      parseSearchResponse(empty, 'events', 'en').discovery?.events,
+    ).toEqual([])
+    expect(empty.discovery).not.toHaveProperty('events')
+
+    const value = syntheticDiscoveryResponse()
+    const session = syntheticSession()
+    delete (session as Partial<typeof session>).verified_fields
+    for (const venue of [value.discovery!.events[0].venue, session.venue]) {
+      delete (venue as Partial<typeof venue>).source_ids
+      delete (venue as Partial<typeof venue>).source_urls
+    }
+    value.discovery!.events[0].sessions = [session]
+    const parsed = parseSearchResponse(value, 'events', 'en')
+    expect(parsed.discovery!.events[0].sessions[0].verified_fields).toEqual([])
+    expect(parsed.discovery!.events[0].venue.source_urls).toEqual([])
+    expect(parsed.discovery!.events[0].sessions[0].venue.source_ids).toEqual([])
+    expect(session).not.toHaveProperty('verified_fields')
+  })
+
+  it.each([
+    { basis: 'unknown', location: { latitude: 51.13, longitude: 71.43 } },
+    { basis: 'ambiguous', poi_id: 'test-venue' },
+    {
+      basis: 'name_address_astana_permitted_poi',
+      poi_id: 'test-venue',
+      location: { latitude: 51.13, longitude: 71.43 },
+      geography_basis: 'central_astana_bbox',
+    },
+  ])('rejects unsupported event and session venue coordinates: %j', (venue) => {
+    for (const record of ['event', 'session'] as const) {
+      const value = syntheticDiscoveryResponse()
+      const session = syntheticSession()
+      value.discovery!.events[0].sessions = [session]
+      Object.assign(
+        record === 'event' ? value.discovery!.events[0].venue : session.venue,
+        venue,
+      )
+      expect(() => parseSearchResponse(value, 'events', 'en')).toThrowError(
+        new ApiError('invalid_response'),
+      )
+    }
+  })
+
+  it('accepts independently grounded event and session venue coordinates', () => {
+    const value = syntheticDiscoveryResponse()
+    const session = syntheticSession()
+    value.discovery!.events[0].sessions = [session]
+    for (const venue of [value.discovery!.events[0].venue, session.venue])
+      Object.assign(venue, {
+        basis: 'name_address_astana_permitted_poi',
+        poi_id: 'test-venue',
+        location: { latitude: 51.13, longitude: 71.43 },
+        source_ids: ['test-source'],
+        source_urls: ['https://example.invalid/test-venue'],
+        geography_basis: 'central_astana_bbox',
+      })
+    expect(parseSearchResponse(value, 'events', 'en')).toEqual(value)
+  })
+
+  it.each([
+    'sessions',
+    'citations',
+    'verified_fields',
+    'source_ids',
+    'events',
+  ] as const)(
+    'rejects missing required or explicitly null optional discovery arrays: %s',
+    (field) => {
+      const value = syntheticDiscoveryResponse()
+      const event = value.discovery!.events[0]
+      const session = syntheticSession()
+      event.sessions = [session]
+      if (field === 'sessions') delete (event as Partial<typeof event>).sessions
+      if (field === 'citations') {
+        const evidence = value.discovery!.evidence!
+        delete (evidence as Partial<typeof evidence>).citations
+      }
+      if (field === 'verified_fields')
+        Object.assign(session, { verified_fields: null })
+      if (field === 'source_ids')
+        Object.assign(session.venue, { source_ids: null })
+      if (field === 'events') Object.assign(value.discovery!, { events: null })
+      expect(() => parseSearchResponse(value, 'events', 'en')).toThrowError(
+        new ApiError('invalid_response'),
+      )
+    },
+  )
+
+  it.each([
+    { field: 'price_from', value: 1 },
+    { field: 'price_from', value: '5000' },
+    { field: 'ends_at', value: '2030-01-02T20:00:00+05:00' },
+    { checked_at: '2029-12-31T10:00:00+05:00' },
+  ])(
+    'rejects a verification check with a mismatched field value or stale observation: %j',
+    (change) => {
+      const value = syntheticDiscoveryResponse()
+      const session = syntheticSession()
+      session.verification_status = 'verified'
+      session.verified_fields = [
+        {
+          session_id: session.session_id,
+          field: 'price_from',
+          value: session.price_from!,
+          source_url: session.source_url,
+          checked_at: session.source_fetched_at,
+          method: 'manual_source',
+        },
+      ]
+      Object.assign(session.verified_fields[0], change)
+      value.discovery!.events[0].sessions = [session]
+      expect(() => parseSearchResponse(value, 'events', 'en')).toThrowError(
+        new ApiError('invalid_response'),
+      )
+    },
+  )
+
+  it('accepts timestamp checks for the same aware instant written with another offset', () => {
+    const value = syntheticDiscoveryResponse()
+    const session = syntheticSession()
+    session.verification_status = 'verified'
+    session.verified_fields = [
+      {
+        session_id: session.session_id,
+        field: 'starts_at',
+        value: '2030-01-02T13:00:00Z',
+        source_url: session.source_url,
+        checked_at: session.source_fetched_at,
+        method: 'manual_source',
+      },
+    ]
+    value.discovery!.events[0].sessions = [session]
+    expect(parseSearchResponse(value, 'events', 'en')).toEqual(value)
+  })
+
+  it('accepts a listing with no persistent card or invented session and preserves false storage rights', () => {
+    const value = syntheticDiscoveryResponse()
+    expect(parseSearchResponse(value, 'events', 'ru')).toEqual(value)
+    expect(value.discovery!.events[0].sessions).toEqual([])
+    expect(value.discovery!.evidence!.sources[0].storage_allowed).toBe(false)
+  })
+
+  it.each([
+    (value: ReturnType<typeof syntheticDiscoveryResponse>) => {
+      value.discovery!.provider_status = 'unavailable'
+    },
+    (value: ReturnType<typeof syntheticDiscoveryResponse>) => {
+      value.discovery!.evidence = null
+    },
+    (value: ReturnType<typeof syntheticDiscoveryResponse>) => {
+      value.discovery!.events[0].source_url = 'https://example.invalid/uncited'
+    },
+    (value: ReturnType<typeof syntheticDiscoveryResponse>) => {
+      value.discovery!.evidence!.citations[0].url = 'javascript:alert(1)'
+    },
+    (value: ReturnType<typeof syntheticDiscoveryResponse>) => {
+      value.discovery!.events.push(structuredClone(value.discovery!.events[0]))
+    },
+    (value: ReturnType<typeof syntheticDiscoveryResponse>) => {
+      const session = syntheticSession()
+      session.status = 'cancelled'
+      value.discovery!.events[0].sessions = [session]
+    },
+    (value: ReturnType<typeof syntheticDiscoveryResponse>) => {
+      const session = syntheticSession()
+      session.event_id = 'different-event'
+      value.discovery!.events[0].sessions = [session]
+    },
+    (value: ReturnType<typeof syntheticDiscoveryResponse>) => {
+      const session = syntheticSession()
+      session.verification_status = 'verified'
+      value.discovery!.events[0].sessions = [session]
+    },
+  ])('rejects inconsistent or unsupported discovered facts', (mutate) => {
+    const value = syntheticDiscoveryResponse()
+    mutate(value)
+    expect(() => parseSearchResponse(value, 'events', 'en')).toThrowError(
+      new ApiError('invalid_response'),
+    )
+  })
+})
+
+const routeRequest: RouteRequest = {
+  request_id: recommendation.request_id,
+  origin: { latitude: 51.128, longitude: 71.43 },
+  destination: { latitude: 51.12, longitude: 71.42 },
+  return_to_start: true,
+  locale: 'en',
+}
+
+function knownLeg(seconds = 61): RouteLeg {
+  return {
+    status: 'known',
+    distance_meters: 100,
+    duration_seconds: seconds,
+    provenance: {
+      provider: 'twogis',
+      endpoint: 'https://routing.api.2gis.com/routing/7.0.0/global',
+      retrieved_at: '2030-01-01T12:00:00+05:00',
+      transport: 'walking',
+      provider_locale: 'en',
+      storage_allowed: false,
+      indexing_allowed: false,
+      ai_allowed: false,
+    },
+    reason: null,
+  }
+}
+
+function routeResponse(): RouteResponse {
+  return {
+    request_id: recommendation.request_id,
+    status: 'known',
+    travel_minutes_estimate: 3,
+    outbound: knownLeg(61),
+    return_route: knownLeg(62),
+    destination_precision: 'approximate',
+    warnings: [],
+  }
+}
+
+describe('walking route transport and honest totals', () => {
+  beforeEach(() => vi.stubEnv('VITE_API_BASE_URL', '/api'))
+  afterEach(() => {
+    vi.unstubAllEnvs()
+    vi.unstubAllGlobals()
+    vi.useRealTimers()
+  })
+
+  it('posts to the real route endpoint and keeps independently obtained leg metrics', async () => {
+    const response = routeResponse()
+    const fetch = vi.fn().mockResolvedValue(json(response))
+    vi.stubGlobal('fetch', fetch)
+    await expect(getRoute(routeRequest)).resolves.toEqual(response)
+    expect(fetch).toHaveBeenCalledWith(
+      '/api/route',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify(routeRequest),
+        cache: 'no-store',
+      }),
+    )
+  })
+
+  it('keeps a known outbound leg when the return is unavailable without a full trip total', async () => {
+    const response = routeResponse()
+    response.status = 'unavailable'
+    response.travel_minutes_estimate = null
+    response.return_route = {
+      status: 'unavailable',
+      reason: 'timeout',
+      distance_meters: null,
+      duration_seconds: null,
+      provenance: null,
+    }
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(json(response, 503)))
+    await expect(getRoute(routeRequest)).resolves.toEqual(response)
+  })
+
+  it('keeps a missing-origin route unknown and a no-return leg explicitly not requested', async () => {
+    const response: RouteResponse = {
+      ...routeResponse(),
+      status: 'unknown',
+      travel_minutes_estimate: null,
+      outbound: {
+        status: 'unknown',
+        reason: 'missing_origin',
+        distance_meters: null,
+        duration_seconds: null,
+        provenance: null,
+      },
+      return_route: {
+        status: 'not_requested',
+        reason: 'not_requested',
+        distance_meters: null,
+        duration_seconds: null,
+        provenance: null,
+      },
+    }
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(json(response)))
+    await expect(
+      getRoute({ ...routeRequest, origin: null, return_to_start: false }),
+    ).resolves.toEqual(response)
+  })
+
+  it('accepts zero-duration routes and rounds the combined duration only once', () => {
+    const response = routeResponse()
+    response.outbound = knownLeg(0)
+    response.return_route = knownLeg(0)
+    response.travel_minutes_estimate = 0
+    expect(parseRouteResponse(response)).toEqual(response)
+    response.outbound = knownLeg(1)
+    response.return_route = knownLeg(1)
+    response.travel_minutes_estimate = 1
+    expect(parseRouteResponse(response).travel_minutes_estimate).toBe(1)
+  })
+
+  it('applies declared and factory response defaults without changing the wire body', () => {
+    const wire = { request_id: recommendation.request_id, warnings: [] }
+    expect(parseRouteResponse(wire)).toMatchObject({
+      status: 'unavailable',
+      travel_minutes_estimate: null,
+      outbound: { status: 'unavailable', reason: 'disabled' },
+      return_route: { status: 'not_requested', reason: 'not_requested' },
+      destination_precision: 'approximate',
+    })
+    expect(wire).not.toHaveProperty('outbound')
+  })
+
+  it.each([
+    (value: RouteResponse) => {
+      value.travel_minutes_estimate = 4
+    },
+    (value: RouteResponse) => {
+      value.status = 'unknown'
+    },
+    (value: RouteResponse) => {
+      value.outbound.provenance = null
+    },
+    (value: RouteResponse) => {
+      value.outbound.duration_seconds = null
+    },
+    (value: RouteResponse) => {
+      value.outbound.reason = 'timeout'
+    },
+    (value: RouteResponse) => {
+      value.outbound.duration_seconds = -1
+    },
+    (value: RouteResponse) => {
+      value.outbound.status = 'not_requested'
+    },
+    (value: RouteResponse) => {
+      value.return_route.status = 'unavailable'
+      value.return_route.reason = 'timeout'
+    },
+    (value: RouteResponse) => {
+      value.outbound.provenance!.storage_allowed = true as false
+    },
+    (value: RouteResponse) => {
+      Object.assign(value, { geometry: {} })
+    },
+  ])('rejects contradictory route facts and unsupported geometry', (mutate) => {
+    const response = routeResponse()
+    mutate(response)
+    expect(() => parseRouteResponse(response)).toThrowError(
+      new ApiError('invalid_response'),
+    )
+  })
+
+  it.each([
+    { ...routeRequest, destination: { latitude: 91, longitude: 71 } },
+    { ...routeRequest, origin: { latitude: Number.NaN, longitude: 71 } },
+    { ...routeRequest, request_id: 'bad-id' },
+    { ...routeRequest, locale: 'de' },
+    { ...routeRequest, destination: undefined },
+    { ...routeRequest, query: 'unsupported' },
+  ])('rejects malformed route requests before network access', async (body) => {
+    const fetch = vi.fn()
+    vi.stubGlobal('fetch', fetch)
+    await expect(getRoute(body as RouteRequest)).rejects.toMatchObject({
+      code: 'invalid_request',
+    })
+    expect(fetch).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    [503, routeResponse()],
+    [201, routeResponse()],
+    [
+      200,
+      {
+        ...routeResponse(),
+        request_id: '00000000-0000-4000-8000-000000000009',
+      },
+    ],
+  ])(
+    'rejects HTTP/domain status or request correlation mismatch',
+    async (status, response) => {
+      vi.stubGlobal(
+        'fetch',
+        vi.fn().mockResolvedValue(json(response, status as number)),
+      )
+      await expect(getRoute(routeRequest)).rejects.toMatchObject({
+        code: 'invalid_response',
+      })
+    },
+  )
+
+  it('requires the requested independent return leg', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(json(routeResponse())))
+    await expect(
+      getRoute({ ...routeRequest, return_to_start: false }),
+    ).rejects.toMatchObject({ code: 'invalid_response' })
+  })
+
+  it('does not accept an unavailable route on HTTP 200', async () => {
+    const response = routeResponse()
+    response.status = 'unavailable'
+    response.travel_minutes_estimate = null
+    response.outbound = {
+      status: 'unavailable',
+      reason: 'disabled',
+      distance_meters: null,
+      duration_seconds: null,
+      provenance: null,
+    }
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(json(response)))
+    await expect(getRoute(routeRequest)).rejects.toMatchObject({
+      code: 'invalid_response',
+    })
+  })
+
+  it('ignores cancelled work even if the transport resolves late', async () => {
+    let finish: ((value: Response) => void) | undefined
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation(
+        () =>
+          new Promise<Response>((resolve) => {
+            finish = resolve
+          }),
+      ),
+    )
+    const controller = new AbortController()
+    const pending = getRoute(routeRequest, controller.signal)
+    const rejected = expect(pending).rejects.toMatchObject({ code: 'aborted' })
+    controller.abort()
+    finish!(json(routeResponse()))
+    await rejected
   })
 })

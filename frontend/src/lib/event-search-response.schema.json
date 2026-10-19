@@ -1,0 +1,1222 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "Action": {
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "enum": ["open_source", "open_map"],
+          "title": "Code",
+          "type": "string"
+        },
+        "url": {
+          "format": "uri",
+          "maxLength": 2083,
+          "minLength": 1,
+          "title": "Url",
+          "type": "string"
+        }
+      },
+      "required": ["code", "url"],
+      "title": "Action",
+      "type": "object"
+    },
+    "ActivityCode": {
+      "enum": [
+        "walk",
+        "museum",
+        "food",
+        "culture",
+        "sport",
+        "shopping",
+        "entertainment",
+        "other"
+      ],
+      "title": "ActivityCode",
+      "type": "string"
+    },
+    "Coordinates": {
+      "additionalProperties": false,
+      "properties": {
+        "latitude": {
+          "maximum": 90,
+          "minimum": -90,
+          "title": "Latitude",
+          "type": "number"
+        },
+        "longitude": {
+          "maximum": 180,
+          "minimum": -180,
+          "title": "Longitude",
+          "type": "number"
+        }
+      },
+      "required": ["latitude", "longitude"],
+      "title": "Coordinates",
+      "type": "object"
+    },
+    "EventCard": {
+      "additionalProperties": false,
+      "properties": {
+        "provenance": {
+          "items": {
+            "$ref": "#/$defs/Provenance"
+          },
+          "minItems": 1,
+          "title": "Provenance",
+          "type": "array"
+        },
+        "reason_codes": {
+          "items": {
+            "$ref": "#/$defs/ReasonCode"
+          },
+          "minItems": 1,
+          "title": "Reason Codes",
+          "type": "array"
+        },
+        "activity_code": {
+          "$ref": "#/$defs/ActivityCode"
+        },
+        "visit_minutes_estimate": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "maximum": 10080,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Visit Minutes Estimate"
+        },
+        "route_status": {
+          "$ref": "#/$defs/RouteStatus"
+        },
+        "travel_minutes_estimate": {
+          "anyOf": [
+            {
+              "maximum": 10080,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Travel Minutes Estimate"
+        },
+        "fit_status": {
+          "$ref": "#/$defs/FitStatus"
+        },
+        "missing_fields": {
+          "items": {
+            "$ref": "#/$defs/MissingField"
+          },
+          "title": "Missing Fields",
+          "type": "array"
+        },
+        "explanation": {
+          "maxLength": 4000,
+          "minLength": 1,
+          "title": "Explanation",
+          "type": "string"
+        },
+        "generated_locale": {
+          "enum": ["kk", "ru", "en"],
+          "title": "Generated Locale",
+          "type": "string"
+        },
+        "action": {
+          "$ref": "#/$defs/Action"
+        },
+        "event": {
+          "$ref": "#/$defs/EventRecord"
+        },
+        "session": {
+          "$ref": "#/$defs/EventSession"
+        }
+      },
+      "required": [
+        "provenance",
+        "reason_codes",
+        "activity_code",
+        "visit_minutes_estimate",
+        "route_status",
+        "travel_minutes_estimate",
+        "fit_status",
+        "missing_fields",
+        "explanation",
+        "generated_locale",
+        "action",
+        "event",
+        "session"
+      ],
+      "title": "EventCard",
+      "type": "object"
+    },
+    "EventDiscoveryCitation": {
+      "additionalProperties": false,
+      "properties": {
+        "url": {
+          "format": "uri",
+          "maxLength": 2083,
+          "minLength": 1,
+          "title": "Url",
+          "type": "string"
+        },
+        "title": {
+          "maxLength": 1000,
+          "title": "Title",
+          "type": "string"
+        },
+        "start_index": {
+          "minimum": 0,
+          "title": "Start Index",
+          "type": "integer"
+        },
+        "end_index": {
+          "minimum": 0,
+          "title": "End Index",
+          "type": "integer"
+        },
+        "text": {
+          "maxLength": 40000,
+          "title": "Text",
+          "type": "string"
+        },
+        "context": {
+          "default": "",
+          "maxLength": 2000,
+          "title": "Context",
+          "type": "string"
+        }
+      },
+      "required": ["url", "title", "start_index", "end_index", "text"],
+      "title": "EventDiscoveryCitation",
+      "type": "object"
+    },
+    "EventDiscoveryEvent": {
+      "additionalProperties": false,
+      "properties": {
+        "event_id": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Event Id",
+          "type": "string"
+        },
+        "title": {
+          "maxLength": 4000,
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        },
+        "source_url": {
+          "format": "uri",
+          "maxLength": 2083,
+          "minLength": 1,
+          "title": "Source Url",
+          "type": "string"
+        },
+        "source_fetched_at": {
+          "format": "date-time",
+          "title": "Source Fetched At",
+          "type": "string"
+        },
+        "city": {
+          "anyOf": [
+            {
+              "maxLength": 150,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "City"
+        },
+        "venue_name": {
+          "anyOf": [
+            {
+              "maxLength": 300,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Venue Name"
+        },
+        "venue_address": {
+          "anyOf": [
+            {
+              "maxLength": 300,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Venue Address"
+        },
+        "venue": {
+          "$ref": "#/$defs/EventDiscoveryVenue"
+        },
+        "status": {
+          "enum": ["listing", "discovered"],
+          "title": "Status",
+          "type": "string"
+        },
+        "schedule_hints": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 200,
+          "title": "Schedule Hints",
+          "type": "array"
+        },
+        "missing_fields": {
+          "items": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 100,
+          "title": "Missing Fields",
+          "type": "array"
+        },
+        "sessions": {
+          "items": {
+            "$ref": "#/$defs/EventDiscoverySession"
+          },
+          "maxItems": 200,
+          "title": "Sessions",
+          "type": "array"
+        }
+      },
+      "required": [
+        "event_id",
+        "title",
+        "source_url",
+        "source_fetched_at",
+        "city",
+        "venue_name",
+        "venue_address",
+        "venue",
+        "status",
+        "schedule_hints",
+        "missing_fields",
+        "sessions"
+      ],
+      "title": "EventDiscoveryEvent",
+      "type": "object"
+    },
+    "EventDiscoveryEvidence": {
+      "additionalProperties": false,
+      "properties": {
+        "text": {
+          "maxLength": 40000,
+          "title": "Text",
+          "type": "string"
+        },
+        "sources": {
+          "items": {
+            "$ref": "#/$defs/EventDiscoverySource"
+          },
+          "maxItems": 100,
+          "title": "Sources",
+          "type": "array"
+        },
+        "citations": {
+          "items": {
+            "$ref": "#/$defs/EventDiscoveryCitation"
+          },
+          "maxItems": 100,
+          "title": "Citations",
+          "type": "array"
+        }
+      },
+      "required": ["text", "sources", "citations"],
+      "title": "EventDiscoveryEvidence",
+      "type": "object"
+    },
+    "EventDiscoveryFieldCheck": {
+      "additionalProperties": false,
+      "properties": {
+        "session_id": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Session Id",
+          "type": "string"
+        },
+        "field": {
+          "enum": [
+            "city",
+            "venue_name",
+            "venue_address",
+            "starts_at",
+            "ends_at",
+            "price_from",
+            "currency",
+            "price_conditions",
+            "status"
+          ],
+          "title": "Field",
+          "type": "string"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "maxLength": 4000,
+              "type": "string"
+            },
+            {
+              "type": "integer"
+            }
+          ],
+          "title": "Value"
+        },
+        "source_url": {
+          "format": "uri",
+          "maxLength": 2083,
+          "minLength": 1,
+          "title": "Source Url",
+          "type": "string"
+        },
+        "checked_at": {
+          "format": "date-time",
+          "title": "Checked At",
+          "type": "string"
+        },
+        "method": {
+          "enum": ["manual_source", "licensed_feed"],
+          "title": "Method",
+          "type": "string"
+        }
+      },
+      "required": [
+        "session_id",
+        "field",
+        "value",
+        "source_url",
+        "checked_at",
+        "method"
+      ],
+      "title": "EventDiscoveryFieldCheck",
+      "type": "object"
+    },
+    "EventDiscoveryPayload": {
+      "additionalProperties": false,
+      "description": "Runtime D03 output; never a persistent EventRecord or ticket guarantee.",
+      "properties": {
+        "provider_status": {
+          "$ref": "#/$defs/ResponseStatus"
+        },
+        "provider_code": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Provider Code"
+        },
+        "live_web_search": {
+          "enum": ["not_run", "passed", "failed"],
+          "title": "Live Web Search",
+          "type": "string"
+        },
+        "evidence": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EventDiscoveryEvidence"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "events": {
+          "items": {
+            "$ref": "#/$defs/EventDiscoveryEvent"
+          },
+          "maxItems": 10,
+          "title": "Events",
+          "type": "array"
+        },
+        "excluded_sessions": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Excluded Sessions",
+          "type": "integer"
+        },
+        "rejected_events": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Rejected Events",
+          "type": "integer"
+        }
+      },
+      "required": ["provider_status", "live_web_search"],
+      "title": "EventDiscoveryPayload",
+      "type": "object"
+    },
+    "EventDiscoverySession": {
+      "additionalProperties": false,
+      "properties": {
+        "session_id": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Session Id",
+          "type": "string"
+        },
+        "event_id": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Event Id",
+          "type": "string"
+        },
+        "source_url": {
+          "format": "uri",
+          "maxLength": 2083,
+          "minLength": 1,
+          "title": "Source Url",
+          "type": "string"
+        },
+        "source_fetched_at": {
+          "format": "date-time",
+          "title": "Source Fetched At",
+          "type": "string"
+        },
+        "city": {
+          "anyOf": [
+            {
+              "maxLength": 150,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "City"
+        },
+        "venue_name": {
+          "anyOf": [
+            {
+              "maxLength": 300,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Venue Name"
+        },
+        "venue_address": {
+          "anyOf": [
+            {
+              "maxLength": 300,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Venue Address"
+        },
+        "venue": {
+          "$ref": "#/$defs/EventDiscoveryVenue"
+        },
+        "starts_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Starts At"
+        },
+        "ends_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Ends At"
+        },
+        "price_from": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Price From"
+        },
+        "currency": {
+          "anyOf": [
+            {
+              "const": "KZT",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Currency"
+        },
+        "price_conditions": {
+          "anyOf": [
+            {
+              "maxLength": 300,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Price Conditions"
+        },
+        "price_kind": {
+          "enum": ["starting", "regular", "promotion", "unknown"],
+          "title": "Price Kind",
+          "type": "string"
+        },
+        "status": {
+          "enum": ["scheduled", "cancelled", "unknown"],
+          "title": "Status",
+          "type": "string"
+        },
+        "verification_status": {
+          "default": "discovered",
+          "enum": ["discovered", "verified"],
+          "title": "Verification Status",
+          "type": "string"
+        },
+        "verified_fields": {
+          "items": {
+            "$ref": "#/$defs/EventDiscoveryFieldCheck"
+          },
+          "maxItems": 100,
+          "title": "Verified Fields",
+          "type": "array"
+        },
+        "ticket_availability": {
+          "const": "unknown",
+          "default": "unknown",
+          "title": "Ticket Availability",
+          "type": "string"
+        },
+        "missing_fields": {
+          "items": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 100,
+          "title": "Missing Fields",
+          "type": "array"
+        },
+        "recommendation_candidate": {
+          "title": "Recommendation Candidate",
+          "type": "boolean"
+        },
+        "exclusion_reasons": {
+          "items": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 100,
+          "title": "Exclusion Reasons",
+          "type": "array"
+        }
+      },
+      "required": [
+        "session_id",
+        "event_id",
+        "source_url",
+        "source_fetched_at",
+        "city",
+        "venue_name",
+        "venue_address",
+        "venue",
+        "starts_at",
+        "ends_at",
+        "price_from",
+        "currency",
+        "price_conditions",
+        "price_kind",
+        "status",
+        "missing_fields",
+        "recommendation_candidate",
+        "exclusion_reasons"
+      ],
+      "title": "EventDiscoverySession",
+      "type": "object"
+    },
+    "EventDiscoverySource": {
+      "additionalProperties": false,
+      "description": "Ephemeral consulted page; this grants no persistence or indexing rights.",
+      "properties": {
+        "url": {
+          "format": "uri",
+          "maxLength": 2083,
+          "minLength": 1,
+          "title": "Url",
+          "type": "string"
+        },
+        "fetched_at": {
+          "format": "date-time",
+          "title": "Fetched At",
+          "type": "string"
+        },
+        "storage_allowed": {
+          "const": false,
+          "default": false,
+          "title": "Storage Allowed",
+          "type": "boolean"
+        },
+        "indexing_allowed": {
+          "const": false,
+          "default": false,
+          "title": "Indexing Allowed",
+          "type": "boolean"
+        }
+      },
+      "required": ["url", "fetched_at"],
+      "title": "EventDiscoverySource",
+      "type": "object"
+    },
+    "EventDiscoveryVenue": {
+      "additionalProperties": false,
+      "properties": {
+        "poi_id": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Poi Id"
+        },
+        "location": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Coordinates"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "basis": {
+          "default": "unknown",
+          "enum": ["name_address_astana_permitted_poi", "unknown", "ambiguous"],
+          "title": "Basis",
+          "type": "string"
+        },
+        "source_ids": {
+          "items": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 100,
+          "title": "Source Ids",
+          "type": "array"
+        },
+        "source_urls": {
+          "items": {
+            "format": "uri",
+            "maxLength": 2083,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 100,
+          "title": "Source Urls",
+          "type": "array"
+        },
+        "coordinate_accuracy": {
+          "const": "unknown",
+          "default": "unknown",
+          "title": "Coordinate Accuracy",
+          "type": "string"
+        },
+        "geography_basis": {
+          "default": "unknown",
+          "enum": ["central_astana_bbox", "unknown"],
+          "title": "Geography Basis",
+          "type": "string"
+        }
+      },
+      "title": "EventDiscoveryVenue",
+      "type": "object"
+    },
+    "EventRecord": {
+      "additionalProperties": false,
+      "properties": {
+        "sources": {
+          "items": {
+            "$ref": "#/$defs/Source"
+          },
+          "minItems": 1,
+          "title": "Sources",
+          "type": "array"
+        },
+        "provenance": {
+          "items": {
+            "$ref": "#/$defs/Provenance"
+          },
+          "minItems": 1,
+          "title": "Provenance",
+          "type": "array"
+        },
+        "is_test": {
+          "default": false,
+          "title": "Is Test",
+          "type": "boolean"
+        },
+        "id": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Id",
+          "type": "string"
+        },
+        "title": {
+          "maxLength": 4000,
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        },
+        "description": {
+          "anyOf": [
+            {
+              "maxLength": 4000,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Description"
+        },
+        "activity_code": {
+          "$ref": "#/$defs/ActivityCode"
+        }
+      },
+      "required": ["sources", "provenance", "id", "title", "activity_code"],
+      "title": "EventRecord",
+      "type": "object"
+    },
+    "EventSession": {
+      "additionalProperties": false,
+      "properties": {
+        "sources": {
+          "items": {
+            "$ref": "#/$defs/Source"
+          },
+          "minItems": 1,
+          "title": "Sources",
+          "type": "array"
+        },
+        "provenance": {
+          "items": {
+            "$ref": "#/$defs/Provenance"
+          },
+          "minItems": 1,
+          "title": "Provenance",
+          "type": "array"
+        },
+        "is_test": {
+          "default": false,
+          "title": "Is Test",
+          "type": "boolean"
+        },
+        "id": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Id",
+          "type": "string"
+        },
+        "event_id": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Event Id",
+          "type": "string"
+        },
+        "poi_id": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Poi Id"
+        },
+        "location": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Coordinates"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "starts_at": {
+          "format": "date-time",
+          "title": "Starts At",
+          "type": "string"
+        },
+        "ends_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Ends At"
+        },
+        "price_kzt_per_person": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Price Kzt Per Person"
+        },
+        "status": {
+          "enum": ["scheduled", "cancelled", "unknown"],
+          "title": "Status",
+          "type": "string"
+        },
+        "booking_url": {
+          "anyOf": [
+            {
+              "format": "uri",
+              "maxLength": 2083,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Booking Url"
+        }
+      },
+      "required": [
+        "sources",
+        "provenance",
+        "id",
+        "event_id",
+        "starts_at",
+        "status"
+      ],
+      "title": "EventSession",
+      "type": "object"
+    },
+    "FitStatus": {
+      "enum": ["fits", "does_not_fit", "unknown"],
+      "title": "FitStatus",
+      "type": "string"
+    },
+    "MissingField": {
+      "enum": [
+        "origin",
+        "available_minutes",
+        "date_time",
+        "location",
+        "price_kzt_per_person",
+        "indoor",
+        "opening_hours",
+        "visit_minutes_estimate",
+        "travel_minutes_estimate",
+        "weather",
+        "session_time"
+      ],
+      "title": "MissingField",
+      "type": "string"
+    },
+    "Provenance": {
+      "additionalProperties": false,
+      "properties": {
+        "source_id": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Source Id",
+          "type": "string"
+        },
+        "external_id": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "External Id",
+          "type": "string"
+        },
+        "fields": {
+          "items": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Fields",
+          "type": "array"
+        },
+        "observed_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Observed At"
+        }
+      },
+      "required": ["source_id", "external_id", "fields"],
+      "title": "Provenance",
+      "type": "object"
+    },
+    "ReasonCode": {
+      "enum": [
+        "query_match",
+        "nearby",
+        "within_time",
+        "within_budget",
+        "indoor_match",
+        "time_unknown",
+        "budget_unknown",
+        "hours_unknown",
+        "route_unknown",
+        "visit_duration_estimate",
+        "weather_unknown",
+        "schedule_unknown"
+      ],
+      "title": "ReasonCode",
+      "type": "string"
+    },
+    "ResponseStatus": {
+      "enum": ["ok", "partial", "unknown", "unavailable", "no_match"],
+      "title": "ResponseStatus",
+      "type": "string"
+    },
+    "RouteStatus": {
+      "enum": ["known", "estimated", "unknown", "unavailable", "not_requested"],
+      "title": "RouteStatus",
+      "type": "string"
+    },
+    "Source": {
+      "additionalProperties": false,
+      "properties": {
+        "source_id": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Source Id",
+          "type": "string"
+        },
+        "provider": {
+          "$ref": "#/$defs/SourceProvider"
+        },
+        "url": {
+          "format": "uri",
+          "maxLength": 2083,
+          "minLength": 1,
+          "title": "Url",
+          "type": "string"
+        },
+        "retrieved_at": {
+          "format": "date-time",
+          "title": "Retrieved At",
+          "type": "string"
+        },
+        "license": {
+          "anyOf": [
+            {
+              "maxLength": 4000,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "License"
+        },
+        "rights_basis_url": {
+          "anyOf": [
+            {
+              "format": "uri",
+              "maxLength": 2083,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Rights Basis Url"
+        },
+        "storage_allowed": {
+          "default": false,
+          "title": "Storage Allowed",
+          "type": "boolean"
+        },
+        "indexing_allowed": {
+          "default": false,
+          "title": "Indexing Allowed",
+          "type": "boolean"
+        },
+        "is_test": {
+          "default": false,
+          "title": "Is Test",
+          "type": "boolean"
+        }
+      },
+      "required": ["source_id", "provider", "url", "retrieved_at"],
+      "title": "Source",
+      "type": "object"
+    },
+    "SourceProvider": {
+      "enum": [
+        "osm",
+        "municipal",
+        "organizer",
+        "twogis",
+        "test_fixture",
+        "other"
+      ],
+      "title": "SourceProvider",
+      "type": "string"
+    },
+    "Warning": {
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "$ref": "#/$defs/WarningCode"
+        },
+        "message": {
+          "maxLength": 4000,
+          "minLength": 1,
+          "title": "Message",
+          "type": "string"
+        },
+        "fields": {
+          "items": {
+            "$ref": "#/$defs/MissingField"
+          },
+          "title": "Fields",
+          "type": "array"
+        }
+      },
+      "required": ["code", "message"],
+      "title": "Warning",
+      "type": "object"
+    },
+    "WarningCode": {
+      "enum": [
+        "missing_input",
+        "data_unknown",
+        "provider_unavailable",
+        "route_unavailable",
+        "weather_unavailable",
+        "source_stale",
+        "test_data"
+      ],
+      "title": "WarningCode",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "status": {
+      "$ref": "#/$defs/ResponseStatus"
+    },
+    "items": {
+      "items": {
+        "$ref": "#/$defs/EventCard"
+      },
+      "maxItems": 3,
+      "title": "Items",
+      "type": "array"
+    },
+    "warnings": {
+      "items": {
+        "$ref": "#/$defs/Warning"
+      },
+      "title": "Warnings",
+      "type": "array"
+    },
+    "sources": {
+      "items": {
+        "$ref": "#/$defs/Source"
+      },
+      "title": "Sources",
+      "type": "array"
+    },
+    "request_id": {
+      "format": "uuid",
+      "title": "Request Id",
+      "type": "string"
+    },
+    "discovery": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/EventDiscoveryPayload"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    }
+  },
+  "required": ["status", "items", "warnings", "sources", "request_id"],
+  "title": "EventSearchResponse",
+  "type": "object"
+}

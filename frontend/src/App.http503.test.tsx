@@ -9,13 +9,13 @@ import type { SearchRequest } from './lib/types'
 const modes = [
   {
     name: 'recommendations',
-    path: '/api/v1/recommendations',
+    path: '/api/recommendations',
     submitLabel: 'Find places',
     warning: 'Place search is temporarily unavailable. Please try again later.',
   },
   {
     name: 'events',
-    path: '/api/v1/events/search',
+    path: '/api/events/search',
     submitLabel: 'Find events',
     warning: 'Event search is temporarily unavailable. Please try again later.',
   },
@@ -72,7 +72,7 @@ async function search(mode: (typeof modes)[number]) {
       <App />
     </StrictMode>,
   )
-  expect(await screen.findByText('API online')).toBeVisible()
+  expect(await screen.findByText('Server online')).toBeVisible()
   if (mode.name === 'events') {
     await user.click(screen.getByRole('button', { name: 'Events' }))
   }
@@ -106,8 +106,10 @@ describe.each(modes)('HTTP 503 screen through real $name transport', (mode) => {
       await screen.findByText('Search unavailable', { selector: 'strong' }),
     ).toBeVisible()
     expect(screen.getByText(unavailableMessage)).toBeVisible()
-    expect(screen.getByText(mode.warning)).toBeVisible()
-    expect(screen.getByText(mode.warning)).toHaveAttribute('lang', 'en')
+    expect(
+      screen.getByText(i18n.t('codes.warning_codes.provider_unavailable')),
+    ).toBeVisible()
+    expect(screen.queryByText(mode.warning)).not.toBeInTheDocument()
     expect(screen.queryByText(emptyMessage)).not.toBeInTheDocument()
     expect(
       screen.queryByText('No match', { selector: 'strong' }),

@@ -98,7 +98,7 @@ describe('live screen integration', () => {
         }),
     )
     render(<App />)
-    expect(await screen.findByText('API online')).toBeVisible()
+    expect(await screen.findByText('Server online')).toBeVisible()
     const user = await enterQuery()
     await user.click(screen.getByRole('button', { name: 'Find places' }))
     expect(screen.getByText('Looking for your next stop…')).toBeVisible()
@@ -126,7 +126,12 @@ describe('live screen integration', () => {
         'No matching places or events were found with these preferences.',
       ),
     ).not.toBeInTheDocument()
-    expect(screen.getByText(unknownResponse.warnings[0].message)).toBeVisible()
+    expect(
+      screen.getByText(i18n.t('codes.warning_codes.test_data')),
+    ).toBeVisible()
+    expect(
+      screen.queryByText(unknownResponse.warnings[0].message),
+    ).not.toBeInTheDocument()
   })
 
   it('shows an unavailable endpoint instead of silently replacing it with fixture cards', async () => {
@@ -144,7 +149,7 @@ describe('live screen integration', () => {
     expect(screen.getByRole('button', { name: 'Try again' })).toBeEnabled()
   })
 
-  it('abandons pending live results when the person changes language', async () => {
+  it('keeps the pending search when language changes and renders its status in the new UI language', async () => {
     let finish!: (value: RecommendationResponse) => void
     vi.mocked(searchRecommendations).mockImplementation(
       () =>
@@ -157,15 +162,18 @@ describe('live screen integration', () => {
     await user.click(screen.getByRole('button', { name: 'Find places' }))
     const signal = vi.mocked(searchRecommendations).mock.calls[0][1]!
     await user.click(screen.getByRole('button', { name: 'Русский' }))
-    expect(signal.aborted).toBe(true)
+    expect(signal.aborted).toBe(false)
     expect(document.documentElement.lang).toBe('ru')
     await act(async () => {
       finish(unknownResponse)
     })
     expect(
-      screen.queryByText('Not enough information', { selector: 'strong' }),
-    ).not.toBeInTheDocument()
+      await screen.findByText(i18n.t('codes.response_status.unknown'), {
+        selector: 'strong',
+      }),
+    ).toBeVisible()
     expect(screen.getByRole('button', { name: 'Найти места' })).toBeEnabled()
+    expect(searchRecommendations).toHaveBeenCalledOnce()
   })
 
   it('does not let a late dev fixture replace a newer live intent', async () => {
