@@ -1,8 +1,8 @@
 # Qadam Astana frontend
 
-D04 React/Vite/TypeScript single-page place and event search in kk/ru/en.
-Consumes [shared API v1.3](../contracts/api-v1.md), including the published
-transient event-discovery response. Node.js 24 was tested;
+D04 React/Vite/TypeScript single-page place and event search in kk/ru/en, with
+D05 language and data-quality checks. Consumes [shared API v1.3](../contracts/api-v1.md),
+including the S04 transient event response. Node.js 24 was tested;
 `package-lock.json` locks the installed dependency tree.
 
 ## Setup and development
@@ -28,23 +28,25 @@ database readiness.
 
 The client calls `POST /api/recommendations`, `POST /api/events/search` and, only
 after selecting an alternative with a known origin/destination, `POST /api/route`.
-No failed API request is replaced with fixtures. Event search validates the
-actual `contracts/transient-event-search-response.schema.json` response. Its
-conditional session cards, separate listings, source IDs, timestamps and literal
-false storage/indexing rights remain separate from persistent event records.
-Unknown tickets, end times and lower-bound prices never become confirmed fits.
-Listings are shown as unconfirmed information and do not initiate route requests.
-Listings fully represented by session cards are not repeated; extra sessions,
-schedule wording and missing-data diagnostics remain visible. Every `price_from`
-is shown as a lower bound, including regular and promotional source prices.
-The API transport checks locale, source references, HTTP/domain status and the
-request correlation ID before rendering.
+No failed API request is replaced with fixtures. Real searches depend on
+backend database/provider readiness; a healthy process does not establish
+successful discovery or satisfaction of constraints.
 
-`src/lib/event-search-response.schema.json` is retained only for backwards
-compatibility with earlier integrations and development examples. The contract
-check verifies the published transient wire fields and supported schema keywords
-against the shared schema, as well as legacy compatibility. Production requests
-use `/api/events/search`; no event data is saved to browser storage.
+The event transport validates the current response against
+`contracts/transient-event-search-response.schema.json` before adapting cards,
+listings and sources for the UI. Shared wire types are checked separately from
+the internal UI response. Runtime sources remain ephemeral with
+`storage_allowed=false` and `indexing_allowed=false`; the adapter grants no
+storage or indexing rights. It preserves supplied source URLs, timestamps and
+verification facts without fabricating citations or field verification.
+An event's `price_from` is a lower bound, not a confirmed final price or budget fit.
+
+`src/lib/event-search-response.schema.json` remains a legacy compatibility
+validator for older pre-S04 envelopes and synthetic development fixtures. Its
+separate checks against the persistent-event contract do not validate the
+current transient wire response. Synthetic legacy compatibility is not
+production acceptance; live scenario results and remaining blockers belong in
+[D05 scenarios](../docs/scenarios.md) and the [D05 handoff](../docs/handoffs/D05.md).
 
 ## Checks and build
 
@@ -62,9 +64,10 @@ npm run preview
 ```
 
 `test` runs Vitest once; `test:watch` is available for development. `test:types`
-checks test TypeScript, and `check:contracts` checks frontend enums, field names
-and supported schema keywords against the shared contract. `build` typechecks
-application code and creates `dist/`. `preview` serves that build locally at
+checks test TypeScript, and `check:contracts` checks frontend wire enums, field
+names and supported schema keywords against the shared contract, including the
+current transient event schema. It audits legacy compatibility separately.
+`build` typechecks application code and creates `dist/`. `preview` serves that build locally at
 `http://127.0.0.1:4173`, with the same development API proxy.
 
 `check:build` verifies built assets and rejects fixture payloads, server credential

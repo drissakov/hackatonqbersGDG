@@ -1,4 +1,5 @@
 import { render, screen, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it } from 'vitest'
 import i18n from '../i18n'
 import {
@@ -6,15 +7,66 @@ import {
   syntheticListing,
   syntheticSession,
 } from '../test/eventDiscovery'
-import { DiscoveredEventCard } from './DiscoveredEventCard'
+import { DiscoveredEventCard, TransientEventCard } from './DiscoveredEventCard'
 import { EventSearchSources } from './EventSearchSources'
-import type { Locale } from '../lib/types'
+import type { Locale, TransientEventSearchResponse } from '../lib/types'
+import { formatMoney } from '../lib/format'
+import partial from '../../../contracts/examples/transient-event-partial.test.json'
 
 beforeEach(async () => {
   await i18n.changeLanguage('en')
 })
 
 describe('transient event discovery cards', () => {
+  it.each(['kk', 'ru', 'en'] as Locale[])(
+    'labels a transient map action as a map in %s',
+    async (locale) => {
+      await i18n.changeLanguage(locale)
+      const value = structuredClone(partial) as TransientEventSearchResponse
+      const card = value.items[0]
+      card.action.code = 'open_map'
+      render(
+        <TransientEventCard
+          card={card}
+          sources={value.sources}
+          locale={locale}
+        />,
+      )
+      expect(
+        screen.getByRole('link', {
+          name: i18n.t('codes.action_code.open_map'),
+        }),
+      ).toHaveAttribute('href', card.action.url)
+      expect(
+        screen.queryByRole('link', { name: i18n.t('events.checkTickets') }),
+      ).not.toBeInTheDocument()
+    },
+  )
+  it.each(['kk', 'ru', 'en'] as Locale[])(
+    'uses local word order for a starting price without turning it into a confirmed full price in %s',
+    async (locale) => {
+      await i18n.changeLanguage(locale)
+      const event = syntheticListing()
+      event.sessions = [syntheticSession()]
+      render(
+        <DiscoveredEventCard event={event} citations={[]} locale={locale} />,
+      )
+      const amount = formatMoney(5000, locale)
+      const expected =
+        locale === 'kk'
+          ? `${amount} бастап`
+          : locale === 'ru'
+            ? `От ${amount}`
+            : `From ${amount}`
+      expect(
+        screen.getByText(
+          (_, element) =>
+            element?.tagName === 'DD' && element.textContent === expected,
+        ),
+      ).toBeVisible()
+      expect(screen.getByText(i18n.t('events.fitUnknown'))).toBeVisible()
+    },
+  )
   it('keeps an incomplete listing as a listing with no fabricated session or free price', () => {
     const response = syntheticDiscoveryResponse()
     const { container } = render(
@@ -84,8 +136,69 @@ describe('transient event discovery cards', () => {
       },
     ]
     render(<DiscoveredEventCard event={event} citations={[]} locale="en" />)
-    expect(screen.queryByRole('region')).not.toBeInTheDocument()
+    expect(screen.getByRole('region')).not.toBeVisible()
+    expect(screen.getByRole('region').closest('details')).not.toHaveAttribute(
+      'open',
+    )
     expect(screen.getByText(/This remains a listing/)).toBeVisible()
+  })
+
+  it('retains cancelled and unknown-start sessions only as inspectable source details in a standalone listing', async () => {
+    const event = syntheticListing()
+    const unknown = syntheticSession()
+    unknown.session_id = 'test-unknown-start'
+    unknown.starts_at = null
+    unknown.status = 'unknown'
+    unknown.recommendation_candidate = false
+    unknown.exclusion_reasons = ['unknown_start']
+    unknown.missing_fields.push('starts_at')
+    const cancelled = syntheticSession()
+    cancelled.session_id = 'test-cancelled-session'
+    cancelled.status = 'cancelled'
+    cancelled.recommendation_candidate = false
+    cancelled.exclusion_reasons = ['source_cancellation']
+    event.sessions = [unknown, cancelled]
+    const user = userEvent.setup()
+    render(
+      <DiscoveredEventCard
+        event={event}
+        citations={[]}
+        locale="en"
+        onSelect={() => {}}
+      />,
+    )
+    expect(screen.getAllByRole('article')).toHaveLength(1)
+    expect(screen.getByText(i18n.t('events.noSession'))).toBeVisible()
+    for (const region of screen.getAllByRole('region'))
+      expect(region).not.toBeVisible()
+    const cancellation = screen.getByText(
+      i18n.t('codes.session_status.cancelled'),
+    )
+    expect(cancellation).not.toBeVisible()
+    const disclosure = screen.getByText(i18n.t('events.supplementalDetails'), {
+      selector: 'summary',
+    })
+    await user.click(disclosure)
+    const details = disclosure.parentElement!
+    expect(cancellation).toBeVisible()
+    expect(details).toContainElement(cancellation)
+    expect(within(details).getAllByRole('region')).toHaveLength(2)
+    expect(
+      within(details).getByText(i18n.t('codes.session_status.unknown')),
+    ).toBeVisible()
+    expect(
+      within(details).getByText(i18n.t('events.notRecommendedSession')),
+    ).toBeVisible()
+    expect(
+      within(details).queryByText(event.schedule_hints[0]),
+    ).not.toBeInTheDocument()
+    expect(
+      within(details).queryByText(/unknown_start|source_cancellation/),
+    ).not.toBeInTheDocument()
+    expect(within(details).queryByRole('button')).not.toBeInTheDocument()
+    expect(
+      screen.getAllByRole('button', { name: i18n.t('card.select') }),
+    ).toHaveLength(1)
   })
 
   it('preserves promotion conditions and a missing currency instead of inventing a regular KZT price', () => {
@@ -133,7 +246,7 @@ describe('transient event discovery cards', () => {
     render(<DiscoveredEventCard event={event} citations={[]} locale="ru" />)
     const price = screen.getByText(i18n.t('events.price')).parentElement!
     expect(price.querySelector('dd')?.textContent).toBe(
-      `${i18n.t('events.from')} ${new Intl.NumberFormat('ru-KZ', { maximumFractionDigits: 0 }).format(12500)} (${i18n.t('events.currencyUnknown')})`,
+      `От ${new Intl.NumberFormat('ru-KZ', { maximumFractionDigits: 0 }).format(12500)} (${i18n.t('events.currencyUnknown')})`,
     )
     expect(price).not.toHaveTextContent('₸')
   })

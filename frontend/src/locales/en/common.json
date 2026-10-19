@@ -87,7 +87,7 @@
     "discovered": "Event found in sources",
     "sessionFacts": "Discovered session details",
     "price": "Price in source",
-    "from": "From",
+    "from": "From {{amount}}",
     "promotion": "Promotional price",
     "currencyUnknown": "currency unknown",
     "checkedFields": "Only these fields were checked",
@@ -98,6 +98,8 @@
     "fitUnknown": "Time, budget and travel fit are unconfirmed. An unknown end time cannot prove the event fits your window.",
     "observed": "Search observed",
     "observationNotice": "This is the search observation time, not the page publication time or a guarantee of current availability.",
+    "supplementalDetails": "Other schedule details from the source",
+    "notRecommendedSession": "These source details are for inspection only. These sessions are not offered as alternatives; matching your constraints is unconfirmed.",
     "citations": "Search citations",
     "citationNotice": "These links were cited by the generated search response. Session facts and ticket availability need confirmation with the source.",
     "fields": {
@@ -114,14 +116,13 @@
       "sessions": "Session date and time",
       "source_verification": "Independent source verification",
       "ticket_availability": "Ticket availability",
-      "return_travel_minutes_estimate": "Return travel time"
+      "return_travel_minutes_estimate": "Return walking time"
     },
     "checkTickets": "Check tickets",
     "activity": "Check the venue, session time and ticket details with the source before deciding to attend.",
     "reason": "This event was found in search sources. Its fit with your constraints remains unconfirmed.",
     "venueSources": "Independent venue coordinate sources",
-    "venueNotice": "Venue coordinates were matched independently by name and address. Their accuracy and an accessible entrance remain unverified.",
-    "notAlternative": "This session is source information, not a recommended alternative. Check its status and missing details."
+    "venueNotice": "Venue coordinates were matched independently by name and address. Their accuracy and an accessible entrance remain unverified."
   },
   "dev": {
     "title": "Synthetic preview · development only",

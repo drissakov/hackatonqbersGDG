@@ -1,18 +1,18 @@
 import { act, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import partial from '../../contracts/examples/transient-event-partial.test.json'
-import listing from '../../contracts/examples/transient-event-listing.test.json'
-import unknown from '../../contracts/examples/transient-event-unknown.test.json'
-import unavailable from '../../contracts/examples/transient-event-unavailable.test.json'
-import routeFixture from '../../contracts/examples/route-known.test.json'
 import App from './App'
 import i18n from './i18n'
-import type { RouteRequest, TransientEventSearchResponse } from './lib/types'
+import partial from '../../contracts/examples/transient-event-partial.test.json'
+import listing from '../../contracts/examples/transient-event-listing.test.json'
+import unavailable from '../../contracts/examples/transient-event-unavailable.test.json'
+import unknown from '../../contracts/examples/transient-event-unknown.test.json'
+import type { TransientEventSearchResponse } from './lib/types'
+import { formatMinutes, formatMoney } from './lib/format'
 
 beforeEach(async () => {
-  vi.stubEnv('VITE_TWOGIS_MAP_KEY', '')
   vi.stubEnv('VITE_API_BASE_URL', '/api')
+  vi.stubEnv('VITE_TWOGIS_MAP_KEY', '')
   await act(() => i18n.changeLanguage('en'))
 })
 afterEach(() => {
@@ -20,216 +20,44 @@ afterEach(() => {
   vi.unstubAllEnvs()
 })
 
-async function search(
-  fixture: unknown,
-  status = 200,
-  routeRequests?: RouteRequest[],
-) {
+async function showEvent(value: unknown) {
+  const posts: unknown[] = []
   vi.stubGlobal(
     'fetch',
-    vi.fn<typeof fetch>(async (url, options) => {
+    vi.fn(async (url, options) => {
       if (url === '/api/health')
         return new Response('{"status":"ok"}', {
           headers: { 'content-type': 'application/json' },
         })
-      if (url === '/api/route' && typeof options?.body === 'string') {
-        const body = JSON.parse(options.body) as RouteRequest
-        routeRequests?.push(body)
-        return new Response(
-          JSON.stringify({
-            ...routeFixture,
-            request_id: body.request_id,
-            travel_minutes_estimate: 2,
-            return_route: {
-              status: 'not_requested',
-              reason: 'not_requested',
-              duration_seconds: null,
-              distance_meters: null,
-              provenance: null,
-            },
-          }),
-          { headers: { 'content-type': 'application/json' } },
-        )
-      }
-      if (url !== '/api/events/search' || typeof options?.body !== 'string')
-        throw new Error('Unexpected synthetic request')
-      const body = JSON.parse(options.body) as { request_id: string }
-      return new Response(
-        JSON.stringify({ ...(fixture as object), request_id: body.request_id }),
-        { status, headers: { 'content-type': 'application/json' } },
-      )
+      expect(url).toBe('/api/events/search')
+      const body = JSON.parse(String(options?.body))
+      posts.push(body)
+      const response = {
+        ...structuredClone(value as object),
+        request_id: body.request_id,
+      } as TransientEventSearchResponse
+      return new Response(JSON.stringify(response), {
+        status: response.status === 'unavailable' ? 503 : 200,
+        headers: { 'content-type': 'application/json' },
+      })
     }),
   )
   const user = userEvent.setup()
   render(<App />)
   await user.click(screen.getByRole('button', { name: 'Events' }))
   await user.type(
-    screen.getByRole('textbox', { name: 'What would you like to do?' }),
+    screen.getByRole('textbox', { name: i18n.t('search.query') }),
     'TEST ONLY event search',
   )
-  if (routeRequests) {
-    await user.type(screen.getByLabelText(i18n.t('location.latitude')), '51.13')
-    await user.type(
-      screen.getByLabelText(i18n.t('location.longitude')),
-      '71.43',
-    )
-  }
   await user.click(screen.getByRole('button', { name: 'Find events' }))
-  return user
+  return { user, posts }
 }
 
-function combinedResponse() {
-  const response = structuredClone(partial) as TransientEventSearchResponse
-  const card = response.items[0]
-  response.listings = [
-    {
-      ...structuredClone(listing.listings[0]),
-      event_id: card.event.id,
-      title: card.event.title,
-      venue_name: card.event.venue_name,
-      venue_address: card.event.venue_address,
-      venue: structuredClone(card.session.venue),
-      status: 'discovered',
-      sessions: [structuredClone(card.session)],
-      schedule_hints: [],
-      missing_fields: [...card.session.missing_fields],
-    },
-  ]
-  return response
-}
-
-describe('published transient events through the real frontend transport', () => {
-  it('labels regular price_from as a lower bound and avoids repeating a fully represented event listing', async () => {
-    const response = combinedResponse()
-    response.items[0].session.price_kind = 'regular'
-    response.listings[0].sessions[0].price_kind = 'regular'
-    await search(response)
-    const card = await screen.findByRole('article')
-    expect(within(card).getByText(/From.*1,000/)).toBeVisible()
-    expect(screen.getAllByRole('article')).toHaveLength(1)
-    expect(
-      screen.getAllByRole('heading', { name: response.items[0].event.title }),
-    ).toHaveLength(1)
-  })
-
-  it('keeps promotional lower bounds and their source conditions explicit', async () => {
-    const response = structuredClone(partial) as TransientEventSearchResponse
-    response.items[0].session.price_kind = 'promotion'
-    response.items[0].session.price_conditions =
-      'TEST ONLY limited promotion conditions'
-    await search(response)
-    const card = await screen.findByRole('article')
-    expect(
-      within(card).getByText(/From.*1,000.*Promotional price/),
-    ).toBeVisible()
-    expect(
-      within(card).getByText('TEST ONLY limited promotion conditions'),
-    ).toBeVisible()
-  })
-
-  it('preserves additional withheld sessions and listing diagnostics without offering them for routing', async () => {
-    const response = combinedResponse()
-    response.listings[0].schedule_hints = [
-      'TEST ONLY additional schedule diagnostic',
-    ]
-    response.listings[0].sessions.push({
-      ...structuredClone(response.items[0].session),
-      session_id: 'synthetic:withheld-session',
-      venue_name: 'TEST ONLY withheld session venue',
-      recommendation_candidate: false,
-      status: 'cancelled',
-      exclusion_reasons: ['cancelled'],
-    })
-    await search(response)
-    expect(
-      await screen.findByText('TEST ONLY withheld session venue'),
-    ).toBeVisible()
-    expect(
-      screen.getByText('TEST ONLY additional schedule diagnostic'),
-    ).toBeVisible()
-    expect(screen.getByText(i18n.t('events.notAlternative'))).toBeVisible()
-    expect(
-      screen.getAllByRole('button', { name: i18n.t('card.select') }),
-    ).toHaveLength(1)
-  })
-  it('routes only the explicitly selected transient session using its independent venue coordinates', async () => {
-    const response = structuredClone(partial) as TransientEventSearchResponse
-    const point = { latitude: 51.14, longitude: 71.44 }
-    response.sources.push({
-      ...response.sources[0],
-      source_id: 'synthetic:venue-source',
-      url: 'https://example.invalid/test-only-independent-venue',
-    })
-    response.items[0].session.venue = {
-      poi_id: 'synthetic:venue',
-      location: point,
-      basis: 'name_address_astana_permitted_poi',
-      source_ids: ['synthetic:venue-source'],
-      source_urls: [response.sources[1].url],
-      coordinate_accuracy: 'unknown',
-      geography_basis: 'central_astana_bbox',
-    }
-    const routes: RouteRequest[] = []
-    const user = await search(response, 200, routes)
-    await screen.findByRole('article')
-    expect(routes).toEqual([])
-    await user.click(
-      screen.getByRole('button', { name: i18n.t('card.select') }),
-    )
-    expect(await screen.findByRole('link', { name: '2ГИС' })).toHaveAttribute(
-      'href',
-      'https://dev.2gis.ru',
-    )
-    expect(routes).toEqual([
-      expect.objectContaining({
-        origin: { latitude: 51.13, longitude: 71.43 },
-        destination: point,
-        return_to_start: false,
-      }),
-    ])
-  })
-  it('renders a conditional session card, price-from, explanation and sources', async () => {
-    await search(partial)
-    const card = await screen.findByRole('article')
-    expect(
-      within(card).getByRole('heading', { name: partial.items[0].event.title }),
-    ).toBeVisible()
-    expect(within(card).getByText(partial.items[0].explanation)).toBeVisible()
-    expect(within(card).getByText(/From.*1,000/)).toBeVisible()
-    expect(
-      within(card).getByText('Independent source verification'),
-    ).toBeVisible()
-    expect(
-      within(card).getAllByText('Ticket availability').length,
-    ).toBeGreaterThan(0)
-    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
-    expect(
-      screen.queryByText('No match', { selector: 'strong' }),
-    ).not.toBeInTheDocument()
-  })
-
-  it('renders a listing separately without presenting it as a routable alternative', async () => {
-    await search(listing)
-    expect(
-      await screen.findByRole('heading', { name: listing.listings[0].title }),
-    ).toBeVisible()
-    expect(screen.getByText(i18n.t('events.listing'))).toBeVisible()
-    expect(screen.getByText(i18n.t('events.noSession'))).toBeVisible()
-    expect(
-      screen.queryByRole('button', { name: i18n.t('card.select') }),
-    ).not.toBeInTheDocument()
-    expect(
-      screen.queryByRole('region', { name: i18n.t('map.title') }),
-    ).not.toBeInTheDocument()
-  })
-
-  it.each([
-    [unknown, 200],
-    [unavailable, 503],
-  ])(
-    'shows the shared $0.status state without a generic transport error',
-    async (fixture, status) => {
-      const user = await search(fixture, status)
+describe('current S04 event contract in the complete App', () => {
+  it.each([partial, listing, unavailable, unknown])(
+    'renders the shared $status fixture through HTTP without generic failure',
+    async (fixture) => {
+      const { posts } = await showEvent(fixture)
       expect(
         await screen.findByText(
           i18n.t(`codes.response_status.${fixture.status}`),
@@ -237,13 +65,210 @@ describe('published transient events through the real frontend transport', () =>
         ),
       ).toBeVisible()
       expect(screen.queryByRole('alert')).not.toBeInTheDocument()
-      expect(screen.queryByRole('article')).not.toBeInTheDocument()
-      await user.click(
-        screen.getByText(i18n.t('source.title'), { selector: 'summary' }),
+      expect(
+        screen.getByText(
+          `${i18n.t('events.searchStatus')}: ${i18n.t(`events.searchStates.${fixture.live_web_search}`)}`,
+        ),
+      ).toBeVisible()
+      expect(
+        screen.queryByText(i18n.t('events.citations')),
+      ).not.toBeInTheDocument()
+      expect(posts).toHaveLength(1)
+      await userEvent.click(
+        screen.getAllByText(i18n.t('source.title'), { selector: 'summary' })[0],
       )
       expect(
         screen.getByRole('link', { name: fixture.sources[0].url }),
-      ).toBeVisible()
+      ).toHaveAttribute('href', fixture.sources[0].url)
+      if (fixture.items.length || fixture.listings.length)
+        expect(screen.getAllByRole('article')).toHaveLength(1)
+      else expect(screen.queryByRole('article')).not.toBeInTheDocument()
     },
   )
+
+  it('preserves card reasons, route snapshot, session action, missing facts and locale without duplicating the same event listing', async () => {
+    const value = structuredClone(partial) as TransientEventSearchResponse
+    const card = value.items[0]
+    card.route_status = 'estimated'
+    card.travel_minutes_estimate = 12
+    card.visit_minutes_estimate = 45
+    card.reason_codes = ['query_match', 'visit_duration_estimate']
+    card.missing_fields = card.missing_fields.filter(
+      (field) => field !== 'travel_minutes_estimate',
+    )
+    card.session.source_url = 'https://example.invalid/synthetic-session'
+    card.action.url = card.session.source_url
+    value.sources.push({
+      ...value.sources[0],
+      source_id: 'synthetic:session-source',
+      url: card.session.source_url,
+    })
+    card.source_ids.push('synthetic:session-source')
+    value.listings = [
+      {
+        ...structuredClone(
+          (listing as TransientEventSearchResponse).listings[0],
+        ),
+        status: 'discovered',
+        sessions: [card.session],
+      },
+    ]
+    const { user, posts } = await showEvent(value)
+    const article = await screen.findByRole('article', {
+      name: card.event.title,
+    })
+    expect(screen.getAllByRole('article')).toHaveLength(1)
+    expect(within(article).getByText(card.explanation)).toBeVisible()
+    expect(
+      within(article).getByText(i18n.t('codes.route_status.estimated')),
+    ).toBeVisible()
+    expect(within(article).getByText(formatMinutes(12, 'en'))).toBeVisible()
+    expect(
+      within(article).getByText(
+        i18n.t('codes.reason_codes.visit_duration_estimate'),
+        { selector: 'li' },
+      ),
+    ).toBeVisible()
+    expect(
+      within(article).getByRole('link', {
+        name: i18n.t('events.checkTickets'),
+      }),
+    ).toHaveAttribute('href', card.session.source_url)
+    expect(
+      within(article).getByText(i18n.t('events.fields.source_verification'), {
+        selector: 'li',
+      }),
+    ).toBeVisible()
+    for (const [locale, language] of [
+      ['ru', 'Русский'],
+      ['kk', 'Қазақша'],
+    ] as const) {
+      await user.click(screen.getByRole('button', { name: language }))
+      expect(
+        within(article).queryByText(card.explanation),
+      ).not.toBeInTheDocument()
+      expect(
+        within(article).getByText(i18n.t('card.localizedSummary')),
+      ).toBeVisible()
+      expect(
+        within(article).getByText(
+          (_, element) =>
+            element?.tagName === 'DD' &&
+            element.textContent ===
+              i18n.t('events.from', { amount: formatMoney(1000, locale) }),
+        ),
+      ).toBeVisible()
+      expect(
+        within(article).getByText(i18n.t('codes.route_status.estimated')),
+      ).toBeVisible()
+      expect(
+        within(article).getByText(i18n.t('events.fitUnknown')),
+      ).toBeVisible()
+    }
+    expect(posts).toHaveLength(1)
+  })
+
+  it('keeps a session and an unrelated listing separately named and selected when their IDs match', async () => {
+    const value = structuredClone(partial) as TransientEventSearchResponse
+    const event = structuredClone(
+      (listing as TransientEventSearchResponse).listings[0],
+    )
+    event.event_id = value.items[0].session.session_id
+    event.title = 'SYNTHETIC TEST ONLY - A different listing'
+    value.listings = [event]
+    const { user, posts } = await showEvent(value)
+    const articles = await screen.findAllByRole('article')
+    expect(articles).toHaveLength(2)
+    expect(articles[0]).toHaveAccessibleName(value.items[0].event.title)
+    expect(articles[1]).toHaveAccessibleName(event.title)
+    await user.click(
+      within(articles[1]).getByRole('button', { name: i18n.t('card.select') }),
+    )
+    expect(
+      within(articles[1]).getByRole('button', {
+        name: i18n.t('card.selected'),
+      }),
+    ).toHaveAttribute('aria-pressed', 'true')
+    expect(
+      within(articles[0]).getByRole('button', { name: i18n.t('card.select') }),
+    ).toHaveAttribute('aria-pressed', 'false')
+    const details = screen.getByRole('region', { name: i18n.t('map.title') })
+    expect(
+      within(details).getByRole('heading', { name: event.title }),
+    ).toBeVisible()
+    expect(posts).toHaveLength(1)
+  })
+
+  it('labels transient source timestamps as observations without claiming a page fetch', async () => {
+    const { user } = await showEvent(partial)
+    const article = await screen.findByRole('article')
+    const summaries = screen.getAllByText(i18n.t('source.title'), {
+      selector: 'summary',
+    })
+    for (const summary of summaries) await user.click(summary)
+    expect(
+      within(article).getByText(i18n.t('events.observationNotice')),
+    ).toBeVisible()
+    const envelope = summaries[0].parentElement!
+    expect(
+      within(envelope).getByText(i18n.t('events.observationNotice')),
+    ).toBeVisible()
+    expect(
+      screen.queryByText(`${i18n.t('source.retrieved')}:`, {
+        exact: false,
+      }),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.getAllByText(`${i18n.t('events.observed')}:`, {
+        exact: false,
+      }),
+    ).toHaveLength(2)
+  })
+
+  it('keeps same-event schedule notes and withheld sessions inspectable without offering another alternative', async () => {
+    const value = structuredClone(partial) as TransientEventSearchResponse
+    const card = value.items[0]
+    const sourceListing = structuredClone(
+      (listing as TransientEventSearchResponse).listings[0],
+    )
+    const withheld = structuredClone(card.session)
+    withheld.session_id = 'synthetic:withheld-session'
+    withheld.venue_name = 'SYNTHETIC TEST ONLY - Withheld venue'
+    withheld.starts_at = null
+    withheld.status = 'unknown'
+    withheld.recommendation_candidate = false
+    withheld.exclusion_reasons = ['unknown_start']
+    withheld.missing_fields.push('starts_at')
+    sourceListing.schedule_hints = [
+      'SYNTHETIC TEST ONLY - Source schedule note',
+    ]
+    sourceListing.sessions = [card.session, withheld]
+    value.listings = [sourceListing]
+    const { user, posts } = await showEvent(value)
+    const article = await screen.findByRole('article')
+    expect(screen.getAllByRole('article')).toHaveLength(1)
+    expect(
+      screen.getAllByRole('button', { name: i18n.t('card.select') }),
+    ).toHaveLength(1)
+    const disclosure = within(article).getByText(
+      i18n.t('events.supplementalDetails'),
+      { selector: 'summary' },
+    )
+    await user.click(disclosure)
+    const details = disclosure.parentElement!
+    expect(
+      within(details).getByText(i18n.t('events.notRecommendedSession')),
+    ).toBeVisible()
+    expect(
+      within(details).getByText(sourceListing.schedule_hints[0]),
+    ).toHaveAttribute('lang', '')
+    expect(within(details).getByText(withheld.venue_name!)).toBeVisible()
+    expect(
+      within(details).getByText(i18n.t('codes.session_status.unknown')),
+    ).toBeVisible()
+    expect(within(details).getAllByRole('region')).toHaveLength(1)
+    expect(within(details).queryByRole('button')).not.toBeInTheDocument()
+    expect(within(details).queryByText('unknown_start')).not.toBeInTheDocument()
+    expect(posts).toHaveLength(1)
+  })
 })

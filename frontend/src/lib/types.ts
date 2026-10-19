@@ -226,12 +226,9 @@ export interface SearchResponse<T extends CardDetails> {
   request_id: string
 }
 export type RecommendationResponse = SearchResponse<RecommendationCard>
-export interface LegacyEventSearchResponse extends SearchResponse<EventCardData> {
+export interface EventSearchResponse extends SearchResponse<EventCardData> {
   discovery?: EventDiscovery | null
-}
-
-/** UI envelope: the transient wire response stays separate from persistent records. */
-export interface EventSearchResponse extends LegacyEventSearchResponse {
+  /** Current S04 wire response retained without invented persistent rights. */
   transient?: TransientEventSearchResponse
 }
 
@@ -244,7 +241,7 @@ export interface TransientEventSource {
   indexing_allowed: false
 }
 
-export interface TransientEvent {
+export interface TransientEventHeader {
   id: string
   title: string
   city: string | null
@@ -254,7 +251,7 @@ export interface TransientEvent {
 }
 
 export interface TransientEventCardData {
-  event: TransientEvent
+  event: TransientEventHeader
   session: DiscoveredSession
   source_ids: string[]
   reason_codes: ReasonCode[]

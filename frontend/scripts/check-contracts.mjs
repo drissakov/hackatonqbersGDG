@@ -8,9 +8,9 @@ const [
   codes,
   request,
   recommendations,
-  legacyEvents,
-  snapshot,
-  events,
+  legacyPersistentEvents,
+  legacyDiscoverySnapshot,
+  transientEvents,
   routeRequest,
   routeResponse,
   types,
@@ -19,7 +19,7 @@ const [
   readJson('contracts/recommendation-request.schema.json'),
   readJson('contracts/recommendation-response.schema.json'),
   readJson('contracts/event-search-response.schema.json'),
-  // Keep the older integration only as explicit backwards compatibility.
+  // Compatibility only: pre-S04 envelopes and synthetic development fixtures.
   readJson('frontend/src/lib/event-search-response.schema.json'),
   readJson('contracts/transient-event-search-response.schema.json'),
   readJson('contracts/route-request.schema.json'),
@@ -56,22 +56,24 @@ function sameValues(actual, expected, label) {
   )
 }
 
-// The transient discovery extension must preserve every legacy property and
-// definition. Shared contract edits belong to Sabyrzhan, never this checker.
-for (const [name, schema] of Object.entries(legacyEvents.$defs))
+// The old frontend snapshot preserves the legacy persistent-event envelope.
+// This compatibility check says nothing about the current S04 transient wire.
+for (const [name, schema] of Object.entries(legacyPersistentEvents.$defs))
   check(
-    JSON.stringify(snapshot.$defs[name]) === JSON.stringify(schema),
-    `Event snapshot changed legacy definition ${name}`,
+    JSON.stringify(legacyDiscoverySnapshot.$defs[name]) ===
+      JSON.stringify(schema),
+    `Legacy event snapshot changed persistent definition ${name}`,
   )
-for (const [name, schema] of Object.entries(legacyEvents.properties))
+for (const [name, schema] of Object.entries(legacyPersistentEvents.properties))
   check(
-    JSON.stringify(snapshot.properties[name]) === JSON.stringify(schema),
-    `Event snapshot changed legacy field ${name}`,
+    JSON.stringify(legacyDiscoverySnapshot.properties[name]) ===
+      JSON.stringify(schema),
+    `Legacy event snapshot changed persistent field ${name}`,
   )
 sameValues(
-  snapshot.required,
-  legacyEvents.required,
-  'Event legacy required fields',
+  legacyDiscoverySnapshot.required,
+  legacyPersistentEvents.required,
+  'Legacy event required fields',
 )
 
 const unions = {
@@ -139,22 +141,14 @@ const interfaces = [
   ['POIRecord', recommendations.$defs.POIRecord],
   ['Action', recommendations.$defs.Action],
   ['RecommendationCard', recommendations.$defs.POICard],
-  ['EventRecord', snapshot.$defs.EventRecord],
-  ['EventSession', snapshot.$defs.EventSession],
-  ['EventCardData', snapshot.$defs.EventCard],
-  ['LegacyEventSearchResponse', snapshot],
-  ['EventEvidenceSource', snapshot.$defs.EventDiscoverySource],
-  ['EventCitation', snapshot.$defs.EventDiscoveryCitation],
-  ['EventEvidence', snapshot.$defs.EventDiscoveryEvidence],
-  ['EventVenue', events.$defs.VenueMatch],
-  ['EventFieldCheck', events.$defs.FieldCheck],
-  ['DiscoveredSession', events.$defs.NormalizedSession],
-  ['DiscoveredEvent', events.$defs.NormalizedEvent],
-  ['EventDiscovery', snapshot.$defs.EventDiscoveryPayload],
-  ['TransientEventSource', events.$defs.TransientEventSource],
-  ['TransientEvent', events.$defs.TransientEvent],
-  ['TransientEventCardData', events.$defs.TransientEventCard],
-  ['TransientEventSearchResponse', events],
+  ['TransientEventSource', transientEvents.$defs.TransientEventSource],
+  ['TransientEventHeader', transientEvents.$defs.TransientEvent],
+  ['TransientEventCardData', transientEvents.$defs.TransientEventCard],
+  ['TransientEventSearchResponse', transientEvents],
+  ['EventVenue', transientEvents.$defs.VenueMatch],
+  ['EventFieldCheck', transientEvents.$defs.FieldCheck],
+  ['DiscoveredSession', transientEvents.$defs.NormalizedSession],
+  ['DiscoveredEvent', transientEvents.$defs.NormalizedEvent],
   ['SearchWarning', recommendations.$defs.Warning],
 ]
 for (const [name, schema] of interfaces)
@@ -162,6 +156,24 @@ for (const [name, schema] of interfaces)
     interfaceFields(name),
     Object.keys(schema.properties),
     `${name} fields`,
+  )
+
+// Legacy interfaces support old envelopes and development fixtures only.
+// EventSearchResponse is an internal UI shape after adaptation, not a wire type.
+const legacyInterfaces = [
+  ['EventRecord', legacyPersistentEvents.$defs.EventRecord],
+  ['EventSession', legacyPersistentEvents.$defs.EventSession],
+  ['EventCardData', legacyPersistentEvents.$defs.EventCard],
+  ['EventEvidenceSource', legacyDiscoverySnapshot.$defs.EventDiscoverySource],
+  ['EventCitation', legacyDiscoverySnapshot.$defs.EventDiscoveryCitation],
+  ['EventEvidence', legacyDiscoverySnapshot.$defs.EventDiscoveryEvidence],
+  ['EventDiscovery', legacyDiscoverySnapshot.$defs.EventDiscoveryPayload],
+]
+for (const [name, schema] of legacyInterfaces)
+  sameValues(
+    interfaceFields(name),
+    Object.keys(schema.properties),
+    `Legacy ${name} fields`,
   )
 
 // The runtime evaluator intentionally implements only the project's current
@@ -191,25 +203,29 @@ const supported = new Set([
   'format',
   'pattern',
 ])
-function checkKeywords(schema) {
+function checkKeywords(schema, label) {
   for (const key of Object.keys(schema))
-    check(supported.has(key), `Unsupported runtime schema keyword: ${key}`)
-  for (const child of Object.values(schema.$defs ?? {})) checkKeywords(child)
+    check(
+      supported.has(key),
+      `${label}: unsupported runtime schema keyword ${key}`,
+    )
+  for (const child of Object.values(schema.$defs ?? {}))
+    checkKeywords(child, label)
   for (const child of Object.values(schema.properties ?? {}))
-    checkKeywords(child)
-  for (const child of schema.anyOf ?? []) checkKeywords(child)
-  if (schema.items) checkKeywords(schema.items)
+    checkKeywords(child, label)
+  for (const child of schema.anyOf ?? []) checkKeywords(child, label)
+  if (schema.items) checkKeywords(schema.items, label)
 }
 for (const schema of [
   request,
   recommendations,
-  legacyEvents,
-  snapshot,
-  events,
+  transientEvents,
   routeRequest,
   routeResponse,
 ])
-  checkKeywords(schema)
+  checkKeywords(schema, 'Shared contract')
+for (const schema of [legacyPersistentEvents, legacyDiscoverySnapshot])
+  checkKeywords(schema, 'Legacy event compatibility')
 console.log(
-  `Shared v${codes.contract_version} including transient events: frontend enums, wire fields, legacy compatibility and runtime schema keywords match.`,
+  `Shared v${codes.contract_version}: frontend wire enums, field names and runtime schema keywords match. Legacy event snapshot compatibility checked separately.`,
 )

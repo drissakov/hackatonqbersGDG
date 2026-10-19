@@ -181,3 +181,11 @@ PR preparation preserves main's updated README and meaningful branch commits.
 Only documentation changes were needed to resolve the README conflict; provider
 calls and test suites were not repeated for that resolution. Contract version,
 API endpoints, database schema and production dependencies are unchanged.
+
+Main then advanced to `086b61b` with the parallel D05 frontend work. PR conflict
+resolution preserves that newer frontend, including its timestamp precision,
+supplemental evidence and localization behavior. The older separate transient
+card implementation is superseded; 2GIS attribution remains intact. The frontend
+Astana alias set now matches the backend's accepted city forms. Two focused
+frontend files passed 38 tests; TypeScript and contract checks passed. No full
+local suite or live provider call was repeated for this reconciliation.

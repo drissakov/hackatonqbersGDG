@@ -36,6 +36,17 @@ describe('Astana wall-clock conversion', () => {
 })
 
 describe('localized formatting', () => {
+  it.each(['kk', 'ru', 'en'] as const)(
+    'formats KZT and the Astana date boundary independently of browser time in %s',
+    (locale) => {
+      const money = formatMoney(12500, locale)
+      expect(money).toMatch(/KZT|₸/u)
+      expect(money).not.toMatch(/USD|EUR|\$/u)
+      expect(formatDateTime('2026-12-31T19:15:00Z', locale)).toContain('2027')
+      expect(formatDateTime('2026-12-31T19:15:00Z', locale)).toContain('00:15')
+      expect(formatMinutes(null, locale)).not.toContain('0')
+    },
+  )
   it('preserves the difference between zero and unknown price/time', () => {
     expect(formatMoney(0, 'en')).toContain('0')
     expect(formatMoney(1000, 'en')).toContain('KZT')
