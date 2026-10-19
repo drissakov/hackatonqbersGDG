@@ -295,10 +295,17 @@
     "title": "Starting point and alternatives",
     "origin": "Starting point",
     "alternative": "Alternative {{index}}",
-    "unavailable": "Map unavailable. Place details and route status remain below.",
+    "unavailable": "2GIS is unavailable. Showing the OpenStreetMap street map.",
     "noPoints": "No destination coordinates are available.",
     "select": "Select {{name}}",
-    "coordinateView": "Coordinate map · no street or route geometry"
+    "coordinateView": "Coordinate map · no street or route geometry",
+    "streetView": "Street map with starting point and alternatives",
+    "zoomIn": "Zoom in",
+    "zoomOut": "Zoom out",
+    "fitAll": "Show all points",
+    "tilesUnavailable": "Some map tiles could not load. Try another zoom level or check your connection.",
+    "interactionHint": "Drag to explore. Select a numbered pin to view a destination.",
+    "openWalkingRoute": "Open walking directions in 2GIS"
   },
   "route": {
     "select": "Select an option to check its walking route.",
@@ -307,7 +314,7 @@
     "unavailable": "Walking route provider is unavailable. Travel time remains unknown.",
     "walking": "Walk to destination",
     "return": "Return walk",
-    "noGeometry": "Route geometry is unavailable. A line is not shown.",
+    "noGeometry": "Open walking directions in 2GIS for the detailed path along streets.",
     "error": "The walking route request failed. Try again.",
     "notSelected": "No destination selected.",
     "approximateDestination": "Destination is approximate; an accessible entrance has not been verified."

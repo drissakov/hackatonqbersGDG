@@ -42,6 +42,26 @@ beforeEach(async () => {
 afterEach(() => vi.unstubAllEnvs())
 
 describe('selected walking route details', () => {
+  it('opens the selected real coordinates as walking directions without inventing a map line', async () => {
+    vi.mocked(getRoute).mockResolvedValue(parseRouteResponse(routeFixture))
+    const view = render(<DestinationDetails {...props()} />)
+    const link = screen.getByRole('link', {
+      name: i18n.t('map.openWalkingRoute'),
+    })
+    expect(link).toHaveAttribute(
+      'href',
+      'https://2gis.ru/astana/directions/tab/pedestrian/points/71.43,51.13|71.44,51.14',
+    )
+    expect(
+      screen.getByRole('region', { name: i18n.t('map.streetView') }),
+    ).toBeVisible()
+    expect(document.querySelector('.coordinate-map')).toBeNull()
+    view.rerender(<DestinationDetails {...props()} origin={null} />)
+    expect(
+      screen.queryByRole('link', { name: i18n.t('map.openWalkingRoute') }),
+    ).not.toBeInTheDocument()
+  })
+
   it.each(['known', 'unknown', 'unavailable'] as const)(
     'keeps outbound and return-leg %s status and duration separate',
     async (status) => {
