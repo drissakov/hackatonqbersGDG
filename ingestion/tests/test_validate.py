@@ -46,9 +46,12 @@ def corpus(tmp_path):
         },
     ]
     rows, metadata = normalize_elements(elements, fetched_at=FETCHED_AT, boundary=BOUNDARY)
+    contract_version = json.loads((validate.ROOT / "contracts/codes.json").read_text("utf-8"))[
+        "contract_version"
+    ]
     manifest = {
         "format": "qadam-poi-export-v1",
-        "contract_version": "1.1.0",
+        "contract_version": contract_version,
         "import_id": "synthetic-test-import",
         "provider": "osm",
         "city": "astana",
@@ -92,6 +95,18 @@ def test_valid_pair_reports_shallow_counts_without_claiming_manual_verification(
     assert report["human_verification"]["sample_size"] == 0
     assert len(report["category_sample_ids"]) == 3
     assert "SYNTHETIC" not in json.dumps(report)
+
+
+@pytest.mark.parametrize("version", ["1.1.0", "unsupported", None])
+def test_missing_or_mismatched_contract_version_is_rejected(corpus, version):
+    directory, rows, manifest = corpus
+    if version is None:
+        manifest.pop("contract_version")
+    else:
+        manifest["contract_version"] = version
+    save_pair(directory, rows, manifest)
+    with pytest.raises(validate.QualityError, match="^invalid_export_manifest$"):
+        validate.validate_corpus(directory)
 
 
 def test_partial_source_queries_can_pass_only_structural_checks(corpus):

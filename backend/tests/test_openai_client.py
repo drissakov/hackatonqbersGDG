@@ -95,3 +95,98 @@ def test_provider_error_body_is_not_exposed():
         run_with_transport(handler, lambda c: c.create_response("Synthetic"))
     assert str(error.value) == "authentication_failed"
     assert "synthetic-secret" not in str(error.value)
+
+
+def test_responses_parse_uses_strict_pydantic_schema_without_storing():
+    from backend.app.intent import TextIntent
+    from backend.tests.test_intent import text_intent
+
+    def handler(request):
+        body = json.loads(request.content)
+        assert request.url.path == "/v1/responses" and body["store"] is False
+        assert body["text"]["format"]["type"] == "json_schema"
+        assert body["text"]["format"]["strict"] is True
+        return httpx.Response(
+            200,
+            json={
+                "id": "resp_synthetic",
+                "object": "response",
+                "created_at": 0,
+                "model": body["model"],
+                "status": "completed",
+                "output": [
+                    {
+                        "type": "message",
+                        "id": "msg_synthetic",
+                        "role": "assistant",
+                        "status": "completed",
+                        "content": [
+                            {
+                                "type": "output_text",
+                                "text": text_intent(language="kk").model_dump_json(),
+                                "annotations": [],
+                            }
+                        ],
+                    }
+                ],
+            },
+        )
+
+    result = run_with_transport(handler, lambda c: c.parse_response("Synthetic", TextIntent))
+    assert result.language == "kk"
+
+
+def test_embedding_batch_restores_indices_and_checks_response_model():
+    def handler(request):
+        body = json.loads(request.content)
+        assert body["input"] == ["Synthetic one", "Synthetic two"]
+        return httpx.Response(
+            200,
+            json={
+                "object": "list",
+                "model": "text-embedding-3-large",
+                "data": [
+                    {"object": "embedding", "index": i, "embedding": [float(i + 1)] + [0.0] * 1535}
+                    for i in (1, 0)
+                ],
+                "usage": {"prompt_tokens": 2, "total_tokens": 2},
+            },
+        )
+
+    result = run_with_transport(handler, lambda c: c.embed_many(["Synthetic one", "Synthetic two"]))
+    assert result[0][0] == 1.0 and result[1][0] == 2.0
+
+
+@pytest.mark.parametrize(
+    "content,expected",
+    [
+        ({"type": "refusal", "refusal": "Synthetic refusal"}, "response_incomplete_or_refused"),
+        ({"type": "output_text", "text": "{}", "annotations": []}, "invalid_structured_response"),
+    ],
+)
+def test_structured_refusal_and_invalid_schema_are_safe_errors(content, expected):
+    from backend.app.intent import TextIntent
+
+    def handler(request):
+        return httpx.Response(
+            200,
+            json={
+                "id": "resp_synthetic",
+                "object": "response",
+                "created_at": 0,
+                "model": "gpt-6-luna",
+                "status": "completed",
+                "output": [
+                    {
+                        "type": "message",
+                        "id": "msg_synthetic",
+                        "role": "assistant",
+                        "status": "completed",
+                        "content": [content],
+                    }
+                ],
+            },
+        )
+
+    with pytest.raises(ProviderError, match=expected):
+        run_with_transport(handler, lambda c: c.parse_response("Synthetic", TextIntent))

@@ -374,3 +374,262 @@ class PostgresPOIRepository:
                 (origin.longitude, origin.latitude, self.allow_test, radius_m, limit),
             ).fetchall()
         return [POIRecord.model_validate(row["document"]) for row in rows]
+
+    async def index_records(self, after="", limit=100):
+        """Stable keyset pages; never load synthetic POIs in a production run."""
+        return await asyncio.to_thread(self._index_records, after, limit)
+
+    def _index_records(self, after, limit):
+        if type(limit) is not int or not 1 <= limit <= 100:
+            raise ValueError("index page limit must be 1..100")
+        with self.pool.connection() as connection:
+            return connection.execute(
+                sql.SQL(
+                    "SELECT p.document, p.indexing_allowed, d.source_document, d.metadata, "
+                    "e.model, e.dimensions, e.text_version, e.document_text_hash "
+                    "FROM {} p LEFT JOIN {} d ON d.poi_id=p.id "
+                    "LEFT JOIN {} e ON e.poi_id=p.id "
+                    "WHERE p.id>%s AND (NOT p.is_test OR %s) ORDER BY p.id LIMIT %s"
+                ).format(
+                    self.table("pois"), self.table("poi_search_documents"), self.table("embeddings")
+                ),
+                (after, self.allow_test, limit),
+            ).fetchall()
+
+    async def save_search_document(self, document, vector=None):
+        return (await self.save_search_documents([document], [vector]))[0]
+
+    async def save_search_documents(self, documents, vectors=None, *, require_staged=False):
+        return await asyncio.to_thread(
+            self._save_search_documents, documents, vectors, require_staged
+        )
+
+    def _save_search_documents(self, documents, vectors, require_staged=False):
+        from backend.app.indexing import DIMENSIONS, EMBEDDING_MODEL, TEXT_VERSION, valid_vector
+
+        if not 1 <= len(documents) <= 100:
+            raise ValueError("search document batches require 1..100 records")
+        vectors = [None] * len(documents) if vectors is None else vectors
+        if len(vectors) != len(documents) or any(
+            vector is not None and not valid_vector(vector) for vector in vectors
+        ):
+            raise ValueError("invalid_embedding_dimensions_or_values")
+        if len({d.record.id for d in documents}) != len(documents):
+            raise ValueError("duplicate_search_documents")
+        if require_staged and any(vector is None for vector in vectors):
+            raise ValueError("staged writes require an embedding for every document")
+        statuses, text_values, vector_values = [], [], []
+        with self.pool.connection() as connection:
+            extensions = self.extension_schemas(connection)
+            identities = {
+                (
+                    next(
+                        source.provider.value
+                        for source in doc.record.sources
+                        if source.source_id == doc.record.primary_source_id
+                    ),
+                    doc.record.external_id,
+                )
+                for doc in documents
+            }
+            # Import acquires these same identity locks before any POI row locks.
+            # Sharing its order prevents deadlocks with reverse-ordered import batches.
+            with connection.cursor() as cursor:
+                cursor.executemany(
+                    "SELECT pg_advisory_xact_lock(hashtextextended(%s, 0))",
+                    [(json.dumps([self.schema, *identity]),) for identity in sorted(identities)],
+                )
+            rows = connection.execute(
+                sql.SQL(
+                    "SELECT id,document,indexing_allowed,indexed_text_hash FROM {} "
+                    "WHERE id=ANY(%s) ORDER BY id FOR UPDATE"
+                ).format(self.table("pois")),
+                ([d.record.id for d in documents],),
+            ).fetchall()
+            current_rows = {row["id"]: row for row in rows}
+            staged = {}
+            if require_staged:
+                staged = {
+                    row["poi_id"]: row
+                    for row in connection.execute(
+                        sql.SQL(
+                            "SELECT poi_id,text_hash,text_version FROM {} WHERE poi_id=ANY(%s)"
+                        ).format(self.table("poi_search_documents")),
+                        ([doc.record.id for doc in documents],),
+                    ).fetchall()
+                }
+            for document, vector in zip(documents, vectors, strict=True):
+                current = current_rows.get(document.record.id)
+                snapshot = document.record.model_dump(mode="json")
+                if (
+                    not current
+                    or not current["indexing_allowed"]
+                    or current["document"] != snapshot
+                ):
+                    statuses.append("stale")
+                    continue
+                if require_staged:
+                    search = staged.get(document.record.id)
+                    if (
+                        not search
+                        or search["text_hash"] != document.text_hash
+                        or search["text_version"] != TEXT_VERSION
+                    ):
+                        statuses.append("stale")
+                        continue
+                statuses.append("saved")
+                if not require_staged:
+                    text_values.append(
+                        (
+                            document.record.id,
+                            Jsonb(snapshot),
+                            document.text,
+                            document.text_hash,
+                            TEXT_VERSION,
+                            document.names,
+                            Jsonb(document.metadata),
+                        )
+                    )
+                if vector is not None:
+                    vector_values.append(
+                        (
+                            document.record.id,
+                            current["indexed_text_hash"],
+                            EMBEDDING_MODEL,
+                            DIMENSIONS,
+                            json.dumps(vector),
+                            TEXT_VERSION,
+                            document.text_hash,
+                        )
+                    )
+            # psycopg executemany pipelines bounded batches; no network/API wait under these locks.
+            with connection.cursor() as cursor:
+                if text_values:
+                    cursor.executemany(
+                        sql.SQL(
+                            "INSERT INTO {} (poi_id,source_document,indexed_text,text_hash,"
+                            "text_version,names,metadata) VALUES (%s,%s,%s,%s,%s,%s,%s) "
+                            "ON CONFLICT (poi_id) DO UPDATE "
+                            "SET source_document=EXCLUDED.source_document,"
+                            "indexed_text=EXCLUDED.indexed_text,text_hash=EXCLUDED.text_hash,"
+                            "text_version=EXCLUDED.text_version,names=EXCLUDED.names,"
+                            "metadata=EXCLUDED.metadata,updated_at=now()"
+                        ).format(self.table("poi_search_documents")),
+                        text_values,
+                    )
+                if vector_values:
+                    cursor.executemany(
+                        sql.SQL(
+                            "INSERT INTO {} (poi_id,indexed_text_hash,model,dimensions,embedding,"
+                            "text_version,document_text_hash) "
+                            "VALUES (%s,%s,%s,%s,%s::{}.vector(1536),%s,%s) "
+                            "ON CONFLICT (poi_id) DO UPDATE "
+                            "SET indexed_text_hash=EXCLUDED.indexed_text_hash,"
+                            "model=EXCLUDED.model,dimensions=EXCLUDED.dimensions,embedding=EXCLUDED.embedding,"
+                            "text_version=EXCLUDED.text_version,document_text_hash=EXCLUDED.document_text_hash,"
+                            "created_at=now()"
+                        ).format(self.table("embeddings"), sql.Identifier(extensions["vector"])),
+                        vector_values,
+                    )
+        return statuses
+
+    async def retrieve_candidates(
+        self, query, *, names=(), categories=(), origin=None, radius_m=5000, vector=None, limit=12
+    ):
+        from backend.app.indexing import valid_vector
+
+        if type(limit) is not int or not 1 <= limit <= 30:
+            raise ValueError("candidate limit must be 1..30")
+        if type(radius_m) is not int or not 1 <= radius_m <= 100000:
+            raise ValueError("radius_m must be 1..100000")
+        if origin is not None and not isinstance(origin, Coordinates):
+            raise ValueError("origin must be validated Coordinates")
+        if vector is not None and not valid_vector(vector):
+            raise ValueError("invalid_embedding_dimensions_or_values")
+        return await asyncio.to_thread(
+            self._retrieve_candidates, query, names, categories, origin, radius_m, vector, limit
+        )
+
+    def _retrieve_candidates(self, query, names, categories, origin, radius_m, vector, limit):
+        from backend.app.indexing import DIMENSIONS, EMBEDDING_MODEL, TEXT_VERSION, normalize_name
+
+        terms = list(dict.fromkeys(normalize_name(t) for t in [query, *names] if normalize_name(t)))
+        if not terms and not categories:
+            return []
+        with self.pool.connection() as connection:
+            extensions = self.extension_schemas(connection)
+            # geo is a hard prefilter; its radius is explicit retrieval policy, not an ETA.
+            geo = sql.Identifier(extensions["postgis"])
+            point = sql.SQL("{}.ST_SetSRID({}.ST_MakePoint(%s,%s),4326)::{}.geography").format(
+                geo, geo, geo
+            )
+            geo_filter = (
+                sql.SQL("AND p.location IS NOT NULL AND {}.ST_DWithin(p.location,{},%s)").format(
+                    geo, point
+                )
+                if origin
+                else sql.SQL("")
+            )
+            distance = (
+                sql.SQL("{}.ST_Distance(p.location,{})").format(geo, point)
+                if origin
+                else sql.SQL("NULL::double precision")
+            )
+            semantic = (
+                sql.SQL("1-(e.embedding <=> %s::{}.vector(1536))").format(
+                    sql.Identifier(extensions["vector"])
+                )
+                if vector
+                else sql.SQL("NULL::double precision")
+            )
+            params = []
+            if vector:
+                params.append(json.dumps(vector))
+            if origin:
+                params.extend([origin.longitude, origin.latitude])
+            params.extend(
+                [
+                    terms,
+                    list(categories),
+                    TEXT_VERSION,
+                    EMBEDDING_MODEL,
+                    DIMENSIONS,
+                    TEXT_VERSION,
+                    self.allow_test,
+                ]
+            )
+            if origin:
+                params.extend([origin.longitude, origin.latitude, radius_m])
+            params.append(limit)
+            rows = connection.execute(
+                sql.SQL(
+                    "WITH eligible AS (SELECT p.document,p.id,d.metadata,d.names,"
+                    "{} AS semantic_score, {} AS distance_m, "
+                    "coalesce((SELECT max(greatest(similarity(t,n),word_similarity(t,n),"
+                    "CASE WHEN t=n THEN 1.0 ELSE 0.0 END)) FROM unnest(%s::text[]) t "
+                    "CROSS JOIN LATERAL unnest(string_to_array(coalesce(d.names,"
+                    "btrim(regexp_replace(lower(normalize(p.document->>'name',NFC)),"
+                    "'[^[:alnum:]]+',' ','g'))), E'\\n')) n),0) AS lexical_score, "
+                    "(p.document->>'activity_code'=ANY(%s::text[])) AS category_match "
+                    "FROM {} p LEFT JOIN {} d ON d.poi_id=p.id AND d.source_document=p.document "
+                    "AND d.text_version=%s "
+                    "LEFT JOIN {} e ON e.poi_id=p.id AND e.indexed_text_hash=p.indexed_text_hash "
+                    "AND e.document_text_hash=d.text_hash AND e.text_version=d.text_version "
+                    "AND e.model=%s AND e.dimensions=%s AND e.text_version=%s "
+                    "WHERE p.indexing_allowed AND (NOT p.is_test OR %s) {} "
+                    ") "
+                    "SELECT *, (2*lexical_score + CASE WHEN category_match THEN 1 ELSE 0 END "
+                    "+ coalesce(semantic_score,0)) AS score FROM eligible "
+                    "WHERE lexical_score>=0.35 OR category_match OR semantic_score>=0.25 "
+                    "ORDER BY score DESC,distance_m NULLS LAST,id LIMIT %s"
+                ).format(
+                    semantic,
+                    distance,
+                    self.table("pois"),
+                    self.table("poi_search_documents"),
+                    self.table("embeddings"),
+                    geo_filter,
+                ),
+                params,
+            ).fetchall()
+        return rows
