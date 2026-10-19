@@ -159,3 +159,25 @@ same-URL citation context. It preserves date/clock binding and requires the
 event year in the evidence. Markdown formatting cannot supply or alter a fact;
 ambiguous dates, other-source facts and unsupported timezone suffixes remain
 unknown. No query date or current year is used as source evidence.
+
+## Final hosted acceptance and PR preparation
+
+On 2026-10-19, Render commit `fd6e506` reached `live`. A browser search for
+`Concert Sezim in Astana` (Russian query) rendered the real event, its Ticketon
+source link, start `2026-10-30T19:00:00+05:00` and a starting price of 3000 KZT.
+End time and ticket availability remained unknown, and the UI did not claim a
+confirmed fit. A generic concert query also retained a yearless listing as
+unknown rather than inventing its year. No provider prose or corpus was stored.
+
+The final quoted-field patch passed 20 targeted date tests and Ruff checks;
+GitHub Actions run 39250622393 passed for that exact commit. The preceding
+source-equivalence patch passed 31 targeted tests. The earlier full checkpoint
+passed 1124 tests with 17 local SQL skips without TEST_DATABASE_URL. Full local
+suites were not repeated after the focused patches at the user's request.
+The inherited runtime integration checkpoint passed 285 frontend tests plus
+build, type, lint, format and contract checks.
+
+PR preparation preserves main's updated README and meaningful branch commits.
+Only documentation changes were needed to resolve the README conflict; provider
+calls and test suites were not repeated for that resolution. Contract version,
+API endpoints, database schema and production dependencies are unchanged.
