@@ -107,3 +107,19 @@ offset and title fields. No provider bodies are logged.
 
 This correction passed **1077 tests, 17 skipped**, compileall, Ruff check,
 Ruff format (79 files), contract drift (13 artifacts) and diff checks.
+
+## Detail-page extraction follow-up
+
+The third checkpoint retained real linked events, but a yearless date remained
+unknown as intended, and an individual concert detail was extracted as a
+calendar listing. The focused prompt correction separates page structure from
+verification status, retains observed occurrences with null unknown fields,
+and requires aware ISO timestamps rather than natural-language dates in
+`starts_at`/`ends_at`. The source quote remains literal and never acquires a
+year from the query.
+
+The first Ticketon query now includes its public Russian date/time field
+labels, the requested city/year and topic. This finds explicit source dates
+instead of relying only on yearless calendar rows. No real event URL/title is
+hardcoded. City must belong to the session venue, not a contact footer, hotel
+name or another tour stop. Pre-publication suite: **1077 passed, 17 skipped**.
