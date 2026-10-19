@@ -110,7 +110,7 @@ def evaluate_event_session(
         if start < selected:
             conflict("before_requested_start")
         try:
-            if (
+            if intent.date_time is not None and (
                 start.astimezone(ASTANA_TIMEZONE).date()
                 != selected.astimezone(ASTANA_TIMEZONE).date()
             ):

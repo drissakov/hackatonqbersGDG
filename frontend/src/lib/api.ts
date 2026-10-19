@@ -412,11 +412,16 @@ const transientMissingFields = new Set([
 ])
 const astanaNames = new Set([
   'astana',
+  'astana city',
   'астана',
+  'астане',
+  'в астане',
   'astana qalasy',
   'астана қаласы',
   'астана қ.',
   'г. астана',
+  'астанада',
+  'астана қаласында',
 ])
 function isAstana(value: string): boolean {
   return astanaNames.has(

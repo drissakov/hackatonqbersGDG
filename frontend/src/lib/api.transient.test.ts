@@ -51,17 +51,24 @@ describe('published S04 transient event boundary', () => {
     expect(result.transient!.provider_status).toBe('unavailable')
   })
 
-  it.each(['Astana qalasy', 'Астана қаласы', 'Астана қ.', 'г. Астана'])(
-    'accepts the backend Astana alias %s',
-    (city) => {
-      const value = structuredClone(partial)
-      value.items[0].session.city = city
-      value.items[0].event.city = city
-      expect(
-        parseSearchResponse(value, 'events', 'en').transient?.items,
-      ).toHaveLength(1)
-    },
-  )
+  it.each([
+    'Astana qalasy',
+    'Астана қаласы',
+    'Астана қ.',
+    'г. Астана',
+    'Astana city',
+    'Астане',
+    'в Астане',
+    'Астанада',
+    'Астана қаласында',
+  ])('accepts the backend Astana alias %s', (city) => {
+    const value = structuredClone(partial)
+    value.items[0].session.city = city
+    value.items[0].event.city = city
+    expect(
+      parseSearchResponse(value, 'events', 'en').transient?.items,
+    ).toHaveLength(1)
+  })
 
   it('keeps an invalid-time withheld session in its listing without promoting it to a card', () => {
     const value = structuredClone(listing) as TransientEventSearchResponse

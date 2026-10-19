@@ -45,7 +45,7 @@ EXTRACTION_POLICY = (
 )
 SEARCH_RESULT_POLICY = (
     "\nReturn at most three events with at most one dated session each, in at most 600 words. "
-    "Use at most two total web-search actions, including search, page opening and finding. "
+    "Use at most three total web-search actions, including search, page opening and finding. "
     "After that budget, stop using tools and finish the answer with citations to already "
     "consulted sources. Keep missing fields unknown; insufficient evidence is acceptable."
 )

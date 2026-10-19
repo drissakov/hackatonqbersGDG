@@ -17,14 +17,15 @@ from backend.app.indexing import DIMENSIONS, EMBEDDING_MODEL, valid_vector
 from backend.app.settings import Settings
 
 WEB_SEARCH_MAX_OUTPUT_TOKENS = 4096
-WEB_SEARCH_MAX_TOOL_CALLS = 2
+WEB_SEARCH_MAX_TOOL_CALLS = 3
 WEB_SEARCH_TIMEOUT_SECONDS = 40.0
 MAX_STRUCTURED_OUTPUT_TOKENS = 8192
 WEB_SEARCH_BUDGET_INSTRUCTIONS = (
-    "Hard tool budget: use at most two hosted web_search actions in total, including "
-    "search, open_page and find_in_page. Prefer one search; use a second action only if needed. "
-    "After the second action, stop using tools and produce the final factual answer with "
-    "citations from consulted sources. Never attempt a third action. If the budget leaves "
+    "Hard tool budget: use at most three hosted web_search actions in total, including "
+    "search, open_page and find_in_page. Prefer one search and one page inspection; reserve "
+    "the third action for missing session date/year evidence. After the third action, stop "
+    "using tools and produce the final factual answer with citations from consulted sources. "
+    "Never attempt a fourth action. If the budget leaves "
     "coverage or facts uncertain, say they are unknown instead of performing another action. "
     "Languages are alternatives within this shared budget, not separate search quotas."
 )

@@ -42,7 +42,7 @@ def success(distance=1234, duration=601):
     return {
         "status": "OK",
         "type": "result",
-        "result": [{"total_distance": distance, "total_duration": duration}],
+        "result": [{"length": distance, "duration": duration}],
     }
 
 
@@ -124,6 +124,30 @@ def test_walking_coordinates_units_locale_and_resource_cleanup(locale, expected)
     assert all(response.closed for response in opener.responses)
 
 
+def test_walking_reads_summary_length_and_duration_without_detailed_geometry():
+    payload = {
+        "status": "OK",
+        "type": "result",
+        "result": [{"length": 1234.2, "duration": 601.2}],
+    }
+    result = leg(TwoGISAdapter(settings(), opener=Opener(payload)))
+    assert result.status == "known"
+    assert result.distance_meters == 1235
+    assert result.duration_seconds == 602
+
+
+def test_walking_retains_compatibility_with_detailed_metric_names():
+    payload = {
+        "status": "OK",
+        "type": "result",
+        "result": [{"total_distance": 1234.2, "total_duration": 601.2}],
+    }
+    result = leg(TwoGISAdapter(settings(), opener=Opener(payload)))
+    assert result.status == "known"
+    assert result.distance_meters == 1235
+    assert result.duration_seconds == 602
+
+
 @pytest.mark.parametrize(
     ("status", "expected_status", "reason"),
     [
@@ -151,6 +175,14 @@ def test_http_200_does_not_override_provider_failure(status, expected_status, re
         {**success(), "result": None},
         {**success(), "result": [None]},
         {**success(), "type": "error"},
+        {**success(), "result": [{"length": 100, "total_duration": 60}]},
+        {**success(), "result": [{"total_distance": 100, "duration": 60}]},
+        {
+            **success(),
+            "result": [
+                {"length": None, "duration": 60, "total_distance": 100, "total_duration": 60}
+            ],
+        },
         success(True, 60),
         success(100, "60"),
         success(-1, 60),

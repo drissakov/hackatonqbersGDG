@@ -1,6 +1,7 @@
-"""Pure, conservative normalization. Extraction is discovery, never verification."""
+"""Conservative normalization. Extraction is discovery, never verification."""
 
 import hashlib
+import logging
 import re
 from collections.abc import Sequence
 from datetime import UTC, datetime
@@ -8,7 +9,13 @@ from urllib.parse import urlsplit
 from zoneinfo import ZoneInfo
 
 from backend.app.schemas import POIRecord
-from backend.app.services.events.grounding import ground_metadata, ground_price, source_spans
+from backend.app.services.events.grounding import (
+    ASTANA_NAMES,
+    ground_metadata,
+    ground_price,
+    source_spans,
+    source_titles,
+)
 from backend.app.services.events.models import (
     CandidateEvent,
     DiscoveryResult,
@@ -20,8 +27,8 @@ from backend.app.services.events.models import (
 )
 from backend.app.services.events.venue import match_venue, normalize_venue_text
 
+logger = logging.getLogger(__name__)
 ASTANA_TIMEZONE = ZoneInfo("Asia/Almaty")
-ASTANA_NAMES = {"astana", "астана", "astana qalasy", "астана қаласы", "астана қ.", "г. астана"}
 MONTH_NAMES = (
     ("january", "января", "қаңтар"),
     ("february", "февраля", "ақпан"),
@@ -35,6 +42,12 @@ MONTH_NAMES = (
     ("october", "октября", "қазан"),
     ("november", "ноября", "қараша"),
     ("december", "декабря", "желтоқсан"),
+)
+UNSUPPORTED_CLOCK_SUFFIX = re.compile(
+    r"[ \t\u00a0\u202f*_`\"'»”’]*(?:,[ \t]*)?(?:[\[(][ \t]*)?(?:по[ \t]+)?"
+    r"(?:(?:[ap]\.?[ \t]*m\.?|utc|gmt|msk|мск|z)(?!\w)"
+    r"|[+−-](?:[01]?\d|2[0-3])(?::?[0-5]\d)?(?!\w)(?![:.]\d))",
+    re.IGNORECASE,
 )
 
 
@@ -97,39 +110,248 @@ def _merge_sessions(sessions: Sequence[NormalizedSession]) -> list[NormalizedSes
 
 
 def _timestamp(
-    value: str | None, source_text: str | None, supporting_spans: Sequence[str]
+    value: str | None,
+    source_text: str | None,
+    supporting_spans: Sequence[str],
+    *,
+    derive_missing: bool = False,
+    _diagnose: bool = True,
+    _max_clock_gap: int | None = None,
 ) -> datetime | None:
+    def reject(code: str) -> None:
+        return _unknown_timestamp(code) if _diagnose else None
+
     # Never invent a year from the query, publication date or retrieval time.
-    if not value or not source_text or not re.match(r"^\d{4}-\d{2}-\d{2}T", value):
+    if not value:
+        if source_text:
+            if value is None and derive_missing:
+                if not any(source_text in span for span in supporting_spans):
+                    equivalent = _equivalent_source_timestamp(source_text, supporting_spans)
+                    if equivalent is not None:
+                        return equivalent
+                    return reject("source_quote_not_literal")
+                derived = _source_timestamp(source_text, supporting_spans)
+                if derived is not None:
+                    return derived
+                equivalent = _equivalent_source_timestamp(source_text, supporting_spans)
+                if equivalent is not None:
+                    return equivalent
+            return reject("extracted_datetime_missing")
         return None
+    if not source_text:
+        return reject("source_quote_missing")
+    if not re.match(r"^\d{4}-\d{2}-\d{2}T", value):
+        return reject("datetime_format_invalid")
     try:
         parsed = datetime.fromisoformat(value)
         require_aware(parsed)
         local = parsed.astimezone(ASTANA_TIMEZONE)
     except (ValueError, OverflowError):
-        return None
+        return reject("datetime_invalid_or_naive")
     # Seconds/microseconds need explicit precision support before they can be facts.
     if local.second or local.microsecond:
-        return None
-    if not any(source_text in span for span in supporting_spans):
-        return None
+        return reject("datetime_precision_unsupported")
+    supported = [span for span in supporting_spans if source_text in span]
+    if not supported:
+        if derive_missing:
+            equivalent = _equivalent_source_timestamp(source_text, supporting_spans)
+            if equivalent is not None and equivalent == parsed:
+                return parsed
+        return reject("source_quote_not_literal")
     text = source_text.casefold()
     day, month, year = local.day, local.month, local.year
     names = "|".join(MONTH_NAMES[month - 1])
+    numeric_day = rf"0?{day}" if day < 10 else str(day)
+    numeric_month = rf"0?{month}" if month < 10 else str(month)
     dates = (
         rf"(?<!\d){year}-{month:02d}-{day:02d}(?!\d)",
-        rf"(?<!\d){day:02d}\.{month:02d}\.{year}(?!\d)",
-        rf"(?<!\d)0?{day}\s+(?:{names})\s+{year}(?!\d)",
-        rf"\b(?:{names})\s+0?{day},?\s+{year}(?!\d)",
-        rf"(?<!\d){year}\s+жылғы\s+0?{day}\s+(?:{names})\b",
+        rf"(?<!\d){numeric_day}\.{numeric_month}\.{year}(?!\d)",
+        rf"(?<!\d)0?{day}[ \t]+(?:{names})[ \t]+{year}(?!\d)",
+        rf"\b(?:{names})[ \t]+0?{day},?[ \t]+{year}(?!\d)",
+        rf"(?<!\d){year}[ \t]+жылғы[ \t]+0?{day}[ \t]+(?:{names})\b",
     )
+    if not any(re.search(pattern, text) for pattern in dates):
+        return reject(
+            "source_date_mismatch_or_unsupported"
+            if re.search(r"(?<!\d)\d{4}(?!\d)", text)
+            else "source_year_missing"
+        )
     clock = rf"0?{local.hour}[:.]{local.minute:02d}(?::00(?:\.0+)?)?(?!\d)(?![:.]\d)"
     # Bind one date to its following clock, rather than combining tokens from
-    # different sessions inside a long cited paragraph.
-    separator = r"(?:\s*[,t]?\s*(?:(?:at|в|сағат)\s+)?)"
-    if not any(re.search(pattern + separator + clock, text) for pattern in dates):
+    # different sessions or jumping across prose inside a cited paragraph.
+    date_ending = r"[*_`]{0,3}[ \t]*(?:(?:года|г\.?|жыл(?:ы|ғы)?)(?!\w)[ \t]*)?"
+    inline_separator = r"(?:[,;:|—–t-][ \t]*)?(?:(?:at|в|сағат)(?!\w)[ \t]+)?[*_`]{0,3}"
+    time_label = (
+        r"(?:время(?:[ \t]+начала)?|начало(?:[ \t]+сеанса)?|start[ \t]+time|starts?|time"
+        r"|басталу[ \t]+уақыты|уақыты|басталуы)"
+    )
+    labeled_separator = (
+        r"(?:[.,;:|—–-][ \t]*)?(?:\r?\n[ \t]*)?[*_`]{0,3}"
+        + time_label
+        + r"(?!\w)[ \t]*(?::[ \t]*)?[*_`]{0,3}[ \t]*"
+        r"(?:(?:at|в|сағат)(?!\w)[ \t]+)?[*_`]{0,3}"
+    )
+    separator = date_ending + "(?:" + inline_separator + "|" + labeled_separator + ")"
+    anchors = [re.compile(pattern + "(?P<gap>" + separator + ")" + clock) for pattern in dates]
+    # Extraction may quote just the explicit date. Extend only that exact quoted
+    # occurrence to an immediately following clock in the same source span.
+    # A quote with its own clock cannot be replaced by another session's time.
+    quoted_clock = (
+        r"(?<!\d)(?:[01]?\d|2[0-3])[:.][0-5]\d"
+        r"(?::[0-5]\d(?:\.\d+)?)?(?!\d)(?![:.]\d)"
+    )
+    quote_has_clock = re.search(quoted_clock, text) is not None
+    unsupported_suffix = False
+    for span in supported:
+        folded_span = span.casefold()
+        for occurrence in re.finditer(re.escape(text), folded_span):
+            for pattern in anchors:
+                for match in pattern.finditer(folded_span, occurrence.start()):
+                    if match.start() >= occurrence.end():
+                        break
+                    if _max_clock_gap is not None and len(match["gap"]) > _max_clock_gap:
+                        continue
+                    if quote_has_clock:
+                        if match.end() > occurrence.end():
+                            continue
+                    elif match.end() < occurrence.end():
+                        continue
+                    # Only bare local 24-hour clocks are supported. Inspect the
+                    # actual span too: extraction may omit the timezone suffix.
+                    if not UNSUPPORTED_CLOCK_SUFFIX.match(folded_span, match.end()):
+                        return parsed
+                    unsupported_suffix = True
+    if derive_missing and not unsupported_suffix:
+        equivalent = _equivalent_source_timestamp(source_text, supporting_spans)
+        if equivalent is not None and equivalent == parsed:
+            return parsed
+    return reject("clock_suffix_unsupported" if unsupported_suffix else "clock_not_bound")
+
+
+def _source_timestamp(source_text: str, supporting_spans: Sequence[str]) -> datetime | None:
+    """Derive one explicit local date/clock, then reuse the source-bound validator."""
+    verified = _source_timestamps(source_text, supporting_spans)
+    return next(iter(verified)) if verified is not None and len(verified) == 1 else None
+
+
+def _source_dates(source_text: str) -> set[tuple[int, int, int]] | None:
+    """Read explicit years and calendar fields only; None means the bound was exceeded."""
+    months = {name: month for month, names in enumerate(MONTH_NAMES, 1) for name in names}
+    month_names = "|".join(re.escape(name) for name in months)
+    date_patterns = (
+        r"(?<!\d)(?P<year>\d{4})-(?P<month>\d{2})-(?P<day>\d{2})(?!\d)",
+        r"(?<!\d)(?P<day>\d{1,2})\.(?P<month>\d{1,2})\.(?P<year>\d{4})(?!\d)",
+        rf"(?<!\d)(?P<day>\d{{1,2}})[ \t]+(?P<name>{month_names})[ \t]+(?P<year>\d{{4}})(?!\d)",
+        rf"\b(?P<name>{month_names})[ \t]+(?P<day>\d{{1,2}}),?[ \t]+(?P<year>\d{{4}})(?!\d)",
+        rf"(?<!\d)(?P<year>\d{{4}})[ \t]+жылғы[ \t]+"
+        rf"(?P<day>\d{{1,2}})[ \t]+(?P<name>{month_names})\b",
+    )
+    dates = set()
+    for pattern in date_patterns:
+        for match in re.finditer(pattern, source_text.casefold()):
+            values = match.groupdict()
+            month = months[values["name"]] if values.get("name") else int(values["month"])
+            dates.add((int(values["year"]), month, int(values["day"])))
+            if len(dates) > 32:
+                return None
+    return dates
+
+
+def _source_timestamps(
+    source_text: str,
+    supporting_spans: Sequence[str],
+    *,
+    _max_clock_gap: int | None = None,
+) -> set[datetime] | None:
+    supported = [span for span in supporting_spans if source_text in span]
+    if not supported:
+        return set()
+    dates = _source_dates(source_text)
+    if dates is None:
         return None
-    return parsed
+    if not dates:
+        return set()
+    # Clock discovery is bounded to the literal quote and its immediate tail.
+    # The validator below still rejects prose, other sessions and blank paragraphs.
+    scopes = [source_text]
+    for span in supported:
+        for occurrence in re.finditer(re.escape(source_text), span):
+            scopes.append(span[occurrence.start() : occurrence.end() + 80])
+    clocks = set()
+    clock_pattern = (
+        r"(?<!\d)(?P<hour>[01]?\d|2[0-3])[:.](?P<minute>[0-5]\d)"
+        r"(?::[0-5]\d(?:\.\d+)?)?(?!\d)(?![:.]\d)"
+    )
+    for scope in scopes:
+        for match in re.finditer(clock_pattern, scope):
+            clocks.add((int(match["hour"]), int(match["minute"])))
+            if len(dates) * len(clocks) > 32:
+                return None
+    verified = set()
+    for year, month, day in sorted(dates):
+        for hour, minute in sorted(clocks):
+            try:
+                value = datetime(year, month, day, hour, minute, tzinfo=ASTANA_TIMEZONE)
+            except ValueError:
+                continue
+            accepted = _timestamp(
+                value.isoformat(),
+                source_text,
+                supporting_spans,
+                _diagnose=False,
+                _max_clock_gap=_max_clock_gap,
+            )
+            if accepted is not None:
+                verified.add(accepted)
+    return verified
+
+
+def _source_presentation(value: str) -> str:
+    """Remove inline presentation without changing words or joining paragraphs."""
+    value = value.translate(str.maketrans({char: " " for char in '"«»“”„‟'}))
+    markup = re.compile(r"(?<!\w)(?P<marker>\*\*|__|\*|_|`)(?P<body>[^\r\n]+?)(?P=marker)(?!\w)")
+    for _ in range(3):
+        value = markup.sub(lambda match: match["body"], value)
+    return re.sub(r"[^\S\r\n]", " ", value)
+
+
+def _equivalent_source_timestamp(
+    source_text: str, supporting_spans: Sequence[str]
+) -> datetime | None:
+    """Accept presentation changes only when one actual source-bound instant agrees."""
+    quote = _source_presentation(source_text)
+    expected_dates = _source_dates(quote)
+    if expected_dates is None or len(expected_dates) != 1:
+        return None
+    has_clock = re.search(
+        r"(?<!\d)(?:[01]?\d|2[0-3])[:.][0-5]\d"
+        r"(?::[0-5]\d(?:\.\d+)?)?(?!\d)(?![:.]\d)",
+        quote,
+    )
+    expected = _source_timestamp(quote, [quote]) if has_clock else None
+    if has_clock and expected is None:
+        return None
+    observed: set[datetime] = set()
+    for span in supporting_spans:
+        actual = _source_presentation(span)
+        candidates = _source_timestamps(actual, [actual], _max_clock_gap=80)
+        if candidates is None:
+            return None
+        observed.update(candidates)
+        if len(observed) > 1:
+            return None
+    if len(observed) != 1:
+        return None
+    accepted = next(iter(observed))
+    if (accepted.year, accepted.month, accepted.day) not in expected_dates:
+        return None
+    return accepted if expected is None or accepted == expected else None
+
+
+def _unknown_timestamp(code: str) -> None:
+    """Log only a caller-selected static reason, never source or request data."""
+    logger.warning("event_timestamp_unknown code=%s", code)
+    return None
 
 
 def _session(
@@ -140,6 +362,7 @@ def _session(
     now: datetime,
     selected_at: datetime,
     pois: Sequence[POIRecord],
+    selected_date_only: bool,
 ) -> NormalizedSession | None:
     url = facts.source_url or row.source_url
     sources = {str(source.url): source for source in evidence.sources}
@@ -147,15 +370,20 @@ def _session(
     if str(url) not in sources or str(url) not in cited:
         return None
     spans = source_spans(evidence, url)
-    metadata = ground_metadata(row, spans)
+    metadata = ground_metadata(row, spans, titles=source_titles(evidence, url))
     if metadata is None:
         return None
+    derive_missing = normalize_venue_text(metadata.city) in ASTANA_NAMES
     start = (
-        _timestamp(facts.starts_at, facts.date_text, spans)
+        _timestamp(facts.starts_at, facts.date_text, spans, derive_missing=derive_missing)
         if facts.date_basis == "session" and not _listing_url(str(url))
         else None
     )
-    end = _timestamp(facts.ends_at, facts.end_text, spans) if start else None
+    end = (
+        _timestamp(facts.ends_at, facts.end_text, spans, derive_missing=derive_missing)
+        if start
+        else None
+    )
     if end is not None and end <= start:
         end = None
     reasons = []
@@ -173,7 +401,8 @@ def _session(
         if start < selected_at:
             reasons.append("before_requested_start")
         if (
-            start.astimezone(ASTANA_TIMEZONE).date()
+            selected_date_only
+            and start.astimezone(ASTANA_TIMEZONE).date()
             != selected_at.astimezone(ASTANA_TIMEZONE).date()
         ):
             reasons.append("outside_selected_date")
@@ -285,6 +514,7 @@ def normalize_events(
     now: datetime,
     selected_at: datetime,
     pois: Sequence[POIRecord] = (),
+    selected_date_only: bool = True,
 ) -> DiscoveryResult:
     require_aware(now)
     require_aware(selected_at)
@@ -294,13 +524,20 @@ def normalize_events(
     rejected = excluded = 0
     for row in rows:
         if str(row.source_url) not in sources or str(row.source_url) not in cited:
+            logger.warning("event_rejected code=%s", "url_not_observed")
             rejected += 1
             continue
-        row = ground_metadata(row, source_spans(evidence, row.source_url))
+        row = ground_metadata(
+            row,
+            source_spans(evidence, row.source_url),
+            titles=source_titles(evidence, row.source_url),
+        )
         if row is None:
+            logger.warning("event_rejected code=%s", "title_not_supported")
             rejected += 1
             continue
         if row.city is not None and normalize_venue_text(row.city) not in ASTANA_NAMES:
+            logger.warning("event_rejected code=%s", "other_city")
             rejected += 1
             continue
         event_id = _identity(
@@ -314,7 +551,9 @@ def normalize_events(
         is_listing = row.page_kind == "listing" or _listing_url(str(row.source_url))
         if not is_listing:
             for facts in row.sessions:
-                session = _session(facts, row, event_id, evidence, now, selected_at, pois)
+                session = _session(
+                    facts, row, event_id, evidence, now, selected_at, pois, selected_date_only
+                )
                 if session is None:
                     excluded += 1
                 else:

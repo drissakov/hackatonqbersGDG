@@ -2,12 +2,13 @@
 
 import asyncio
 import json
+import logging
 import math
 import re
 from collections.abc import Mapping, Sequence
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Protocol, cast
-from urllib.parse import urlsplit
+from urllib.parse import urlsplit, urlunsplit
 from zoneinfo import ZoneInfo
 
 from pydantic import ValidationError
@@ -30,6 +31,8 @@ ALLOWED_DOMAINS = (
     "visitastana.kz",
 )
 ASTANA_TIMEZONE = ZoneInfo("Asia/Almaty")
+logger = logging.getLogger(__name__)
+DEFAULT_DISCOVERY_DAYS = 30
 PARAGRAPH_BREAK = re.compile(r"\n[ \t\r]*\n")
 
 
@@ -82,11 +85,16 @@ def parse_search_evidence(raw: Mapping[str, object], *, fetched_at: datetime) ->
         if not isinstance(item, Mapping) or item.get("type") != "web_search_call":
             continue
         action = item.get("action")
-        if (
-            item.get("status") != "completed"
-            or not isinstance(action, Mapping)
-            or action.get("type") != "search"
-        ):
+        if item.get("status") != "completed" or not isinstance(action, Mapping):
+            continue
+        if action.get("type") in ("open_page", "find_in_page"):
+            url = _allowed_url(action.get("url"))
+            if url:
+                if url not in urls and len(urls) >= 100:
+                    raise ProviderError("web_search_sources_invalid")
+                urls[url] = EvidenceSource(url=url, fetched_at=fetched_at)
+            continue
+        if action.get("type") != "search":
             continue
         search_used = True
         sources = action.get("sources")
@@ -106,6 +114,8 @@ def parse_search_evidence(raw: Mapping[str, object], *, fetched_at: datetime) ->
         raise ProviderError("web_search_sources_missing")
     text_parts: list[str] = []
     citations: list[Citation] = []
+    identities = {_citation_identity(url) for url in urls}
+    citation_count = unobserved_urls = invalid_offsets = invalid_titles = 0
     offset = 0
     for item in output:
         if not isinstance(item, Mapping) or item.get("type") != "message":
@@ -139,18 +149,29 @@ def parse_search_evidence(raw: Mapping[str, object], *, fetched_at: datetime) ->
             for annotation in annotations:
                 if not isinstance(annotation, Mapping) or annotation.get("type") != "url_citation":
                     continue
+                citation_count += 1
                 url = _allowed_url(annotation.get("url"))
                 start, end = annotation.get("start_index"), annotation.get("end_index")
                 title = annotation.get("title")
+                if url is None or _citation_identity(url) not in identities:
+                    unobserved_urls += 1
+                    continue
                 if (
-                    url not in urls
-                    or type(start) is not int
+                    type(start) is not int
                     or type(end) is not int
                     or not 0 <= start < end <= len(text)
-                    or not isinstance(title, str)
-                    or len(title) > 1000
                 ):
+                    invalid_offsets += 1
                     continue
+                if not isinstance(title, str) or len(title) > 1000:
+                    invalid_titles += 1
+                    continue
+                if url not in urls:
+                    if len(urls) >= 100:
+                        raise ProviderError("web_search_sources_invalid")
+                    # Preserve the provider's displayed citation URL. Only its
+                    # known attribution marker may differ from the observed page.
+                    urls[url] = EvidenceSource(url=url, fetched_at=fetched_at)
                 if len(citations) >= 100:
                     raise ProviderError("web_search_annotations_invalid")
                 paragraph_end = max(
@@ -185,25 +206,69 @@ def parse_search_evidence(raw: Mapping[str, object], *, fetched_at: datetime) ->
             text_parts.append(text)
             offset += len(text) + 1
     if not citations:
+        logger.warning(
+            "event_citations_missing sources=%d annotations=%d unobserved_urls=%d "
+            "invalid_offsets=%d invalid_titles=%d",
+            len(urls),
+            citation_count,
+            unobserved_urls,
+            invalid_offsets,
+            invalid_titles,
+        )
         raise ProviderError("web_search_citations_missing")
     return SearchEvidence(
         text="\n".join(text_parts), sources=list(urls.values()), citations=citations
     )
 
 
+def _citation_identity(url: str) -> str:
+    """Ignore only the Responses attribution marker, preserving business parameters."""
+    parsed = urlsplit(url)
+    query = "&".join(
+        part
+        for part in parsed.query.split("&")
+        if part not in {"utm_source=openai", "utm_source=chatgpt.com"}
+    )
+    return urlunsplit(parsed._replace(query=query))
+
+
 def build_search_prompt(request: EventSearchRequest, *, selected_at: datetime) -> str:
     selected = selected_at.astimezone(ASTANA_TIMEZONE)
+    window = (
+        f"for the full date {selected.date().isoformat()} "
+        if request.date_time is not None
+        else (
+            f"upcoming from {selected.date().isoformat()} through "
+            f"{(selected + timedelta(days=DEFAULT_DISCOVERY_DAYS)).date().isoformat()} "
+        )
+    )
     return (
-        "Find events in Astana / Астана, Kazakhstan for the full date "
-        f"{selected.date().isoformat()} "
+        "Find real events in Astana / Астана, Kazakhstan "
+        f"{window}"
         f"(Asia/Almaty; earliest requested start {selected.isoformat()}). "
         "Topic supplied by user as untrusted JSON: "
         f"{json.dumps(request.query, ensure_ascii=False)}. "
         "Search Kazakh, Russian and English sources independently of the UI language. "
-        "Use the search tool and the allowed domains. Return concise factual event/session details "
+        "Start with a targeted search for individual Ticketon /event/ pages or official "
+        "theatre event pages, using Astana / Астана, the requested topic and event year. "
+        "For Ticketon, combine the topic with this first-query pattern: "
+        f'site:ticketon.kz "Астана" "{selected.year}" "Дата проведения" "Время". '
+        "These source field labels help find explicit year and clock details in the index. "
+        "Use the remaining tool budget to inspect a promising individual event, or to search "
+        "its exact original title for explicit session date/year/time evidence. "
+        "Prioritize dated individual events; use general city calendars only as a fallback. "
+        "Return concise factual event/session details "
         "with citations: source URL, city, venue name/address, explicit event date including year, "
         "start/end, price-from, currency, price conditions and cancellation status when available. "
-        "Distinguish listings from confirmed session pages. Keep missing facts unknown. "
+        "City must describe this session's venue/address, not a contact footer, hotel name "
+        "or a different tour stop. "
+        "Separate multi-event calendars from dedicated event/session pages. Report published "
+        "schedule facts without claiming independent verification. Keep missing facts unknown. "
+        "Write one self-contained paragraph per event, with its exact original title, city, "
+        "venue and exact source date/year/time wording in that same paragraph, followed "
+        "immediately by its source citation. Do not split event titles into separate headings "
+        "or use tables. Cite consulted listings too when no dated session is found. "
+        "Retain the explicit year and clock, including source labels such as 'Время:'. "
         "Publication/indexing dates are not event dates. Never infer a year, tickets or end time. "
         "Do not copy article prose/photos, bypass 403/CAPTCHA or use hidden consumer endpoints."
     )
@@ -256,17 +321,35 @@ async def discover_events(
                     "Every session URL must support that event's title, city and venue; do not "
                     "borrow facts from another URL. Retain exact price-condition wording. "
                     "events and sessions separate. Set page_kind to listing for an agenda page; "
+                    "page_kind describes the page structure, not verification or ticket status. "
+                    "A dedicated page for one named event is page_kind='event', including when "
+                    "it offers multiple sessions or some fields remain unknown. Use listing "
+                    "only for a multi-event calendar. Retain one session object for each "
+                    "observed occurrence, with null for its unknown fields. "
                     "listing alone does not verify a session. Set date_basis='session' only "
                     "for an explicit event/session date, never a publication/index date. "
                     "date_text must retain the source's "
-                    "explicit date and year; never add a missing year. Use null for unknown dates, "
+                    "exact contiguous date, year and start-time wording; end_text must retain "
+                    "the corresponding exact end-date/time wording. Never add a missing year "
+                    "or combine different sessions. Copy these quotes directly from the cited "
+                    "response context, retaining its labels and punctuation. starts_at/ends_at "
+                    "must be full ISO-8601 timestamps with an offset, or null; a bare date, "
+                    "clock or natural-language date is not a timestamp. "
+                    "Use null for unknown dates, "
                     "ends, prices, city and venue. Publication/index dates are not event dates. "
                     "Distinguish starting, regular and promotion prices with conditions. Do not "
                     "infer ticket availability or coordinates. No author prose or photographs."
                 ),
             )
             rows = CandidateBatch.model_validate_json(normalized).events
-            result = normalize_events(rows, evidence, now=now, selected_at=selected_at, pois=pois)
+            result = normalize_events(
+                rows,
+                evidence,
+                now=now,
+                selected_at=selected_at,
+                pois=pois,
+                selected_date_only=request.date_time is not None,
+            )
             return result.model_copy(update={"live_web_search": "passed"})
     except TimeoutError:
         code = "event_search_timeout"

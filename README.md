@@ -190,6 +190,14 @@ POI search with no eligible results within the searched corpus; it never proves
 that the whole city has no suitable destination. Bounded event discovery cannot
 establish `no_match` or complete coverage.
 
+Without a requested date, event discovery searches the next 30 days instead of
+restricting results to today. A supplied date preserves the selected local day
+and earliest start; explicit time and budget limits still apply. Event identity,
+city and explicit date/year/time stay grounded in the same cited source. Source
+citation titles cannot supply missing session facts. Formatting differences in
+quoted dates are accepted only when the actual source facts agree unambiguously.
+See [the event discovery follow-up](docs/handoffs/event-discovery.md).
+
 Clients must inspect non-2xx JSON, including unavailable envelopes. Invalid input
 returns sanitized JSON 422; unexpected failures return generic JSON 500 with a
 correlation ID. Unknown `/api` paths return JSON 404 and never enter the SPA
@@ -219,11 +227,13 @@ rights basis. `TWOGIS_ENABLED` alone is insufficient. Runtime 2GIS payloads stay
 ephemeral; they are not persisted, cached into the corpus, embedded or indexed.
 Event discovery sources likewise prohibit storage/indexing in the runtime contract.
 
-Positive live event-card acceptance, integrated frontend/backend acceptance,
-reviewed live 2GIS walking access and the first HTTPS deployment remain open
-verification gates in the recorded handoffs. Unknown session ends, prices,
-tickets or travel times do not become a confirmed fit. Weather integration is
-planned in S05. See [the task board](docs/task-board.md) and [S04 handoff](docs/handoffs/S04.md)
+The [runtime integration follow-up](docs/handoffs/runtime-integration.md) records
+hosted UI/API checks and the walking adapter correction. The event follow-up
+confirmed a real linked Astana event with its explicit date, year and start time
+on Render on 2026-10-19. This is discovered source evidence, not confirmed ticket
+availability or a fully verified event recommendation. Unknown session ends,
+prices, tickets or travel times do not become a confirmed fit. Weather integration
+is planned in S05. See [the task board](docs/task-board.md) and [S04 handoff](docs/handoffs/S04.md)
 for status and remaining checks.
 
 ## Architecture and repository
