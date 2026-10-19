@@ -1,8 +1,8 @@
 # Qadam Astana frontend
 
-D04 React/Vite/TypeScript single-page place and event search in kk/ru/en.
-Consumes [shared API v1.2](../contracts/api-v1.md) plus the pending S03/D03
-event-discovery v1.3 extension described below. Node.js 24 was tested;
+D04 React/Vite/TypeScript single-page place and event search in kk/ru/en, with
+D05 language and data-quality checks. Consumes [shared API v1.3](../contracts/api-v1.md),
+including the S04 transient event response. Node.js 24 was tested;
 `package-lock.json` locks the installed dependency tree.
 
 ## Setup and development
@@ -28,18 +28,25 @@ database readiness.
 
 The client calls `POST /api/recommendations`, `POST /api/events/search` and, only
 after selecting an alternative with a known origin/destination, `POST /api/route`.
-No failed API request is replaced with fixtures. On this committed base
-(`origin/main ba6039e`) search handlers are still 503 scaffolds. Real searches
-require Sabyrzhan's pending S03/D03 integration, currently running separately on
-port 8006. D04 does not modify that backend or claim S04 constraint evaluation.
+No failed API request is replaced with fixtures. Real searches depend on
+backend database/provider readiness; a healthy process does not establish
+successful discovery or satisfaction of constraints.
 
-`src/lib/event-search-response.schema.json` is a frontend-owned, semantic copy
-of that existing integration's v1.3 response schema. It validates ephemeral D03
-listings/session evidence without editing the shared contracts. The contract
-check verifies the shared v1.2 definitions and fields remain compatible with this
-snapshot. Sabyrzhan must review/publish v1.3, then the snapshot should be replaced
-with the shared generated schema. No event-source storage/indexing rights follow
-from this adapter.
+The event transport validates the current response against
+`contracts/transient-event-search-response.schema.json` before adapting cards,
+listings and sources for the UI. Shared wire types are checked separately from
+the internal UI response. Runtime sources remain ephemeral with
+`storage_allowed=false` and `indexing_allowed=false`; the adapter grants no
+storage or indexing rights. It preserves supplied source URLs, timestamps and
+verification facts without fabricating citations or field verification.
+An event's `price_from` is a lower bound, not a confirmed final price or budget fit.
+
+`src/lib/event-search-response.schema.json` remains a legacy compatibility
+validator for older pre-S04 envelopes and synthetic development fixtures. Its
+separate checks against the persistent-event contract do not validate the
+current transient wire response. Synthetic legacy compatibility is not
+production acceptance; live scenario results and remaining blockers belong in
+[D05 scenarios](../docs/scenarios.md) and the [D05 handoff](../docs/handoffs/D05.md).
 
 ## Checks and build
 
@@ -57,9 +64,10 @@ npm run preview
 ```
 
 `test` runs Vitest once; `test:watch` is available for development. `test:types`
-checks test TypeScript, and `check:contracts` checks frontend enums, field names
-and supported schema keywords against the shared contract. `build` typechecks
-application code and creates `dist/`. `preview` serves that build locally at
+checks test TypeScript, and `check:contracts` checks frontend wire enums, field
+names and supported schema keywords against the shared contract, including the
+current transient event schema. It audits legacy compatibility separately.
+`build` typechecks application code and creates `dist/`. `preview` serves that build locally at
 `http://127.0.0.1:4173`, with the same development API proxy.
 
 `check:build` verifies built assets and rejects fixture payloads, server credential

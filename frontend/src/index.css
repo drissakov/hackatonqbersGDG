@@ -236,6 +236,9 @@ h1 {
   gap: 28px;
   align-items: start;
 }
+.workspace > * {
+  min-width: 0;
+}
 .search-panel {
   background: #fff;
   border: 1px solid #dbe2d6;
@@ -1228,6 +1231,8 @@ legend {
   font-size: 12px;
 }
 .map-legend button {
+  max-width: 100%;
+  overflow-wrap: anywhere;
   border: 1px solid #dce1d2;
   border-radius: 8px;
   padding: 8px 12px;
@@ -1249,6 +1254,9 @@ legend {
 }
 .result-card h3,
 .event-card h3,
+.route-details h4,
+.source-hours,
+.event-session p,
 .card-description,
 .warning-list {
   overflow-wrap: anywhere;
