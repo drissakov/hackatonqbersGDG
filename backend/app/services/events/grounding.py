@@ -9,10 +9,31 @@ from pydantic import HttpUrl
 from backend.app.services.events.models import CandidateEvent, SearchEvidence, SessionFacts
 from backend.app.services.events.venue import normalize_venue_text
 
-ASTANA_NAMES = ("astana", "астана", "astana qalasy", "астана қаласы", "астана қ.", "г. астана")
+ASTANA_NAMES = frozenset(
+    normalize_venue_text(name)
+    for name in (
+        "Astana",
+        "Astana city",
+        "Астана",
+        "г. Астана",
+        "Астане",
+        "в Астане",
+        "Astana qalasy",
+        "Астана қаласы",
+        "Астана қ.",
+        "Астанада",
+        "Астана қаласында",
+    )
+)
+ASTANA_CITY_LABEL = re.compile(
+    r"\b(?:city|город|қала)[ \t]*:[ \t]*(?:"
+    + "|".join(re.escape(name) for name in sorted(ASTANA_NAMES, key=len, reverse=True))
+    + r")[ \t]*(?=$|[,;\n.!?])"
+)
 PriceKind = Literal["starting", "regular", "promotion", "unknown"]
 Price = tuple[int | None, Literal["KZT"] | None, str | None, PriceKind]
 UNKNOWN_PRICE: Price = (None, None, None, "unknown")
+TITLE_QUOTES = str.maketrans({"«": '"', "»": '"', "“": '"', "”": '"'})
 AMOUNT = r"(?:\d{1,3}(?: \d{3})+|\d+)"
 CURRENCY = r"(?:kzt|₸|тг\.?|тенге|теңге(?:ден)?)"
 PRICE = re.compile(
@@ -58,15 +79,24 @@ def ground_metadata(
 ) -> CandidateEvent | None:
     """Drop unsupported metadata; another session URL must support the event title."""
     normalized = [normalize_venue_text(span) for span in spans]
-    title = normalize_venue_text(row.title)
+    title = normalize_venue_text(row.title).translate(TITLE_QUOTES)
     if not title:
         return None
-    normalized_titles = [normalize_venue_text(title) for title in titles]
-    if _supported(row.title, normalized) is None and not _word(title, normalized_titles):
+    title_spans = [span.translate(TITLE_QUOTES) for span in normalized]
+    normalized_titles = [normalize_venue_text(title).translate(TITLE_QUOTES) for title in titles]
+    if not _word(title, title_spans) and not _word(title, normalized_titles):
         return None
     city = normalize_venue_text(row.city)
     names = ASTANA_NAMES if city in ASTANA_NAMES else (city,)
-    supported_city = row.city if city and any(_word(name, normalized) for name in names) else None
+    # A venue named Astana is not evidence that its city is Astana.
+    venue = normalize_venue_text(row.venue_name).translate(TITLE_QUOTES)
+    city_spans = [span.translate(TITLE_QUOTES) for span in normalized]
+    if venue:
+        explicit_cities = [
+            match.group() for span in city_spans for match in ASTANA_CITY_LABEL.finditer(span)
+        ]
+        city_spans = [span.replace(venue, " ") for span in city_spans] + explicit_cities
+    supported_city = row.city if city and any(_word(name, city_spans) for name in names) else None
     return row.model_copy(
         update={
             "city": supported_city,

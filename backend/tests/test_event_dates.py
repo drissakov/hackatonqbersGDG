@@ -195,3 +195,83 @@ def test_expected_missing_timestamp_does_not_emit_a_warning(caplog):
     with caplog.at_level(logging.WARNING, logger="backend.app.services.events.normalize"):
         assert _timestamp(None, None, []) is None
     assert caplog.records == []
+
+
+@pytest.mark.parametrize(
+    "quote",
+    [
+        "Дата проведения: 30 октября 2026 года; Время: 19:00",
+        "30 October 2026, 19:00",
+        "October 30, 2026 at 19:00",
+        "2026-10-30T19:00",
+        "30.10.2026 — 19:00",
+        "30 қазан 2026 жыл. Уақыты:19:00",
+        "2026 жылғы 30 қазан сағат 19:00",
+    ],
+)
+def test_missing_model_timestamp_is_derived_from_one_literal_full_date_and_clock(quote):
+    assert _timestamp(None, quote, [quote], derive_missing=True) == datetime.fromisoformat(
+        "2026-10-30T19:00:00+05:00"
+    )
+
+
+def test_missing_model_timestamp_can_use_the_date_quotes_immediately_following_clock():
+    quote = "30 October 2026"
+    assert _timestamp(
+        None, quote, [f"Synthetic event: {quote}; start time: 19:00"], derive_missing=True
+    ) == datetime.fromisoformat("2026-10-30T19:00:00+05:00")
+
+
+@pytest.mark.parametrize(
+    ("quote", "spans"),
+    [
+        ("30 October", ["30 October, 19:00. Retrieved in 2026."]),
+        ("30 October 2026", ["30 October 2026"]),
+        ("30 October 2026", ["30 October 2026", "19:00"]),
+        ("30 October 2026, 19:00", ["31 October 2026, 19:00"]),
+        ("30 October 2026", ["30 October 2026\n\nTime: 19:00"]),
+        ("30 October 2026", ["30 October 2026. Synthetic prose. Time: 19:00"]),
+        ("30 October 2026", ["30 October 2026. 31 October 2026. Time: 19:00"]),
+        ("30 October 2026", ["30 October 2026, 19:00 UTC"]),
+        ("30 October 2026", ["30 October 2026, 19:00+00:00"]),
+        ("30 October 2026", ["30 October 2026, 7:00 PM"]),
+        ("30 October 2026", ["30 October 2026, 19:00:30"]),
+        ("30 October 2026", ["30 October 2026, 19:00:00.123456"]),
+        ("31 February 2026, 19:00", ["31 February 2026, 19:00"]),
+        ("30 October 2026", ["30 October 2026" + " " * 81 + "Time: 19:00"]),
+    ],
+)
+def test_missing_model_timestamp_cannot_borrow_or_invent_source_facts(quote, spans):
+    assert _timestamp(None, quote, spans, derive_missing=True) is None
+
+
+@pytest.mark.parametrize(
+    ("quote", "span"),
+    [
+        (
+            "30 October 2026, 19:00; 31 October 2026, 20:00",
+            "30 October 2026, 19:00; 31 October 2026, 20:00",
+        ),
+        (
+            "30 October 2026, 19:00; 30 October 2026, 20:00",
+            "30 October 2026, 19:00; 30 October 2026, 20:00",
+        ),
+        ("30 October 2026", "30 October 2026, 19:00; 30 October 2026, 20:00"),
+    ],
+)
+def test_ambiguous_source_sessions_do_not_create_a_model_missing_start(quote, span, caplog):
+    with caplog.at_level(logging.WARNING, logger="backend.app.services.events.normalize"):
+        assert _timestamp(None, quote, [span], derive_missing=True) is None
+    # Candidate probes are silent; only the final anonymous failure is recorded.
+    assert len(caplog.records) == 1
+    assert caplog.records[0].args == ("extracted_datetime_missing",)
+
+
+def test_missing_timestamp_derivation_requires_the_callers_grounded_city_opt_in():
+    quote = "30 October 2026, 19:00"
+    assert _timestamp(None, quote, [quote]) is None
+
+
+def test_invalid_nonempty_model_timestamp_is_not_replaced_by_source_derivation():
+    quote = "30 October 2026, 19:00"
+    assert _timestamp("invalid", quote, [quote], derive_missing=True) is None

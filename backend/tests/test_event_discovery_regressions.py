@@ -143,3 +143,17 @@ def test_default_search_composes_future_event_card_with_date_and_source(locale):
     assert all(
         not source.storage_allowed and not source.indexing_allowed for source in result.sources
     )
+
+
+def test_literal_schedule_survives_a_missing_model_iso_timestamp():
+    provider, _, client = service("baseline")
+    facts = client.data["events"][0]["sessions"][0]
+    facts.update(starts_at=None, ends_at=None)
+    result = search(provider, date_time=None, available_minutes=None, origin=None)
+    assert result.status == "partial" and len(result.items) == 1
+    card = result.items[0]
+    assert card.session.starts_at.isoformat() == "2030-01-15T19:00:00+05:00"
+    assert card.session.ends_at.isoformat() == "2030-01-15T21:00:00+05:00"
+    assert card.action.url == card.session.source_url
+    assert card.fit_status == "unknown"
+    assert "ticket_availability" in card.missing_fields

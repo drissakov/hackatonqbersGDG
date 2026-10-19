@@ -123,3 +123,25 @@ labels, the requested city/year and topic. This finds explicit source dates
 instead of relying only on yearless calendar rows. No real event URL/title is
 hardcoded. City must belong to the session venue, not a contact footer, hotel
 name or another tour stop. Pre-publication suite: **1077 passed, 17 skipped**.
+
+## Literal schedule conversion
+
+The fourth live checkpoint found a real event with an explicit date/year/clock
+in its source quote, but structured extraction returned null `starts_at`.
+The safe log code `extracted_datetime_missing` isolated this remaining cause.
+
+Missing ISO values can now be derived deterministically from a literal source
+quote, only after the session city is grounded as Astana. The parser reads the
+year from that quote and clocks only from it or the next 80 source characters.
+It checks at most 32 date/clock pairs through the existing strict validator
+and accepts only one unique moment. It does not use the request date, current
+year, visit duration or another source. Unknown ends and unsupported time zones
+remain unknown. Existing nonempty model timestamps still require validation.
+
+Common ru/kk city forms share the same Astana alias set. A venue name containing
+Astana cannot supply the city fact. Typographic title quotes compare equally
+without changing the original display title. Additional
+rejection logs contain only static codes. Pre-publication checks:
+**1124 passed, 17 skipped**; compileall, Ruff check/format (81 files), 13
+generated contract artifacts and diff checks passed. Independent synthetic
+edge-case review found no actionable issues in the timestamp fallback.
