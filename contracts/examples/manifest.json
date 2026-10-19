@@ -70,5 +70,21 @@
   {
     "file": "route-known.test.json",
     "schema": "route-response.schema.json"
+  },
+  {
+    "file": "transient-event-partial.test.json",
+    "schema": "transient-event-search-response.schema.json"
+  },
+  {
+    "file": "transient-event-listing.test.json",
+    "schema": "transient-event-search-response.schema.json"
+  },
+  {
+    "file": "transient-event-unknown.test.json",
+    "schema": "transient-event-search-response.schema.json"
+  },
+  {
+    "file": "transient-event-unavailable.test.json",
+    "schema": "transient-event-search-response.schema.json"
   }
 ]

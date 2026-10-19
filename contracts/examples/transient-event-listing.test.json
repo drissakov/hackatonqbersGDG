@@ -1,0 +1,59 @@
+{
+  "request_id": "00000000-0000-4000-8000-000000000013",
+  "contract_version": "1.3.0",
+  "status": "partial",
+  "provider_status": "partial",
+  "provider_code": "unverified_source_facts",
+  "live_web_search": "passed",
+  "items": [],
+  "listings": [
+    {
+      "event_id": "synthetic:event-1",
+      "title": "SYNTHETIC TEST ONLY - Fictional event",
+      "source_url": "https://example.invalid/synthetic-event",
+      "source_fetched_at": "2030-01-15T10:00:00+05:00",
+      "city": "Astana",
+      "venue_name": null,
+      "venue_address": null,
+      "venue": {
+        "poi_id": null,
+        "location": null,
+        "basis": "unknown",
+        "source_ids": [],
+        "source_urls": [],
+        "coordinate_accuracy": "unknown",
+        "geography_basis": "unknown"
+      },
+      "status": "listing",
+      "schedule_hints": [
+        "Synthetic listing only; no session time is known."
+      ],
+      "missing_fields": [
+        "venue_name",
+        "venue_address",
+        "location",
+        "sessions"
+      ],
+      "sessions": []
+    }
+  ],
+  "sources": [
+    {
+      "source_id": "synthetic:source-1",
+      "url": "https://example.invalid/synthetic-event",
+      "retrieved_at": "2030-01-15T10:00:00+05:00",
+      "source_updated_at": null,
+      "storage_allowed": false,
+      "indexing_allowed": false
+    }
+  ],
+  "warnings": [
+    {
+      "code": "data_unknown",
+      "message": "Synthetic example only; facts are unknown.",
+      "fields": []
+    }
+  ],
+  "excluded_sessions": 0,
+  "rejected_events": 0
+}

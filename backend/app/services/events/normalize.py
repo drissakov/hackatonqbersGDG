@@ -1,0 +1,400 @@
+"""Pure, conservative normalization. Extraction is discovery, never verification."""
+
+import hashlib
+import re
+from collections.abc import Sequence
+from datetime import UTC, datetime
+from urllib.parse import urlsplit
+from zoneinfo import ZoneInfo
+
+from backend.app.schemas import POIRecord
+from backend.app.services.events.grounding import ground_metadata, ground_price, source_spans
+from backend.app.services.events.models import (
+    CandidateEvent,
+    DiscoveryResult,
+    FieldCheck,
+    NormalizedEvent,
+    NormalizedSession,
+    SearchEvidence,
+    SessionFacts,
+)
+from backend.app.services.events.venue import match_venue, normalize_venue_text
+
+ASTANA_TIMEZONE = ZoneInfo("Asia/Almaty")
+ASTANA_NAMES = {"astana", "астана", "astana qalasy", "астана қаласы", "астана қ.", "г. астана"}
+MONTH_NAMES = (
+    ("january", "января", "қаңтар"),
+    ("february", "февраля", "ақпан"),
+    ("march", "марта", "наурыз"),
+    ("april", "апреля", "сәуір"),
+    ("may", "мая", "мамыр"),
+    ("june", "июня", "маусым"),
+    ("july", "июля", "шілде"),
+    ("august", "августа", "тамыз"),
+    ("september", "сентября", "қыркүйек"),
+    ("october", "октября", "қазан"),
+    ("november", "ноября", "қараша"),
+    ("december", "декабря", "желтоқсан"),
+)
+
+
+def _identity(*parts: str) -> str:
+    return hashlib.sha256("\x00".join(parts).encode()).hexdigest()[:24]
+
+
+def require_aware(value: datetime) -> None:
+    if value.tzinfo is None or value.utcoffset() is None:
+        raise ValueError("An aware timestamp is required")
+
+
+def _listing_url(url: str) -> bool:
+    path = urlsplit(url).path.rstrip("/").casefold()
+    return path.split("/")[-1] in {
+        "",
+        "ru",
+        "en",
+        "kk",
+        "kz",
+        "afisha",
+        "posters",
+        "schedule",
+        "events",
+    }
+
+
+def _merge_sessions(sessions: Sequence[NormalizedSession]) -> list[NormalizedSession]:
+    merged: dict[str, NormalizedSession] = {}
+    for session in sessions:
+        previous = merged.get(session.session_id)
+        if previous is None:
+            merged[session.session_id] = session
+        elif any(
+            getattr(previous, field) != getattr(session, field)
+            for field in (
+                "starts_at",
+                "ends_at",
+                "price_from",
+                "currency",
+                "price_conditions",
+                "price_kind",
+                "status",
+                "city",
+                "venue_name",
+                "venue_address",
+            )
+        ):
+            # A cancellation dominates; every other conflict blocks recommendations.
+            chosen = session if session.status == "cancelled" else previous
+            merged[session.session_id] = chosen.model_copy(
+                update={
+                    "recommendation_candidate": False,
+                    "exclusion_reasons": sorted(
+                        set(chosen.exclusion_reasons + ["source_conflict"])
+                    ),
+                }
+            )
+    return list(merged.values())
+
+
+def _timestamp(
+    value: str | None, source_text: str | None, supporting_spans: Sequence[str]
+) -> datetime | None:
+    # Never invent a year from the query, publication date or retrieval time.
+    if not value or not source_text or not re.match(r"^\d{4}-\d{2}-\d{2}T", value):
+        return None
+    try:
+        parsed = datetime.fromisoformat(value)
+        require_aware(parsed)
+        local = parsed.astimezone(ASTANA_TIMEZONE)
+    except (ValueError, OverflowError):
+        return None
+    # Seconds/microseconds need explicit precision support before they can be facts.
+    if local.second or local.microsecond:
+        return None
+    if not any(source_text in span for span in supporting_spans):
+        return None
+    text = source_text.casefold()
+    day, month, year = local.day, local.month, local.year
+    names = "|".join(MONTH_NAMES[month - 1])
+    dates = (
+        rf"(?<!\d){year}-{month:02d}-{day:02d}(?!\d)",
+        rf"(?<!\d){day:02d}\.{month:02d}\.{year}(?!\d)",
+        rf"(?<!\d)0?{day}\s+(?:{names})\s+{year}(?!\d)",
+        rf"\b(?:{names})\s+0?{day},?\s+{year}(?!\d)",
+        rf"(?<!\d){year}\s+жылғы\s+0?{day}\s+(?:{names})\b",
+    )
+    clock = rf"0?{local.hour}[:.]{local.minute:02d}(?::00(?:\.0+)?)?(?!\d)(?![:.]\d)"
+    # Bind one date to its following clock, rather than combining tokens from
+    # different sessions inside a long cited paragraph.
+    separator = r"(?:\s*[,t]?\s*(?:(?:at|в|сағат)\s+)?)"
+    if not any(re.search(pattern + separator + clock, text) for pattern in dates):
+        return None
+    return parsed
+
+
+def _session(
+    facts: SessionFacts,
+    row: CandidateEvent,
+    event_id: str,
+    evidence: SearchEvidence,
+    now: datetime,
+    selected_at: datetime,
+    pois: Sequence[POIRecord],
+) -> NormalizedSession | None:
+    url = facts.source_url or row.source_url
+    sources = {str(source.url): source for source in evidence.sources}
+    cited = {str(citation.url) for citation in evidence.citations}
+    if str(url) not in sources or str(url) not in cited:
+        return None
+    spans = source_spans(evidence, url)
+    metadata = ground_metadata(row, spans)
+    if metadata is None:
+        return None
+    start = (
+        _timestamp(facts.starts_at, facts.date_text, spans)
+        if facts.date_basis == "session" and not _listing_url(str(url))
+        else None
+    )
+    end = _timestamp(facts.ends_at, facts.end_text, spans) if start else None
+    if end is not None and end <= start:
+        end = None
+    reasons = []
+    if _listing_url(str(url)):
+        reasons.append("listing_only")
+    if metadata.city is None:
+        reasons.append("city_unknown")
+    elif normalize_venue_text(metadata.city) not in ASTANA_NAMES:
+        reasons.append("other_city")
+    if start is None:
+        reasons.append("schedule_unknown")
+    else:
+        if start < now:
+            reasons.append("past_session")
+        if start < selected_at:
+            reasons.append("before_requested_start")
+        if (
+            start.astimezone(ASTANA_TIMEZONE).date()
+            != selected_at.astimezone(ASTANA_TIMEZONE).date()
+        ):
+            reasons.append("outside_selected_date")
+    if facts.status == "cancelled":
+        reasons.append("cancelled")
+    elif facts.status == "unknown":
+        reasons.append("status_unknown")
+    venue = (
+        match_venue(metadata.venue_name, metadata.venue_address, pois)
+        if metadata.city and normalize_venue_text(metadata.city) in ASTANA_NAMES
+        else match_venue(None, None, ())
+    )
+    price, currency, conditions, price_kind = ground_price(facts, spans)
+    values = {
+        "city": metadata.city,
+        "venue_name": metadata.venue_name,
+        "venue_address": metadata.venue_address,
+        "location": venue.location,
+        "starts_at": start,
+        "ends_at": end,
+        "price_from": price,
+        "currency": currency,
+        "price_conditions": conditions,
+    }
+    missing = [key for key, value in values.items() if value is None]
+    if facts.status == "unknown":
+        missing.append("status")
+    return NormalizedSession(
+        session_id=_identity(
+            event_id,
+            start.astimezone(UTC).isoformat()
+            if start
+            else f"{url}\x00{facts.date_text or 'unknown'}",
+        ),
+        event_id=event_id,
+        source_url=url,
+        source_fetched_at=sources[str(url)].fetched_at,
+        city=metadata.city,
+        venue_name=metadata.venue_name,
+        venue_address=metadata.venue_address,
+        venue=venue,
+        starts_at=start,
+        ends_at=end,
+        price_from=price,
+        currency=currency,
+        price_conditions=conditions,
+        price_kind=price_kind,
+        status=facts.status,
+        missing_fields=missing,
+        recommendation_candidate=not reasons,
+        exclusion_reasons=reasons,
+    )
+
+
+def _exclude_ambiguous_cancellations(events: Sequence[NormalizedEvent]) -> None:
+    """Block compatible partial identities without merging distinct venue branches."""
+    cancellations = [
+        (event, session)
+        for event in events
+        for session in event.sessions
+        if session.status == "cancelled"
+    ]
+    for event in events:
+        for index, session in enumerate(event.sessions):
+            if not session.recommendation_candidate:
+                continue
+            for cancelled_event, cancelled in cancellations:
+                same_title = normalize_venue_text(event.title) == normalize_venue_text(
+                    cancelled_event.title
+                )
+                venue_pairs = (
+                    (session.venue_name, cancelled.venue_name),
+                    (session.venue_address, cancelled.venue_address),
+                )
+                incompatible_branch = any(
+                    left and right and normalize_venue_text(left) != normalize_venue_text(right)
+                    for left, right in venue_pairs
+                )
+                # Keep source-scoped identities separate, but a matching title,
+                # complete venue and instant on another source still makes
+                # cancellation a reason to withhold a recommendation.
+                same_event = same_title and (
+                    event.source_url == cancelled_event.source_url
+                    or (
+                        all(left and right for left, right in venue_pairs)
+                        and cancelled.starts_at is not None
+                        and cancelled.starts_at == session.starts_at
+                    )
+                )
+                same_or_unknown_start = (
+                    cancelled.starts_at is None or cancelled.starts_at == session.starts_at
+                )
+                if same_event and not incompatible_branch and same_or_unknown_start:
+                    event.sessions[index] = session.model_copy(
+                        update={
+                            "recommendation_candidate": False,
+                            "exclusion_reasons": sorted(
+                                set(session.exclusion_reasons + ["unresolved_cancellation"])
+                            ),
+                        }
+                    )
+                    break
+
+
+def normalize_events(
+    rows: Sequence[CandidateEvent],
+    evidence: SearchEvidence,
+    *,
+    now: datetime,
+    selected_at: datetime,
+    pois: Sequence[POIRecord] = (),
+) -> DiscoveryResult:
+    require_aware(now)
+    require_aware(selected_at)
+    sources = {str(source.url): source for source in evidence.sources}
+    cited = {str(citation.url) for citation in evidence.citations}
+    events: dict[str, NormalizedEvent] = {}
+    rejected = excluded = 0
+    for row in rows:
+        if str(row.source_url) not in sources or str(row.source_url) not in cited:
+            rejected += 1
+            continue
+        row = ground_metadata(row, source_spans(evidence, row.source_url))
+        if row is None:
+            rejected += 1
+            continue
+        if row.city is not None and normalize_venue_text(row.city) not in ASTANA_NAMES:
+            rejected += 1
+            continue
+        event_id = _identity(
+            str(row.source_url),
+            normalize_venue_text(row.title),
+            normalize_venue_text(row.venue_name),
+            normalize_venue_text(row.venue_address),
+        )
+        sessions = []
+        # A calendar listing is useful evidence, but cannot confirm a particular session.
+        is_listing = row.page_kind == "listing" or _listing_url(str(row.source_url))
+        if not is_listing:
+            for facts in row.sessions:
+                session = _session(facts, row, event_id, evidence, now, selected_at, pois)
+                if session is None:
+                    excluded += 1
+                else:
+                    sessions.append(session)
+        previous_event = events.get(event_id)
+        if previous_event:
+            is_listing = is_listing or previous_event.status == "listing"
+            sessions = previous_event.sessions + sessions
+        sessions = [] if is_listing else _merge_sessions(sessions)
+        venue = (
+            match_venue(row.venue_name, row.venue_address, pois)
+            if row.city
+            else match_venue(None, None, ())
+        )
+        missing = [
+            field
+            for field in ("city", "venue_name", "venue_address")
+            if getattr(row, field) is None
+        ]
+        if not venue.location:
+            missing.append("location")
+        if not sessions:
+            missing.append("sessions")
+        events[event_id] = NormalizedEvent(
+            event_id=event_id,
+            title=row.title,
+            source_url=row.source_url,
+            source_fetched_at=sources[str(row.source_url)].fetched_at,
+            city=row.city,
+            venue_name=row.venue_name,
+            venue_address=row.venue_address,
+            venue=venue,
+            status="listing" if is_listing or not sessions else "discovered",
+            schedule_hints=list(
+                dict.fromkeys(
+                    (previous_event.schedule_hints if previous_event else [])
+                    + [facts.date_text for facts in row.sessions if facts.date_text]
+                )
+            ),
+            missing_fields=missing,
+            sessions=sessions,
+        )
+    _exclude_ambiguous_cancellations(list(events.values()))
+    return DiscoveryResult(
+        provider_status="partial" if events else "unknown",
+        provider_code="unverified_source_facts" if events else "no_grounded_events",
+        live_web_search="not_run",
+        evidence=evidence,
+        events=list(events.values()),
+        excluded_sessions=excluded
+        + sum(
+            not session.recommendation_candidate
+            for event in events.values()
+            for session in event.sessions
+        ),
+        rejected_events=rejected,
+    )
+
+
+def verify_session(
+    session: NormalizedSession, *, checks: Sequence[FieldCheck]
+) -> NormalizedSession:
+    """Mark only matching, explicitly checked fields. This does not confirm tickets or fit."""
+    accepted: dict[str, FieldCheck] = {}
+    # Existing checks must still match after any caller-side model copy/update.
+    for check in [*session.verified_fields, *checks]:
+        value = getattr(session, check.field)
+        expected = value.isoformat() if isinstance(value, datetime) else value
+        if (
+            check.session_id != session.session_id
+            or value is None
+            or check.value != expected
+            or check.source_url != session.source_url
+            or check.checked_at < session.source_fetched_at
+        ):
+            raise ValueError("Check must match the session field, source and retrieval time")
+        accepted[check.field] = check
+    return session.model_copy(
+        update={
+            "verified_fields": list(accepted.values()),
+            "verification_status": "verified" if accepted else "discovered",
+        }
+    )

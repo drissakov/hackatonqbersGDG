@@ -1,0 +1,1015 @@
+{
+  "checked_at": "2026-10-19T02:26:39.217454+00:00",
+  "contract_version": "1.2.0",
+  "is_synthetic_corpus": false,
+  "probes": [
+    {
+      "case": "real_corpus_ru",
+      "http_status": 200,
+      "elapsed_seconds": 13.719,
+      "body": {
+        "status": "partial",
+        "items": [
+          {
+            "provenance": [
+              {
+                "source_id": "osm:way:240391776",
+                "external_id": "way/240391776",
+                "fields": [
+                  "name",
+                  "location",
+                  "activity_code",
+                  "address"
+                ],
+                "observed_at": null
+              }
+            ],
+            "reason_codes": [
+              "query_match",
+              "visit_duration_estimate",
+              "route_unknown",
+              "time_unknown",
+              "hours_unknown"
+            ],
+            "activity_code": "museum",
+            "visit_minutes_estimate": 45,
+            "route_status": "unknown",
+            "travel_minutes_estimate": null,
+            "fit_status": "unknown",
+            "missing_fields": [
+              "origin",
+              "travel_minutes_estimate",
+              "date_time",
+              "opening_hours"
+            ],
+            "explanation": "Можно запланировать посещение музея. На посещение рекомендуем выделить 45 мин.; это оценка, не факт источника. Соответствие всем ограничениям не подтверждено. Проверьте: точку отправления, время пути, дату и время, часы работы на дату визита.",
+            "generated_locale": "ru",
+            "action": {
+              "code": "open_source",
+              "url": "https://www.openstreetmap.org/way/240391776"
+            },
+            "poi": {
+              "sources": [
+                {
+                  "source_id": "osm:way:240391776",
+                  "provider": "osm",
+                  "url": "https://www.openstreetmap.org/way/240391776",
+                  "retrieved_at": "2026-10-19T00:17:48.702014Z",
+                  "license": "Open Database License (ODbL) 1.0",
+                  "rights_basis_url": "https://www.openstreetmap.org/copyright",
+                  "storage_allowed": true,
+                  "indexing_allowed": true,
+                  "is_test": false
+                }
+              ],
+              "provenance": [
+                {
+                  "source_id": "osm:way:240391776",
+                  "external_id": "way/240391776",
+                  "fields": [
+                    "name",
+                    "location",
+                    "activity_code",
+                    "address"
+                  ],
+                  "observed_at": null
+                }
+              ],
+              "is_test": false,
+              "id": "osm:way:240391776",
+              "primary_source_id": "osm:way:240391776",
+              "external_id": "way/240391776",
+              "name": "Мемлекеттік әскери-тарихи музей",
+              "description": "Derived summary from OSM tags: tourism=museum",
+              "location": {
+                "latitude": 51.1559295,
+                "longitude": 71.4312983
+              },
+              "address": "Республика даңғылы 2, Астана",
+              "activity_code": "museum",
+              "indoor": null,
+              "price_kzt_per_person": null,
+              "visit_minutes_estimate": null,
+              "opening_hours_text": null
+            }
+          },
+          {
+            "provenance": [
+              {
+                "source_id": "osm:node:4894937300",
+                "external_id": "node/4894937300",
+                "fields": [
+                  "name",
+                  "location",
+                  "activity_code"
+                ],
+                "observed_at": null
+              }
+            ],
+            "reason_codes": [
+              "query_match",
+              "visit_duration_estimate",
+              "route_unknown",
+              "time_unknown",
+              "hours_unknown"
+            ],
+            "activity_code": "museum",
+            "visit_minutes_estimate": 45,
+            "route_status": "unknown",
+            "travel_minutes_estimate": null,
+            "fit_status": "unknown",
+            "missing_fields": [
+              "origin",
+              "travel_minutes_estimate",
+              "date_time",
+              "opening_hours"
+            ],
+            "explanation": "Идея для досуга — посещение музея. На посещение рекомендуем выделить 45 мин.; это оценка, не факт источника. Соответствие всем ограничениям не подтверждено. Проверьте: точку отправления, время пути, дату и время, часы работы на дату визита.",
+            "generated_locale": "ru",
+            "action": {
+              "code": "open_source",
+              "url": "https://www.openstreetmap.org/node/4894937300"
+            },
+            "poi": {
+              "sources": [
+                {
+                  "source_id": "osm:node:4894937300",
+                  "provider": "osm",
+                  "url": "https://www.openstreetmap.org/node/4894937300",
+                  "retrieved_at": "2026-10-19T00:17:48.702014Z",
+                  "license": "Open Database License (ODbL) 1.0",
+                  "rights_basis_url": "https://www.openstreetmap.org/copyright",
+                  "storage_allowed": true,
+                  "indexing_allowed": true,
+                  "is_test": false
+                }
+              ],
+              "provenance": [
+                {
+                  "source_id": "osm:node:4894937300",
+                  "external_id": "node/4894937300",
+                  "fields": [
+                    "name",
+                    "location",
+                    "activity_code"
+                  ],
+                  "observed_at": null
+                }
+              ],
+              "is_test": false,
+              "id": "osm:node:4894937300",
+              "primary_source_id": "osm:node:4894937300",
+              "external_id": "node/4894937300",
+              "name": "Қазақстан Республикасының Ұлттық Мұражайы",
+              "description": "Derived summary from OSM tags: tourism=museum",
+              "location": {
+                "latitude": 51.1182297,
+                "longitude": 71.4693823
+              },
+              "address": null,
+              "activity_code": "museum",
+              "indoor": null,
+              "price_kzt_per_person": null,
+              "visit_minutes_estimate": null,
+              "opening_hours_text": null
+            }
+          },
+          {
+            "provenance": [
+              {
+                "source_id": "osm:way:1239171353",
+                "external_id": "way/1239171353",
+                "fields": [
+                  "name",
+                  "location",
+                  "activity_code",
+                  "opening_hours_text"
+                ],
+                "observed_at": null
+              }
+            ],
+            "reason_codes": [
+              "query_match",
+              "visit_duration_estimate",
+              "route_unknown",
+              "time_unknown",
+              "hours_unknown"
+            ],
+            "activity_code": "museum",
+            "visit_minutes_estimate": 45,
+            "route_status": "unknown",
+            "travel_minutes_estimate": null,
+            "fit_status": "unknown",
+            "missing_fields": [
+              "origin",
+              "travel_minutes_estimate",
+              "date_time",
+              "opening_hours"
+            ],
+            "explanation": "Можно запланировать посещение музея. На посещение рекомендуем выделить 45 мин.; это оценка, не факт источника. Соответствие всем ограничениям не подтверждено. Проверьте: точку отправления, время пути, дату и время, часы работы на дату визита.",
+            "generated_locale": "ru",
+            "action": {
+              "code": "open_source",
+              "url": "https://www.openstreetmap.org/way/1239171353"
+            },
+            "poi": {
+              "sources": [
+                {
+                  "source_id": "osm:way:1239171353",
+                  "provider": "osm",
+                  "url": "https://www.openstreetmap.org/way/1239171353",
+                  "retrieved_at": "2026-10-19T00:17:48.702014Z",
+                  "license": "Open Database License (ODbL) 1.0",
+                  "rights_basis_url": "https://www.openstreetmap.org/copyright",
+                  "storage_allowed": true,
+                  "indexing_allowed": true,
+                  "is_test": false
+                }
+              ],
+              "provenance": [
+                {
+                  "source_id": "osm:way:1239171353",
+                  "external_id": "way/1239171353",
+                  "fields": [
+                    "name",
+                    "location",
+                    "activity_code",
+                    "opening_hours_text"
+                  ],
+                  "observed_at": null
+                }
+              ],
+              "is_test": false,
+              "id": "osm:way:1239171353",
+              "primary_source_id": "osm:way:1239171353",
+              "external_id": "way/1239171353",
+              "name": "Тарихи-Әскери Мұражай",
+              "description": "Derived summary from OSM tags: tourism=museum",
+              "location": {
+                "latitude": 51.1554984,
+                "longitude": 71.4319723
+              },
+              "address": null,
+              "activity_code": "museum",
+              "indoor": null,
+              "price_kzt_per_person": null,
+              "visit_minutes_estimate": null,
+              "opening_hours_text": "Mo-Su 10:00-18:00"
+            }
+          }
+        ],
+        "warnings": [
+          {
+            "code": "data_unknown",
+            "message": "Условные варианты: проверьте неизвестные данные по источнику.",
+            "fields": []
+          }
+        ],
+        "sources": [
+          {
+            "source_id": "osm:way:240391776",
+            "provider": "osm",
+            "url": "https://www.openstreetmap.org/way/240391776",
+            "retrieved_at": "2026-10-19T00:17:48.702014Z",
+            "license": "Open Database License (ODbL) 1.0",
+            "rights_basis_url": "https://www.openstreetmap.org/copyright",
+            "storage_allowed": true,
+            "indexing_allowed": true,
+            "is_test": false
+          },
+          {
+            "source_id": "osm:node:4894937300",
+            "provider": "osm",
+            "url": "https://www.openstreetmap.org/node/4894937300",
+            "retrieved_at": "2026-10-19T00:17:48.702014Z",
+            "license": "Open Database License (ODbL) 1.0",
+            "rights_basis_url": "https://www.openstreetmap.org/copyright",
+            "storage_allowed": true,
+            "indexing_allowed": true,
+            "is_test": false
+          },
+          {
+            "source_id": "osm:way:1239171353",
+            "provider": "osm",
+            "url": "https://www.openstreetmap.org/way/1239171353",
+            "retrieved_at": "2026-10-19T00:17:48.702014Z",
+            "license": "Open Database License (ODbL) 1.0",
+            "rights_basis_url": "https://www.openstreetmap.org/copyright",
+            "storage_allowed": true,
+            "indexing_allowed": true,
+            "is_test": false
+          }
+        ],
+        "request_id": "1c3289ee-feb7-4c2d-bcf9-c5239367fd12"
+      }
+    },
+    {
+      "case": "real_corpus_kk",
+      "http_status": 200,
+      "elapsed_seconds": 12.047,
+      "body": {
+        "status": "partial",
+        "items": [
+          {
+            "provenance": [
+              {
+                "source_id": "osm:way:1239171353",
+                "external_id": "way/1239171353",
+                "fields": [
+                  "name",
+                  "location",
+                  "activity_code",
+                  "opening_hours_text"
+                ],
+                "observed_at": null
+              }
+            ],
+            "reason_codes": [
+              "query_match",
+              "visit_duration_estimate",
+              "route_unknown",
+              "time_unknown",
+              "hours_unknown"
+            ],
+            "activity_code": "museum",
+            "visit_minutes_estimate": 45,
+            "route_status": "unknown",
+            "travel_minutes_estimate": null,
+            "fit_status": "unknown",
+            "missing_fields": [
+              "origin",
+              "travel_minutes_estimate",
+              "date_time",
+              "opening_hours"
+            ],
+            "explanation": "Мұражайға баруды жоспарлауға болады. Баруға 45 мин. бөлу ұсынылады; бұл дереккөз фактісі емес, бағалау. Барлық шектеулерге сәйкестік расталмады. Тексеріңіз: жолға шығу нүктесін, жол уақытын, күн мен уақытты, бару күніндегі жұмыс уақытын.",
+            "generated_locale": "kk",
+            "action": {
+              "code": "open_source",
+              "url": "https://www.openstreetmap.org/way/1239171353"
+            },
+            "poi": {
+              "sources": [
+                {
+                  "source_id": "osm:way:1239171353",
+                  "provider": "osm",
+                  "url": "https://www.openstreetmap.org/way/1239171353",
+                  "retrieved_at": "2026-10-19T00:17:48.702014Z",
+                  "license": "Open Database License (ODbL) 1.0",
+                  "rights_basis_url": "https://www.openstreetmap.org/copyright",
+                  "storage_allowed": true,
+                  "indexing_allowed": true,
+                  "is_test": false
+                }
+              ],
+              "provenance": [
+                {
+                  "source_id": "osm:way:1239171353",
+                  "external_id": "way/1239171353",
+                  "fields": [
+                    "name",
+                    "location",
+                    "activity_code",
+                    "opening_hours_text"
+                  ],
+                  "observed_at": null
+                }
+              ],
+              "is_test": false,
+              "id": "osm:way:1239171353",
+              "primary_source_id": "osm:way:1239171353",
+              "external_id": "way/1239171353",
+              "name": "Тарихи-Әскери Мұражай",
+              "description": "Derived summary from OSM tags: tourism=museum",
+              "location": {
+                "latitude": 51.1554984,
+                "longitude": 71.4319723
+              },
+              "address": null,
+              "activity_code": "museum",
+              "indoor": null,
+              "price_kzt_per_person": null,
+              "visit_minutes_estimate": null,
+              "opening_hours_text": "Mo-Su 10:00-18:00"
+            }
+          },
+          {
+            "provenance": [
+              {
+                "source_id": "osm:node:13948916190",
+                "external_id": "node/13948916190",
+                "fields": [
+                  "name",
+                  "location",
+                  "activity_code",
+                  "address"
+                ],
+                "observed_at": null
+              }
+            ],
+            "reason_codes": [
+              "query_match",
+              "visit_duration_estimate",
+              "route_unknown",
+              "time_unknown",
+              "hours_unknown"
+            ],
+            "activity_code": "museum",
+            "visit_minutes_estimate": 45,
+            "route_status": "unknown",
+            "travel_minutes_estimate": null,
+            "fit_status": "unknown",
+            "missing_fields": [
+              "origin",
+              "travel_minutes_estimate",
+              "date_time",
+              "opening_hours"
+            ],
+            "explanation": "Демалысқа арналған идея — мұражайға бару. Баруға 45 мин. бөлу ұсынылады; бұл дереккөз фактісі емес, бағалау. Барлық шектеулерге сәйкестік расталмады. Тексеріңіз: жолға шығу нүктесін, жол уақытын, күн мен уақытты, бару күніндегі жұмыс уақытын.",
+            "generated_locale": "kk",
+            "action": {
+              "code": "open_source",
+              "url": "https://www.openstreetmap.org/node/13948916190"
+            },
+            "poi": {
+              "sources": [
+                {
+                  "source_id": "osm:node:13948916190",
+                  "provider": "osm",
+                  "url": "https://www.openstreetmap.org/node/13948916190",
+                  "retrieved_at": "2026-10-19T00:17:48.702014Z",
+                  "license": "Open Database License (ODbL) 1.0",
+                  "rights_basis_url": "https://www.openstreetmap.org/copyright",
+                  "storage_allowed": true,
+                  "indexing_allowed": true,
+                  "is_test": false
+                }
+              ],
+              "provenance": [
+                {
+                  "source_id": "osm:node:13948916190",
+                  "external_id": "node/13948916190",
+                  "fields": [
+                    "name",
+                    "location",
+                    "activity_code",
+                    "address"
+                  ],
+                  "observed_at": null
+                }
+              ],
+              "is_test": false,
+              "id": "osm:node:13948916190",
+              "primary_source_id": "osm:node:13948916190",
+              "external_id": "node/13948916190",
+              "name": "Қазақстан Теміржол тарихы Мұражайы",
+              "description": "Derived summary from OSM tags: tourism=museum",
+              "location": {
+                "latitude": 51.1122858,
+                "longitude": 71.5316883
+              },
+              "address": "Мұхамеджан Тынышбайұлы көшесі, Астана",
+              "activity_code": "museum",
+              "indoor": null,
+              "price_kzt_per_person": null,
+              "visit_minutes_estimate": null,
+              "opening_hours_text": null
+            }
+          },
+          {
+            "provenance": [
+              {
+                "source_id": "osm:node:4894937300",
+                "external_id": "node/4894937300",
+                "fields": [
+                  "name",
+                  "location",
+                  "activity_code"
+                ],
+                "observed_at": null
+              }
+            ],
+            "reason_codes": [
+              "query_match",
+              "visit_duration_estimate",
+              "route_unknown",
+              "time_unknown",
+              "hours_unknown"
+            ],
+            "activity_code": "museum",
+            "visit_minutes_estimate": 45,
+            "route_status": "unknown",
+            "travel_minutes_estimate": null,
+            "fit_status": "unknown",
+            "missing_fields": [
+              "origin",
+              "travel_minutes_estimate",
+              "date_time",
+              "opening_hours"
+            ],
+            "explanation": "Мұражайға баруды жоспарлауға болады. Баруға 45 мин. бөлу ұсынылады; бұл дереккөз фактісі емес, бағалау. Барлық шектеулерге сәйкестік расталмады. Тексеріңіз: жолға шығу нүктесін, жол уақытын, күн мен уақытты, бару күніндегі жұмыс уақытын.",
+            "generated_locale": "kk",
+            "action": {
+              "code": "open_source",
+              "url": "https://www.openstreetmap.org/node/4894937300"
+            },
+            "poi": {
+              "sources": [
+                {
+                  "source_id": "osm:node:4894937300",
+                  "provider": "osm",
+                  "url": "https://www.openstreetmap.org/node/4894937300",
+                  "retrieved_at": "2026-10-19T00:17:48.702014Z",
+                  "license": "Open Database License (ODbL) 1.0",
+                  "rights_basis_url": "https://www.openstreetmap.org/copyright",
+                  "storage_allowed": true,
+                  "indexing_allowed": true,
+                  "is_test": false
+                }
+              ],
+              "provenance": [
+                {
+                  "source_id": "osm:node:4894937300",
+                  "external_id": "node/4894937300",
+                  "fields": [
+                    "name",
+                    "location",
+                    "activity_code"
+                  ],
+                  "observed_at": null
+                }
+              ],
+              "is_test": false,
+              "id": "osm:node:4894937300",
+              "primary_source_id": "osm:node:4894937300",
+              "external_id": "node/4894937300",
+              "name": "Қазақстан Республикасының Ұлттық Мұражайы",
+              "description": "Derived summary from OSM tags: tourism=museum",
+              "location": {
+                "latitude": 51.1182297,
+                "longitude": 71.4693823
+              },
+              "address": null,
+              "activity_code": "museum",
+              "indoor": null,
+              "price_kzt_per_person": null,
+              "visit_minutes_estimate": null,
+              "opening_hours_text": null
+            }
+          }
+        ],
+        "warnings": [
+          {
+            "code": "data_unknown",
+            "message": "Шартты нұсқалар: белгісіз деректерді дереккөзден тексеріңіз.",
+            "fields": []
+          }
+        ],
+        "sources": [
+          {
+            "source_id": "osm:way:1239171353",
+            "provider": "osm",
+            "url": "https://www.openstreetmap.org/way/1239171353",
+            "retrieved_at": "2026-10-19T00:17:48.702014Z",
+            "license": "Open Database License (ODbL) 1.0",
+            "rights_basis_url": "https://www.openstreetmap.org/copyright",
+            "storage_allowed": true,
+            "indexing_allowed": true,
+            "is_test": false
+          },
+          {
+            "source_id": "osm:node:13948916190",
+            "provider": "osm",
+            "url": "https://www.openstreetmap.org/node/13948916190",
+            "retrieved_at": "2026-10-19T00:17:48.702014Z",
+            "license": "Open Database License (ODbL) 1.0",
+            "rights_basis_url": "https://www.openstreetmap.org/copyright",
+            "storage_allowed": true,
+            "indexing_allowed": true,
+            "is_test": false
+          },
+          {
+            "source_id": "osm:node:4894937300",
+            "provider": "osm",
+            "url": "https://www.openstreetmap.org/node/4894937300",
+            "retrieved_at": "2026-10-19T00:17:48.702014Z",
+            "license": "Open Database License (ODbL) 1.0",
+            "rights_basis_url": "https://www.openstreetmap.org/copyright",
+            "storage_allowed": true,
+            "indexing_allowed": true,
+            "is_test": false
+          }
+        ],
+        "request_id": "86ac0530-c31c-4bc6-bd2f-e2cc50420d8b"
+      }
+    },
+    {
+      "case": "real_corpus_en",
+      "http_status": 200,
+      "elapsed_seconds": 10.047,
+      "body": {
+        "status": "partial",
+        "items": [
+          {
+            "provenance": [
+              {
+                "source_id": "osm:node:4894937300",
+                "external_id": "node/4894937300",
+                "fields": [
+                  "name",
+                  "location",
+                  "activity_code"
+                ],
+                "observed_at": null
+              }
+            ],
+            "reason_codes": [
+              "query_match",
+              "visit_duration_estimate",
+              "route_unknown",
+              "time_unknown",
+              "hours_unknown"
+            ],
+            "activity_code": "museum",
+            "visit_minutes_estimate": 45,
+            "route_status": "unknown",
+            "travel_minutes_estimate": null,
+            "fit_status": "unknown",
+            "missing_fields": [
+              "origin",
+              "travel_minutes_estimate",
+              "date_time",
+              "opening_hours"
+            ],
+            "explanation": "Consider planning a museum visit. Suggested visit allowance: 45 min; advice, not a source fact. Fit with all constraints is not confirmed. Check: the starting point, travel time, the date and time, opening hours for the visit date.",
+            "generated_locale": "en",
+            "action": {
+              "code": "open_source",
+              "url": "https://www.openstreetmap.org/node/4894937300"
+            },
+            "poi": {
+              "sources": [
+                {
+                  "source_id": "osm:node:4894937300",
+                  "provider": "osm",
+                  "url": "https://www.openstreetmap.org/node/4894937300",
+                  "retrieved_at": "2026-10-19T00:17:48.702014Z",
+                  "license": "Open Database License (ODbL) 1.0",
+                  "rights_basis_url": "https://www.openstreetmap.org/copyright",
+                  "storage_allowed": true,
+                  "indexing_allowed": true,
+                  "is_test": false
+                }
+              ],
+              "provenance": [
+                {
+                  "source_id": "osm:node:4894937300",
+                  "external_id": "node/4894937300",
+                  "fields": [
+                    "name",
+                    "location",
+                    "activity_code"
+                  ],
+                  "observed_at": null
+                }
+              ],
+              "is_test": false,
+              "id": "osm:node:4894937300",
+              "primary_source_id": "osm:node:4894937300",
+              "external_id": "node/4894937300",
+              "name": "Қазақстан Республикасының Ұлттық Мұражайы",
+              "description": "Derived summary from OSM tags: tourism=museum",
+              "location": {
+                "latitude": 51.1182297,
+                "longitude": 71.4693823
+              },
+              "address": null,
+              "activity_code": "museum",
+              "indoor": null,
+              "price_kzt_per_person": null,
+              "visit_minutes_estimate": null,
+              "opening_hours_text": null
+            }
+          },
+          {
+            "provenance": [
+              {
+                "source_id": "osm:way:1239171353",
+                "external_id": "way/1239171353",
+                "fields": [
+                  "name",
+                  "location",
+                  "activity_code",
+                  "opening_hours_text"
+                ],
+                "observed_at": null
+              }
+            ],
+            "reason_codes": [
+              "query_match",
+              "visit_duration_estimate",
+              "route_unknown",
+              "time_unknown",
+              "hours_unknown"
+            ],
+            "activity_code": "museum",
+            "visit_minutes_estimate": 45,
+            "route_status": "unknown",
+            "travel_minutes_estimate": null,
+            "fit_status": "unknown",
+            "missing_fields": [
+              "origin",
+              "travel_minutes_estimate",
+              "date_time",
+              "opening_hours"
+            ],
+            "explanation": "Consider planning a museum visit. Suggested visit allowance: 45 min; advice, not a source fact. Fit with all constraints is not confirmed. Check: the starting point, travel time, the date and time, opening hours for the visit date.",
+            "generated_locale": "en",
+            "action": {
+              "code": "open_source",
+              "url": "https://www.openstreetmap.org/way/1239171353"
+            },
+            "poi": {
+              "sources": [
+                {
+                  "source_id": "osm:way:1239171353",
+                  "provider": "osm",
+                  "url": "https://www.openstreetmap.org/way/1239171353",
+                  "retrieved_at": "2026-10-19T00:17:48.702014Z",
+                  "license": "Open Database License (ODbL) 1.0",
+                  "rights_basis_url": "https://www.openstreetmap.org/copyright",
+                  "storage_allowed": true,
+                  "indexing_allowed": true,
+                  "is_test": false
+                }
+              ],
+              "provenance": [
+                {
+                  "source_id": "osm:way:1239171353",
+                  "external_id": "way/1239171353",
+                  "fields": [
+                    "name",
+                    "location",
+                    "activity_code",
+                    "opening_hours_text"
+                  ],
+                  "observed_at": null
+                }
+              ],
+              "is_test": false,
+              "id": "osm:way:1239171353",
+              "primary_source_id": "osm:way:1239171353",
+              "external_id": "way/1239171353",
+              "name": "Тарихи-Әскери Мұражай",
+              "description": "Derived summary from OSM tags: tourism=museum",
+              "location": {
+                "latitude": 51.1554984,
+                "longitude": 71.4319723
+              },
+              "address": null,
+              "activity_code": "museum",
+              "indoor": null,
+              "price_kzt_per_person": null,
+              "visit_minutes_estimate": null,
+              "opening_hours_text": "Mo-Su 10:00-18:00"
+            }
+          },
+          {
+            "provenance": [
+              {
+                "source_id": "osm:way:963855443",
+                "external_id": "way/963855443",
+                "fields": [
+                  "name",
+                  "location",
+                  "activity_code",
+                  "address"
+                ],
+                "observed_at": null
+              }
+            ],
+            "reason_codes": [
+              "query_match",
+              "visit_duration_estimate",
+              "route_unknown",
+              "time_unknown",
+              "hours_unknown"
+            ],
+            "activity_code": "museum",
+            "visit_minutes_estimate": 45,
+            "route_status": "unknown",
+            "travel_minutes_estimate": null,
+            "fit_status": "unknown",
+            "missing_fields": [
+              "origin",
+              "travel_minutes_estimate",
+              "date_time",
+              "opening_hours"
+            ],
+            "explanation": "Consider planning a museum visit. Suggested visit allowance: 45 min; advice, not a source fact. Fit with all constraints is not confirmed. Check: the starting point, travel time, the date and time, opening hours for the visit date.",
+            "generated_locale": "en",
+            "action": {
+              "code": "open_source",
+              "url": "https://www.openstreetmap.org/way/963855443"
+            },
+            "poi": {
+              "sources": [
+                {
+                  "source_id": "osm:way:963855443",
+                  "provider": "osm",
+                  "url": "https://www.openstreetmap.org/way/963855443",
+                  "retrieved_at": "2026-10-19T00:17:48.702014Z",
+                  "license": "Open Database License (ODbL) 1.0",
+                  "rights_basis_url": "https://www.openstreetmap.org/copyright",
+                  "storage_allowed": true,
+                  "indexing_allowed": true,
+                  "is_test": false
+                }
+              ],
+              "provenance": [
+                {
+                  "source_id": "osm:way:963855443",
+                  "external_id": "way/963855443",
+                  "fields": [
+                    "name",
+                    "location",
+                    "activity_code",
+                    "address"
+                  ],
+                  "observed_at": null
+                }
+              ],
+              "is_test": false,
+              "id": "osm:way:963855443",
+              "primary_source_id": "osm:way:963855443",
+              "external_id": "way/963855443",
+              "name": "Назарбаев орталығы-2",
+              "description": "Derived summary from OSM tags: tourism=museum",
+              "location": {
+                "latitude": 51.1146527,
+                "longitude": 71.4421493
+              },
+              "address": "Әлихан Бөкейхан көшесі 1а, Астана",
+              "activity_code": "museum",
+              "indoor": null,
+              "price_kzt_per_person": null,
+              "visit_minutes_estimate": null,
+              "opening_hours_text": null
+            }
+          }
+        ],
+        "warnings": [
+          {
+            "code": "data_unknown",
+            "message": "Conditional alternatives: check missing facts with the source.",
+            "fields": []
+          }
+        ],
+        "sources": [
+          {
+            "source_id": "osm:node:4894937300",
+            "provider": "osm",
+            "url": "https://www.openstreetmap.org/node/4894937300",
+            "retrieved_at": "2026-10-19T00:17:48.702014Z",
+            "license": "Open Database License (ODbL) 1.0",
+            "rights_basis_url": "https://www.openstreetmap.org/copyright",
+            "storage_allowed": true,
+            "indexing_allowed": true,
+            "is_test": false
+          },
+          {
+            "source_id": "osm:way:1239171353",
+            "provider": "osm",
+            "url": "https://www.openstreetmap.org/way/1239171353",
+            "retrieved_at": "2026-10-19T00:17:48.702014Z",
+            "license": "Open Database License (ODbL) 1.0",
+            "rights_basis_url": "https://www.openstreetmap.org/copyright",
+            "storage_allowed": true,
+            "indexing_allowed": true,
+            "is_test": false
+          },
+          {
+            "source_id": "osm:way:963855443",
+            "provider": "osm",
+            "url": "https://www.openstreetmap.org/way/963855443",
+            "retrieved_at": "2026-10-19T00:17:48.702014Z",
+            "license": "Open Database License (ODbL) 1.0",
+            "rights_basis_url": "https://www.openstreetmap.org/copyright",
+            "storage_allowed": true,
+            "indexing_allowed": true,
+            "is_test": false
+          }
+        ],
+        "request_id": "8dbc1204-7f27-42cd-865e-e32c3aee7c85"
+      }
+    },
+    {
+      "case": "hard_time_no_match",
+      "http_status": 200,
+      "elapsed_seconds": 6.719,
+      "body": {
+        "status": "no_match",
+        "items": [],
+        "warnings": [],
+        "sources": [],
+        "request_id": "6aee3e17-183e-4b43-9295-e79adb563668"
+      }
+    },
+    {
+      "case": "conflicting_constraints",
+      "http_status": 200,
+      "elapsed_seconds": 2.734,
+      "body": {
+        "status": "unknown",
+        "items": [],
+        "warnings": [
+          {
+            "code": "missing_input",
+            "message": "Clarify these constraints: available_minutes.",
+            "fields": []
+          }
+        ],
+        "sources": [],
+        "request_id": "c88e6baa-2de8-4112-b499-1bffc6dfb912"
+      }
+    },
+    {
+      "case": "missing_amenity_facts",
+      "http_status": 200,
+      "elapsed_seconds": 0.391,
+      "body": {
+        "status": "unknown",
+        "items": [],
+        "warnings": [
+          {
+            "code": "missing_input",
+            "message": "Нет подтверждённых фактов о тишине, розетках или доступности.",
+            "fields": []
+          }
+        ],
+        "sources": [],
+        "request_id": "726327b1-7c15-4f2e-9bf7-ee5f44f8b387"
+      }
+    }
+  ],
+  "requests": {
+    "intent": 5,
+    "explanation": 3,
+    "embedding": 4,
+    "structured_success": [
+      "TextIntent",
+      "ExplanationBatch",
+      "TextIntent",
+      "ExplanationBatch",
+      "TextIntent",
+      "ExplanationBatch",
+      "TextIntent",
+      "TextIntent"
+    ]
+  },
+  "health": {
+    "status": "ok"
+  },
+  "coverage": {
+    "http_status": 200,
+    "body": {
+      "status": "ok",
+      "production_pois": 985,
+      "test_pois": 0,
+      "located_pois": 985,
+      "missing_location_pois": 0,
+      "embedded_pois": 985,
+      "by_source": {
+        "osm": 985
+      },
+      "import_runs": {
+        "total": 12,
+        "failed": 0,
+        "rejected_records": 0
+      },
+      "city_coverage": "unknown",
+      "is_production_dataset": true
+    }
+  },
+  "events_endpoint": {
+    "http_status": 503,
+    "body": {
+      "status": "unavailable",
+      "items": [],
+      "warnings": [
+        {
+          "code": "provider_unavailable",
+          "message": "This service is not available yet. Please try again later.",
+          "fields": []
+        }
+      ],
+      "sources": [],
+      "request_id": "5a8bb33b-6b9a-4c8f-8e93-375fa354c942"
+    }
+  },
+  "d03_live_gate": {
+    "provider_status": "unavailable",
+    "provider_code": "shared_web_search_method_missing",
+    "live_web_search": "not_run"
+  }
+}

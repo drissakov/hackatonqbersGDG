@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>D03 · Лаборатория событий</title>
+  <style nonce="__D03_NONCE__">
+    :root { color-scheme: light; font-family: system-ui, sans-serif; color: #202b35; background: #f4f6f8; }
+    * { box-sizing: border-box; }
+    body { margin: 0; }
+    main { max-width: 1460px; margin: 0 auto; padding: 32px 24px 56px; }
+    h1 { margin: 6px 0 12px; font-size: clamp(1.6rem, 3vw, 2.2rem); letter-spacing: -.035em; }
+    h2 { margin: 0; font-size: 1.2rem; }
+    h3 { margin: 0 0 8px; font-size: 1.05rem; }
+    p { line-height: 1.55; }
+    .eyebrow { color: #4c626d; font-size: .8rem; font-weight: 700; letter-spacing: .09em; }
+    .notice { padding: 14px 18px; border: 1px solid #bbd5d0; border-radius: 10px; background: #eaf5f2; line-height: 1.55; }
+    .subtle { color: #52616d; font-size: .9rem; }
+    .layout { display: grid; grid-template-columns: minmax(320px, 1fr) minmax(380px, 1.1fr); gap: 22px; margin-top: 24px; align-items: start; }
+    .panel { background: #fff; border: 1px solid #dce2e7; border-radius: 14px; padding: 22px; min-width: 0; }
+    .panel-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 20px; }
+    label { display: block; font-weight: 650; font-size: .9rem; margin: 18px 0 8px; }
+    select, textarea, button { font: inherit; }
+    select, textarea { width: 100%; background: #fff; color: inherit; border: 1px solid #aab7c3; border-radius: 8px; padding: 11px; }
+    select { cursor: pointer; }
+    textarea { min-height: 480px; resize: vertical; font: .8rem/1.6 ui-monospace, Consolas, monospace; tab-size: 2; }
+    :focus-visible { outline: 3px solid #268274; outline-offset: 3px; }
+    .expect { margin: 12px 0 16px; padding: 12px 14px; background: #f4f6f8; border-radius: 8px; line-height: 1.5; white-space: pre-wrap; }
+    .check { display: flex; gap: 9px; align-items: start; font-weight: 500; line-height: 1.45; }
+    .check input { margin: 4px 0 0; width: 17px; height: 17px; flex-shrink: 0; }
+    .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 18px; }
+    button { border: 1px solid #b6c1ca; border-radius: 8px; padding: 11px 16px; background: #fff; color: #26333e; cursor: pointer; font-weight: 650; }
+    button.primary { background: #176b5d; border-color: #176b5d; color: white; }
+    button:hover { filter: brightness(.96); }
+    button:disabled { cursor: wait; opacity: .55; }
+    .badge { font-size: .75rem; padding: 5px 9px; background: #edf1f4; color: #4e5d68; border-radius: 6px; }
+    .badge.stale { background: #fff0d9; color: #7a4b0b; }
+    #feedback { min-height: 1.6em; margin: 12px 0 0; font-size: .9rem; line-height: 1.5; }
+    #feedback.error { color: #9c2929; }
+    .metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 12px; }
+    .metric { background: #f4f6f8; border-radius: 8px; padding: 12px 8px; text-align: center; }
+    .metric strong { display: block; font-size: 1.55rem; font-weight: 650; margin-bottom: 3px; }
+    .metric span { font-size: .73rem; color: #53616c; }
+    #provider { font-size: .88rem; line-height: 1.5; overflow-wrap: anywhere; }
+    .event { border-top: 1px solid #dce2e7; padding-top: 18px; margin-top: 18px; }
+    .event p { margin: 6px 0; }
+    .session { margin-top: 12px; padding: 14px; background: #f6f8fa; border: 1px solid #e0e5e9; border-radius: 9px; }
+    .session-title { margin-bottom: 10px; font-weight: 650; font-size: .9rem; }
+    dl { display: grid; grid-template-columns: 115px minmax(0, 1fr); gap: 7px 10px; margin: 0; font-size: .82rem; line-height: 1.5; }
+    dt { color: #5b6974; }
+    dd { margin: 0; overflow-wrap: anywhere; white-space: pre-wrap; }
+    details { margin-top: 22px; border-top: 1px solid #dce2e7; padding-top: 16px; }
+    summary { cursor: pointer; font-weight: 650; }
+    pre { font: .76rem/1.6 ui-monospace, Consolas, monospace; white-space: pre-wrap; overflow-wrap: anywhere; background: #f4f6f8; padding: 14px; border-radius: 8px; max-height: 520px; overflow: auto; }
+    [hidden] { display: none !important; }
+    @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } textarea { min-height: 340px; } }
+    @media (max-width: 480px) { main { padding: 22px 12px; } .panel { padding: 16px; } .metrics { grid-template-columns: repeat(2, 1fr); } dl { grid-template-columns: 1fr; gap: 3px; } dd { margin-bottom: 7px; } }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="eyebrow">ЛОКАЛЬНЫЙ ИНСТРУМЕНТ РАЗРАБОТКИ · СИНТЕТИЧЕСКИЕ ДАННЫЕ</div>
+    <h1>D03 · Лаборатория событий</h1>
+    <div class="notice">Синтетические входы → настоящий Python-нормализатор D03.<br><strong>OpenAI/web_search не выполняется. Ничего не сохраняется.</strong></div>
+    <p class="subtle">Измените дату, город, цену или статус в JSON и посмотрите, какие факты останутся известными. Итоговые ограничения и ранжирование выполняет S04.</p>
+  </header>
+  <div class="layout">
+    <section class="panel" aria-labelledby="input-heading">
+      <div class="panel-head"><h2 id="input-heading">1. Входные данные</h2><span class="badge">is_test: true</span></div>
+      <form id="form">
+        <label for="cases">Сценарий</label>
+        <select id="cases" disabled><option>Загрузка сценариев…</option></select>
+        <p id="description" class="subtle"></p>
+        <div class="expect"><strong>Ожидаемое поведение</strong><div id="expected">Загрузка…</div></div>
+        <label for="input">JSON запроса · можно редактировать</label>
+        <textarea id="input" spellcheck="false" autocapitalize="off" autocomplete="off" aria-describedby="input-help" disabled></textarea>
+        <div id="input-help" class="subtle">sources — синтетический текст доказательств; events — извлеченные факты. Изменение одного не подтверждает другое.</div>
+        <label class="check" for="simulate"><input id="simulate" type="checkbox" disabled><span>Сымитировать ручную проверку starts_at<br><span class="subtle">Только учебная отметка verified; реальный источник не проверяется.</span></span></label>
+        <div class="actions"><button class="primary" id="run" type="submit" disabled>Запустить нормализатор</button><button id="reset" type="button" disabled>Сбросить сценарий</button><span class="subtle">Ctrl + Enter</span></div>
+        <p id="feedback" role="status" aria-live="polite"></p>
+      </form>
+    </section>
+    <section class="panel" id="result-panel" aria-labelledby="result-heading" aria-busy="false">
+      <div class="panel-head"><h2 id="result-heading">2. Результат Python</h2><span id="freshness" class="badge">Еще не запущено</span></div>
+      <div class="metrics">
+        <div class="metric"><strong id="events-count">—</strong><span>События / афиши</span></div>
+        <div class="metric"><strong id="sessions-count">—</strong><span>Сеансы</span></div>
+        <div class="metric"><strong id="candidates-count">—</strong><span>Кандидаты</span></div>
+        <div class="metric"><strong id="excluded-count">—</strong><span>Исключенные сеансы</span></div>
+      </div>
+      <p id="provider">Статус провайдера появится после запуска.</p>
+      <p class="subtle">Кандидат еще не означает выполнение бюджета, маршрута или временного окна. Неизвестное окончание остается неизвестным.</p>
+      <div id="simulation" class="notice" hidden>Отметки verified в этом запуске получены учебной симуляцией, без проверки внешнего источника.</div>
+      <div id="cards"></div>
+      <details open><summary>Полный ответ JSON</summary><pre id="output" tabindex="0">Ожидание первого запуска…</pre></details>
+    </section>
+  </div>
+</main>
+<script nonce="__D03_NONCE__">
+  'use strict';
+  const $ = (id) => document.getElementById(id);
+  const editor = $('input'), picker = $('cases'), simulation = $('simulate');
+  const freshness = $('freshness');
+  let cases = [], hasResult = false, running = false;
+  const node = (tag, text, className) => {
+    const element = document.createElement(tag);
+    if (text !== undefined) element.textContent = String(text);
+    if (className) element.className = className;
+    return element;
+  };
+  const display = (value) => value === null || value === undefined ? 'неизвестно' : String(value);
+  const list = (values) => Array.isArray(values) && values.length ? values.join(', ') : 'нет';
+  function feedback(message, error = false) {
+    $('feedback').textContent = message;
+    $('feedback').className = error ? 'error' : '';
+  }
+  function stale() {
+    freshness.textContent = hasResult ? 'Вход изменен · нужен перезапуск' : 'Готово к запуску';
+    freshness.className = hasResult ? 'badge stale' : 'badge';
+  }
+  function loadCase() {
+    const selected = cases.find((item) => item.id === picker.value);
+    if (!selected) return;
+    editor.value = JSON.stringify(selected.input, null, 2);
+    simulation.checked = selected.input.simulate_start_check === true;
+    $('description').textContent = selected.description || '';
+    $('expected').textContent = typeof selected.expected === 'string' ? selected.expected : JSON.stringify(selected.expected, null, 2);
+    stale();
+    feedback('Сценарий загружен. Можно изменить JSON или запустить проверку.');
+  }
+  function row(definitions, label, value) {
+    definitions.append(node('dt', label), node('dd', value));
+  }
+  function render(payload) {
+    const result = payload.result;
+    if (!result || !Array.isArray(result.events)) throw new Error('Сервер вернул неподдерживаемый ответ.');
+    const sessions = result.events.flatMap((event) => event.sessions || []);
+    $('events-count').textContent = result.events.length;
+    $('sessions-count').textContent = sessions.length;
+    $('candidates-count').textContent = sessions.filter((session) => session.recommendation_candidate).length;
+    $('excluded-count').textContent = result.excluded_sessions;
+    $('provider').textContent = `provider_status: ${result.provider_status} · code: ${display(result.provider_code)} · web_search: ${result.live_web_search} · network_access: ${payload.network_access}`;
+    $('simulation').hidden = !payload.simulated_verification;
+    $('cards').replaceChildren();
+    if (!result.events.length) $('cards').append(node('p', 'Нормализованных событий нет. Причину смотрите в JSON.', 'subtle'));
+    for (const event of result.events) {
+      const card = node('article', undefined, 'event');
+      card.append(node('h3', event.title), node('p', `${event.status} · ${display(event.city)} · ${display(event.venue_name)}`, 'subtle'));
+      const eventFacts = node('dl');
+      row(eventFacts, 'Источник', event.source_url);
+      row(eventFacts, 'Адрес', display(event.venue_address));
+      row(eventFacts, 'Неизвестно', list(event.missing_fields));
+      if (event.schedule_hints?.length) row(eventFacts, 'Подсказки дат', list(event.schedule_hints));
+      card.append(eventFacts);
+      if (!event.sessions?.length) card.append(node('p', 'Афиша: подтвержденных сеансов нет.', 'subtle'));
+      for (const [index, session] of (event.sessions || []).entries()) {
+        const section = node('section', undefined, 'session');
+        section.append(node('div', `Сеанс ${index + 1} · ${session.recommendation_candidate ? 'кандидат для S04' : 'исключен из кандидатов'}`, 'session-title'));
+        const facts = node('dl');
+        row(facts, 'Начало', display(session.starts_at));
+        row(facts, 'Окончание', display(session.ends_at));
+        row(facts, 'Цена от', session.price_from === null ? 'неизвестно' : `${session.price_from} ${display(session.currency)}`);
+        row(facts, 'Тип цены', display(session.price_kind));
+        row(facts, 'Условия цены', display(session.price_conditions));
+        row(facts, 'Статус сеанса', session.status);
+        row(facts, 'Проверка', `${session.verification_status}; поля: ${list((session.verified_fields || []).map((check) => check.field))}`);
+        row(facts, 'Билеты', display(session.ticket_availability));
+        row(facts, 'Неизвестно', list(session.missing_fields));
+        row(facts, 'Исключения', list(session.exclusion_reasons));
+        section.append(facts);
+        card.append(section);
+      }
+      $('cards').append(card);
+    }
+    $('output').textContent = JSON.stringify(payload, null, 2);
+    hasResult = true;
+  }
+  async function requestJSON(path, options) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 15000);
+    try {
+      const response = await fetch(path, { ...options, signal: controller.signal, cache: 'no-store' });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(`HTTP ${response.status}. Проверьте структуру и типы полей JSON.`);
+      return payload;
+    } catch (error) {
+      if (error.name === 'AbortError') throw new Error('Локальный сервер не ответил за 15 секунд.');
+      if (error instanceof TypeError) throw new Error('Нет соединения с локальным FastAPI. Проверьте, что сервер запущен.');
+      throw error;
+    } finally { clearTimeout(timer); }
+  }
+  async function run() {
+    if (running) return;
+    const submitted = editor.value;
+    let input;
+    try { input = JSON.parse(submitted); }
+    catch { feedback('JSON содержит ошибку. Исправьте синтаксис перед запуском.', true); editor.focus(); return; }
+    running = true; $('run').disabled = true; $('result-panel').setAttribute('aria-busy', 'true');
+    feedback('Выполняется локальный Python-нормализатор…');
+    try {
+      const payload = await requestJSON('/api/dev/events/normalize', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input)
+      });
+      render(payload);
+      if (editor.value !== submitted) { stale(); feedback('Ответ получен для предыдущего ввода. Запустите измененный JSON снова.'); }
+      else { freshness.textContent = 'Актуальный результат'; freshness.className = 'badge'; feedback('Готово. Проверен текущий JSON; внешние провайдеры не вызывались.'); }
+    } catch (error) { stale(); feedback(error.message || 'Не удалось выполнить локальную проверку.', true); }
+    finally { running = false; $('run').disabled = false; $('result-panel').setAttribute('aria-busy', 'false'); }
+  }
+  $('form').addEventListener('submit', (event) => { event.preventDefault(); run(); });
+  picker.addEventListener('change', loadCase);
+  $('reset').addEventListener('click', loadCase);
+  editor.addEventListener('input', () => {
+    stale();
+    try { simulation.checked = JSON.parse(editor.value).simulate_start_check === true; } catch { /* Keep the current checkbox while JSON is incomplete. */ }
+  });
+  editor.addEventListener('keydown', (event) => { if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') { event.preventDefault(); run(); } });
+  simulation.addEventListener('change', () => {
+    try {
+      const input = JSON.parse(editor.value);
+      input.simulate_start_check = simulation.checked;
+      editor.value = JSON.stringify(input, null, 2); stale();
+    } catch { simulation.checked = !simulation.checked; feedback('Сначала исправьте JSON: переключатель изменяет поле simulate_start_check.', true); }
+  });
+  (async () => {
+    try {
+      const payload = await requestJSON('/api/dev/events/examples');
+      if (!Array.isArray(payload.cases) || !payload.cases.length) throw new Error('На сервере нет доступных сценариев.');
+      cases = payload.cases; picker.replaceChildren();
+      for (const item of cases) { const option = node('option', item.label); option.value = item.id; picker.append(option); }
+      for (const id of ['cases', 'input', 'simulate', 'run', 'reset']) $(id).disabled = false;
+      loadCase(); await run();
+    } catch (error) { feedback(error.message || 'Не удалось загрузить сценарии.', true); }
+  })();
+</script>
+</body>
+</html>

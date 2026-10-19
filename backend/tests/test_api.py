@@ -26,9 +26,6 @@ def request(app, method, path, **kwargs):
 @pytest.mark.parametrize(
     "path",
     [
-        "/api/recommendations",
-        "/api/v1/recommendations",
-        "/api/events/search",
         "/api/v1/events/search",
     ],
 )
