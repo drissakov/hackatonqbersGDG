@@ -1,0 +1,127 @@
+"""Synthetic cited date phrases exercise session grounding without provider calls."""
+
+from datetime import datetime
+
+import pytest
+
+from backend.app.services.events.normalize import _timestamp
+
+START = "2026-10-19T19:00:00+05:00"
+
+
+@pytest.mark.parametrize(
+    "phrase",
+    [
+        "19 October 2026, 19:00",
+        "October 19, 2026 at 19:00",
+        "19 октября 2026 года в 19:00",
+        "19 октября 2026 г. в 19:00",
+        "19 октября 2026 г., 19:00",
+        "19.10.2026 — 19:00",
+        "19.10.2026 – 19:00",
+        "19.10.2026 | 19:00",
+        "19.10.2026; 19:00",
+        "19.10.2026: 19:00",
+        "2026-10-19T19:00",
+        "19 October 2026** — **19:00",
+        "2026 жылғы 19 қазан сағат 19:00",
+    ],
+)
+def test_explicit_date_and_adjacent_clock_survive_source_punctuation(phrase):
+    assert _timestamp(START, phrase, [f"Synthetic event: {phrase}."]) == datetime.fromisoformat(
+        START
+    )
+
+
+@pytest.mark.parametrize(
+    ("quoted_date", "phrase"),
+    [
+        ("19 October 2026", "19 October 2026, 19:00"),
+        ("19 октября 2026", "19 октября 2026 года в 19:00"),
+        ("19.10.2026", "19.10.2026 — 19:00"),
+        ("19 October 2026", "19 October 2026** — **19:00"),
+        ("Date: 19 October 2026", "Date: 19 October 2026, 19:00"),
+        ("**19 October 2026**", "**19 October 2026** — 19:00"),
+        ("2026 жылғы 19 қазан", "2026 жылғы 19 қазан сағат 19:00"),
+    ],
+)
+def test_date_only_quote_can_use_its_immediately_following_source_clock(quoted_date, phrase):
+    assert _timestamp(START, quoted_date, [f"Synthetic Straße event: {phrase}."]) is not None
+
+
+def test_numeric_dates_do_not_require_leading_zeroes():
+    assert (
+        _timestamp("2026-01-09T19:00:00+05:00", "9.1.2026", ["Synthetic event: 9.1.2026, 19:00."])
+        is not None
+    )
+
+
+@pytest.mark.parametrize(
+    ("quote", "spans"),
+    [
+        ("19 October, 19:00", ["19 October 2026, 19:00; 19 October, 19:00"]),
+        ("19 October 2026", ["19 October 2026, 18:00; ends 20 October 2026, 19:00"]),
+        ("19 October 2026, 18:00", ["19 October 2026, 18:00; 19 October 2026, 19:00"]),
+        ("19 October 2026", ["19 October 2026", "19:00"]),
+        ("19 October 2026", ["19 October 2026. Another event starts at 19:00"]),
+        ("19 October 2026", ["19 October 2026 — event description — 19:00"]),
+        ("19 October 2026", ["19 October 2026\n\n19:00"]),
+        ("19 October\n\n2026", ["19 October\n\n2026, 19:00"]),
+        ("19 October 2026", ["20 October 2026, 19:00"]),
+        ("19 October 2030", ["19 October 2030, 19:00"]),
+        ("19 October 2026", ["19 October 2026, 19:00:30"]),
+        ("19 October 2026", ["19 October 2026, 19:00.123456"]),
+    ],
+)
+def test_missing_or_conflicting_source_facts_cannot_create_a_start(quote, spans):
+    assert _timestamp(START, quote, spans) is None
+
+
+@pytest.mark.parametrize("value", ["2026-10-19T19:00:30+05:00", "2026-10-19T19:00:00.123456+05:00"])
+def test_extracted_seconds_remain_unsupported(value):
+    assert _timestamp(value, "19 October 2026", ["19 October 2026, 19:00"]) is None
+
+
+@pytest.mark.parametrize(
+    "suffix",
+    [
+        " UTC",
+        " GMT",
+        "Z",
+        " MSK",
+        " МСК",
+        " по МСК",
+        " UTC+5",
+        "+00:00",
+        " -03:30",
+        "−05:00",
+        "+0500",
+        " +5",
+        " (UTC)",
+        " [UTC]",
+        ", GMT",
+        "** UTC",
+        "\u00a0GMT",
+        " AM",
+        " PM",
+        " p.m.",
+        "a.m.",
+    ],
+)
+@pytest.mark.parametrize("quote_kind", ["date_only", "full_clock", "full_suffix"])
+def test_unsupported_clock_suffix_is_not_silently_treated_as_astana_time(suffix, quote_kind):
+    date = "19 October 2026"
+    clock = f"{date} at 19:00"
+    phrase = clock + suffix
+    quote = {"date_only": date, "full_clock": clock, "full_suffix": phrase}[quote_kind]
+    assert _timestamp(START, quote, [f"Synthetic event: {phrase}."]) is None
+
+
+@pytest.mark.parametrize("quote", ["19 October 2026", "19 October 2026 at 7:00 PM"])
+def test_twelve_hour_clock_does_not_confirm_an_incorrect_morning_start(quote):
+    assert _timestamp("2026-10-19T07:00:00+05:00", quote, ["19 October 2026 at 7:00 PM"]) is None
+
+
+def test_local_clock_can_precede_an_unrelated_sentence_about_a_timezone():
+    phrase = "19 October 2026 at 19:00. UTC appears in an unrelated synthetic sentence."
+    assert _timestamp(START, "19 October 2026", [phrase]) is not None

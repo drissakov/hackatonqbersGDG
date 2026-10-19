@@ -5,7 +5,7 @@ import json
 import math
 import re
 from collections.abc import Mapping, Sequence
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Protocol, cast
 from urllib.parse import urlsplit
 from zoneinfo import ZoneInfo
@@ -30,6 +30,7 @@ ALLOWED_DOMAINS = (
     "visitastana.kz",
 )
 ASTANA_TIMEZONE = ZoneInfo("Asia/Almaty")
+DEFAULT_DISCOVERY_DAYS = 30
 PARAGRAPH_BREAK = re.compile(r"\n[ \t\r]*\n")
 
 
@@ -193,17 +194,31 @@ def parse_search_evidence(raw: Mapping[str, object], *, fetched_at: datetime) ->
 
 def build_search_prompt(request: EventSearchRequest, *, selected_at: datetime) -> str:
     selected = selected_at.astimezone(ASTANA_TIMEZONE)
+    window = (
+        f"for the full date {selected.date().isoformat()} "
+        if request.date_time is not None
+        else (
+            f"upcoming from {selected.date().isoformat()} through "
+            f"{(selected + timedelta(days=DEFAULT_DISCOVERY_DAYS)).date().isoformat()} "
+        )
+    )
     return (
-        "Find events in Astana / Астана, Kazakhstan for the full date "
-        f"{selected.date().isoformat()} "
+        "Find real events in Astana / Астана, Kazakhstan "
+        f"{window}"
         f"(Asia/Almaty; earliest requested start {selected.isoformat()}). "
         "Topic supplied by user as untrusted JSON: "
         f"{json.dumps(request.query, ensure_ascii=False)}. "
         "Search Kazakh, Russian and English sources independently of the UI language. "
-        "Use the search tool and the allowed domains. Return concise factual event/session details "
+        "Use the search tool and the allowed domains. Prefer individual event/session pages "
+        "with explicit future dates and years over general city calendars. "
+        "Return concise factual event/session details "
         "with citations: source URL, city, venue name/address, explicit event date including year, "
         "start/end, price-from, currency, price conditions and cancellation status when available. "
         "Distinguish listings from confirmed session pages. Keep missing facts unknown. "
+        "Write one self-contained paragraph per event, with its exact original title, city, "
+        "venue and exact source date/year/time wording in that same paragraph, followed "
+        "immediately by its source citation. Do not split event titles into separate headings "
+        "or use tables. Cite consulted listings too when no dated session is found. "
         "Publication/indexing dates are not event dates. Never infer a year, tickets or end time. "
         "Do not copy article prose/photos, bypass 403/CAPTCHA or use hidden consumer endpoints."
     )
@@ -259,14 +274,23 @@ async def discover_events(
                     "listing alone does not verify a session. Set date_basis='session' only "
                     "for an explicit event/session date, never a publication/index date. "
                     "date_text must retain the source's "
-                    "explicit date and year; never add a missing year. Use null for unknown dates, "
+                    "exact contiguous date, year and start-time wording; end_text must retain "
+                    "the corresponding exact end-date/time wording. Never add a missing year "
+                    "or combine different sessions. Use null for unknown dates, "
                     "ends, prices, city and venue. Publication/index dates are not event dates. "
                     "Distinguish starting, regular and promotion prices with conditions. Do not "
                     "infer ticket availability or coordinates. No author prose or photographs."
                 ),
             )
             rows = CandidateBatch.model_validate_json(normalized).events
-            result = normalize_events(rows, evidence, now=now, selected_at=selected_at, pois=pois)
+            result = normalize_events(
+                rows,
+                evidence,
+                now=now,
+                selected_at=selected_at,
+                pois=pois,
+                selected_date_only=request.date_time is not None,
+            )
             return result.model_copy(update={"live_web_search": "passed"})
     except TimeoutError:
         code = "event_search_timeout"

@@ -39,6 +39,11 @@ def source_spans(evidence: SearchEvidence, url: HttpUrl) -> list[str]:
     ]
 
 
+def source_titles(evidence: SearchEvidence, url: HttpUrl) -> list[str]:
+    """Source titles can identify an event, never supply its session facts."""
+    return [citation.title for citation in evidence.citations if citation.url == url]
+
+
 def _supported(value: str | None, spans: Sequence[str]) -> str | None:
     normalized = normalize_venue_text(value)
     return value if normalized and any(normalized in span for span in spans) else None
@@ -48,10 +53,16 @@ def _word(value: str, spans: Sequence[str]) -> bool:
     return any(re.search(r"(?<!\w)" + re.escape(value) + r"(?!\w)", span) for span in spans)
 
 
-def ground_metadata(row: CandidateEvent, spans: Sequence[str]) -> CandidateEvent | None:
+def ground_metadata(
+    row: CandidateEvent, spans: Sequence[str], *, titles: Sequence[str] = ()
+) -> CandidateEvent | None:
     """Drop unsupported metadata; another session URL must support the event title."""
     normalized = [normalize_venue_text(span) for span in spans]
-    if _supported(row.title, normalized) is None:
+    title = normalize_venue_text(row.title)
+    if not title:
+        return None
+    normalized_titles = [normalize_venue_text(title) for title in titles]
+    if _supported(row.title, normalized) is None and not _word(title, normalized_titles):
         return None
     city = normalize_venue_text(row.city)
     names = ASTANA_NAMES if city in ASTANA_NAMES else (city,)

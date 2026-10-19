@@ -8,7 +8,12 @@ from urllib.parse import urlsplit
 from zoneinfo import ZoneInfo
 
 from backend.app.schemas import POIRecord
-from backend.app.services.events.grounding import ground_metadata, ground_price, source_spans
+from backend.app.services.events.grounding import (
+    ground_metadata,
+    ground_price,
+    source_spans,
+    source_titles,
+)
 from backend.app.services.events.models import (
     CandidateEvent,
     DiscoveryResult,
@@ -35,6 +40,12 @@ MONTH_NAMES = (
     ("october", "октября", "қазан"),
     ("november", "ноября", "қараша"),
     ("december", "декабря", "желтоқсан"),
+)
+UNSUPPORTED_CLOCK_SUFFIX = re.compile(
+    r"[ \t\u00a0\u202f*_`\"'»”’]*(?:,[ \t]*)?(?:[\[(][ \t]*)?(?:по[ \t]+)?"
+    r"(?:(?:[ap]\.?[ \t]*m\.?|utc|gmt|msk|мск|z)(?!\w)"
+    r"|[+−-](?:[01]?\d|2[0-3])(?::?[0-5]\d)?(?!\w)(?![:.]\d))",
+    re.IGNORECASE,
 )
 
 
@@ -111,25 +122,56 @@ def _timestamp(
     # Seconds/microseconds need explicit precision support before they can be facts.
     if local.second or local.microsecond:
         return None
-    if not any(source_text in span for span in supporting_spans):
+    supported = [span for span in supporting_spans if source_text in span]
+    if not supported:
         return None
     text = source_text.casefold()
     day, month, year = local.day, local.month, local.year
     names = "|".join(MONTH_NAMES[month - 1])
+    numeric_day = rf"0?{day}" if day < 10 else str(day)
+    numeric_month = rf"0?{month}" if month < 10 else str(month)
     dates = (
         rf"(?<!\d){year}-{month:02d}-{day:02d}(?!\d)",
-        rf"(?<!\d){day:02d}\.{month:02d}\.{year}(?!\d)",
-        rf"(?<!\d)0?{day}\s+(?:{names})\s+{year}(?!\d)",
-        rf"\b(?:{names})\s+0?{day},?\s+{year}(?!\d)",
-        rf"(?<!\d){year}\s+жылғы\s+0?{day}\s+(?:{names})\b",
+        rf"(?<!\d){numeric_day}\.{numeric_month}\.{year}(?!\d)",
+        rf"(?<!\d)0?{day}[ \t]+(?:{names})[ \t]+{year}(?!\d)",
+        rf"\b(?:{names})[ \t]+0?{day},?[ \t]+{year}(?!\d)",
+        rf"(?<!\d){year}[ \t]+жылғы[ \t]+0?{day}[ \t]+(?:{names})\b",
     )
+    if not any(re.search(pattern, text) for pattern in dates):
+        return None
     clock = rf"0?{local.hour}[:.]{local.minute:02d}(?::00(?:\.0+)?)?(?!\d)(?![:.]\d)"
     # Bind one date to its following clock, rather than combining tokens from
-    # different sessions inside a long cited paragraph.
-    separator = r"(?:\s*[,t]?\s*(?:(?:at|в|сағат)\s+)?)"
-    if not any(re.search(pattern + separator + clock, text) for pattern in dates):
-        return None
-    return parsed
+    # different sessions or jumping across prose inside a cited paragraph.
+    separator = (
+        r"(?:[*_`]{0,3}[ \t]*(?:(?:года|г\.?)(?!\w)[ \t]*)?"
+        r"(?:[,;:|—–t-][ \t]*)?(?:(?:at|в|сағат)(?!\w)[ \t]+)?[*_`]{0,3})"
+    )
+    anchors = [re.compile(pattern + separator + clock) for pattern in dates]
+    # Extraction may quote just the explicit date. Extend only that exact quoted
+    # occurrence to an immediately following clock in the same source span.
+    # A quote with its own clock cannot be replaced by another session's time.
+    quoted_clock = (
+        r"(?<!\d)(?:[01]?\d|2[0-3])[:.][0-5]\d"
+        r"(?::[0-5]\d(?:\.\d+)?)?(?!\d)(?![:.]\d)"
+    )
+    quote_has_clock = re.search(quoted_clock, text) is not None
+    for span in supported:
+        folded_span = span.casefold()
+        for occurrence in re.finditer(re.escape(text), folded_span):
+            for pattern in anchors:
+                for match in pattern.finditer(folded_span, occurrence.start()):
+                    if match.start() >= occurrence.end():
+                        break
+                    if quote_has_clock:
+                        if match.end() > occurrence.end():
+                            continue
+                    elif match.end() < occurrence.end():
+                        continue
+                    # Only bare local 24-hour clocks are supported. Inspect the
+                    # actual span too: extraction may omit the timezone suffix.
+                    if not UNSUPPORTED_CLOCK_SUFFIX.match(folded_span, match.end()):
+                        return parsed
+    return None
 
 
 def _session(
@@ -140,6 +182,7 @@ def _session(
     now: datetime,
     selected_at: datetime,
     pois: Sequence[POIRecord],
+    selected_date_only: bool,
 ) -> NormalizedSession | None:
     url = facts.source_url or row.source_url
     sources = {str(source.url): source for source in evidence.sources}
@@ -147,7 +190,7 @@ def _session(
     if str(url) not in sources or str(url) not in cited:
         return None
     spans = source_spans(evidence, url)
-    metadata = ground_metadata(row, spans)
+    metadata = ground_metadata(row, spans, titles=source_titles(evidence, url))
     if metadata is None:
         return None
     start = (
@@ -173,7 +216,8 @@ def _session(
         if start < selected_at:
             reasons.append("before_requested_start")
         if (
-            start.astimezone(ASTANA_TIMEZONE).date()
+            selected_date_only
+            and start.astimezone(ASTANA_TIMEZONE).date()
             != selected_at.astimezone(ASTANA_TIMEZONE).date()
         ):
             reasons.append("outside_selected_date")
@@ -285,6 +329,7 @@ def normalize_events(
     now: datetime,
     selected_at: datetime,
     pois: Sequence[POIRecord] = (),
+    selected_date_only: bool = True,
 ) -> DiscoveryResult:
     require_aware(now)
     require_aware(selected_at)
@@ -296,7 +341,11 @@ def normalize_events(
         if str(row.source_url) not in sources or str(row.source_url) not in cited:
             rejected += 1
             continue
-        row = ground_metadata(row, source_spans(evidence, row.source_url))
+        row = ground_metadata(
+            row,
+            source_spans(evidence, row.source_url),
+            titles=source_titles(evidence, row.source_url),
+        )
         if row is None:
             rejected += 1
             continue
@@ -314,7 +363,9 @@ def normalize_events(
         is_listing = row.page_kind == "listing" or _listing_url(str(row.source_url))
         if not is_listing:
             for facts in row.sessions:
-                session = _session(facts, row, event_id, evidence, now, selected_at, pois)
+                session = _session(
+                    facts, row, event_id, evidence, now, selected_at, pois, selected_date_only
+                )
                 if session is None:
                     excluded += 1
                 else:

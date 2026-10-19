@@ -115,6 +115,13 @@ storage/indexing; HTTP uses `Cache-Control: no-store`. A separate listings array
 retains discovered schedules that cannot become recommended sessions. Unknown
 end, price-from, tickets or travel never become a confirmed fit. The bounded
 web sample cannot establish `no_match` or complete city coverage.
+Without a requested date, event discovery searches the next 30 days instead of
+restricting results to today. A supplied date retains the selected local day
+and earliest start; explicit time and budget limits still apply. Each event
+keeps its source link and explicit session date/year/time. Source citation
+titles may establish the event name, but never supply missing city, venue or
+schedule facts. See [the event discovery fix](docs/handoffs/event-discovery.md)
+for regression checks and live acceptance status.
 See [the v1.3 event contract](contracts/api-v1.md#transient-event-discovery-s04-v13)
 and [S04 checks and D04 handoff](docs/handoffs/S04.md). Existing POI and persistent
 event schemas are unchanged. D04 frontend wiring is Damir's next consumer work;
