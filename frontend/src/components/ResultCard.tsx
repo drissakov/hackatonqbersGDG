@@ -4,6 +4,7 @@ import type { Locale, RecommendationCard, Source } from '../lib/types'
 import { safeExternalUrl } from '../lib/links'
 import { CardFacts } from './CardFacts'
 import { SourceDetails } from './SourceDetails'
+import { FeatureFacts } from './FeatureFacts'
 
 interface ResultCardProps {
   card: RecommendationCard
@@ -58,6 +59,9 @@ export function ResultCard({
       <h3 id={`poi-${poi.id}`} lang="">
         {poi.name}
       </h3>
+      {card.name_is_derived ? (
+        <p className="field-hint">{t('featureEvidence.derivedName')}</p>
+      ) : null}
       <h4>{t('card.sourceFacts')}</h4>
       {description ? (
         <p className="card-description">
@@ -96,6 +100,11 @@ export function ResultCard({
       <p>
         <strong>{t('card.availability')}:</strong> {t('card.unknown')}
       </p>
+      <FeatureFacts
+        evidence={card.feature_evidence ?? []}
+        sources={poi.sources}
+        locale={locale}
+      />
       <CardFacts card={card} locale={locale} sourceUrl={sourceUrl} />
       {onSelect ? (
         <button

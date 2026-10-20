@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
 import i18n from './i18n'
 import { formatMinutes } from './lib/format'
+import { withWarningDefaults } from './test/warnings'
 import type {
   Locale,
   RecommendationResponse,
@@ -34,7 +35,9 @@ function json(value: unknown, status = 200) {
 }
 
 function place(body: SearchRequest, name = placeName): RecommendationResponse {
-  const result = structuredClone(placeFixture) as RecommendationResponse
+  const result = withWarningDefaults(
+    structuredClone(placeFixture),
+  ) as RecommendationResponse
   result.request_id = body.request_id!
   result.items[0].poi.name = name
   result.items[0].generated_locale = body.locale ?? 'kk'

@@ -32,6 +32,8 @@ CODE_ENUMS = {
     "reason_codes": schemas.ReasonCode,
     "warning_codes": schemas.WarningCode,
     "explicit_fields": schemas.ExplicitField,
+    "clarification_reasons": schemas.ClarificationReason,
+    "feature_fields": schemas.FeatureField,
     "missing_fields": schemas.MissingField,
     "source_provider": schemas.SourceProvider,
 }

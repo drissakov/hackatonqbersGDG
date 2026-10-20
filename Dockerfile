@@ -21,6 +21,7 @@ COPY --from=python-build /install /usr/local
 COPY backend/app ./backend/app
 COPY scripts ./scripts
 COPY contracts ./contracts
+COPY data/curated/poi-features.json ./data/curated/poi-features.json
 COPY database/migrations ./database/migrations
 COPY --from=frontend-build /source/frontend/dist ./frontend/dist
 USER 10001:10001

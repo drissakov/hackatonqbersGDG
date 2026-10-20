@@ -83,8 +83,10 @@ const unions = {
   FitStatus: 'fit_status',
   ActivityCode: 'activity_code',
   ReasonCode: 'reason_codes',
+  FeatureField: 'feature_fields',
   WarningCode: 'warning_codes',
   ConstraintField: 'explicit_fields',
+  ClarificationReason: 'clarification_reasons',
   MissingField: 'missing_fields',
   SourceProvider: 'source_provider',
 }
@@ -141,6 +143,7 @@ const interfaces = [
   ['POIRecord', recommendations.$defs.POIRecord],
   ['Action', recommendations.$defs.Action],
   ['RecommendationCard', recommendations.$defs.POICard],
+  ['FeatureEvidence', recommendations.$defs.FeatureEvidence],
   ['TransientEventSource', transientEvents.$defs.TransientEventSource],
   ['TransientEventHeader', transientEvents.$defs.TransientEvent],
   ['TransientEventCardData', transientEvents.$defs.TransientEventCard],
@@ -150,6 +153,7 @@ const interfaces = [
   ['DiscoveredSession', transientEvents.$defs.NormalizedSession],
   ['DiscoveredEvent', transientEvents.$defs.NormalizedEvent],
   ['SearchWarning', recommendations.$defs.Warning],
+  ['ConstraintClarification', recommendations.$defs.ConstraintClarification],
 ]
 for (const [name, schema] of interfaces)
   sameValues(
@@ -175,6 +179,40 @@ for (const [name, schema] of legacyInterfaces)
     Object.keys(schema.properties),
     `Legacy ${name} fields`,
   )
+
+for (const locale of codes.locale) {
+  const translations = await readJson(
+    `frontend/src/locales/${locale}/common.json`,
+  )
+  const clarifications = translations.constraintClarifications
+  check(
+    clarifications,
+    `${locale}: missing constraint clarification translations`,
+  )
+  sameValues(
+    Object.keys(clarifications),
+    [...codes.clarification_reasons, 'resubmit'],
+    `${locale} clarification translation groups`,
+  )
+  for (const reason of codes.clarification_reasons) {
+    sameValues(
+      Object.keys(clarifications[reason]),
+      codes.explicit_fields,
+      `${locale} ${reason} translation fields`,
+    )
+    for (const field of codes.explicit_fields)
+      check(
+        typeof clarifications[reason][field] === 'string' &&
+          clarifications[reason][field].trim().length > 0,
+        `${locale}: empty clarification translation for ${reason}.${field}`,
+      )
+  }
+  check(
+    typeof clarifications.resubmit === 'string' &&
+      clarifications.resubmit.trim().length > 0,
+    `${locale}: missing clarification resubmit guidance`,
+  )
+}
 
 // The runtime evaluator intentionally implements only the project's current
 // generated keyword set. Fail here if a contract introduces a new constraint.

@@ -68,6 +68,8 @@ class ReasonCode(StrEnum):
     VISIT_DURATION_ESTIMATE = "visit_duration_estimate"
     WEATHER_UNKNOWN = "weather_unknown"
     SCHEDULE_UNKNOWN = "schedule_unknown"
+    FAMILY_PLAYGROUND_MATCH = "family_playground_match"
+    POWER_OUTLETS_MATCH = "power_outlets_match"
 
 
 class WarningCode(StrEnum):
@@ -89,6 +91,17 @@ class ExplicitField(StrEnum):
     DATE_TIME = "date_time"
 
 
+class ClarificationReason(StrEnum):
+    CONFLICTING_CONSTRAINTS = "conflicting_constraints"
+    UNPARSED_CONSTRAINT = "unparsed_constraint"
+
+
+class FeatureField(StrEnum):
+    FAMILY_PLAYGROUND = "family_playground"
+    PUBLIC_ACCESS = "public_access"
+    POWER_OUTLETS = "power_outlets"
+
+
 class MissingField(StrEnum):
     ORIGIN = "origin"
     AVAILABLE_MINUTES = "available_minutes"
@@ -101,6 +114,10 @@ class MissingField(StrEnum):
     TRAVEL_MINUTES = "travel_minutes_estimate"
     WEATHER = "weather"
     SESSION_TIME = "session_time"
+    CHILD_SUITABILITY = "child_suitability"
+    AGE_RESTRICTIONS = "age_restrictions"
+    POWER_OUTLETS = "power_outlets"
+    PUBLIC_ACCESS = "public_access"
 
 
 class SourceProvider(StrEnum):
@@ -278,13 +295,82 @@ class CardDetails(ContractModel):
         return self
 
 
+class FeatureEvidence(ContractModel):
+    """A checked source assertion, never an on-site or age-safety guarantee."""
+
+    field: FeatureField
+    value: StrictBool
+    source_id: Identifier
+    source_field: Text
+    source_value: Text
+    source_version: Annotated[int, Field(ge=1, strict=True)]
+    source_updated_at: AwareDatetime
+    checked_at: AwareDatetime
+    observed_at: AwareDatetime | None = None
+
+    @model_validator(mode="after")
+    def source_assertion_is_supported(self) -> Self:
+        values = {
+            FeatureField.FAMILY_PLAYGROUND: {("leisure", "playground"): True},
+            FeatureField.PUBLIC_ACCESS: {
+                ("access", "yes"): True,
+                ("access", "public"): True,
+                ("access", "no"): False,
+                ("access", "private"): False,
+            },
+            FeatureField.POWER_OUTLETS: {
+                ("service:electricity", "yes"): True,
+                ("service:electricity", "limited"): True,
+                ("service:electricity", "no"): False,
+                ("power_supply", "yes"): True,
+                ("power_supply", "no"): False,
+            },
+        }
+        expected = values[self.field].get((self.source_field, self.source_value))
+        if expected is None or self.value is not expected:
+            raise ValueError("Feature is not supported by an explicit source tag")
+        if self.source_updated_at > self.checked_at or self.observed_at is not None:
+            raise ValueError("Source check dates must not imply an on-site observation")
+        return self
+
+
+def validate_feature_evidence(poi: POIRecord, evidence: list[FeatureEvidence]) -> None:
+    if len({item.field for item in evidence}) != len(evidence):
+        raise ValueError("Feature evidence must be unique per field")
+    sources = {source.source_id: source for source in poi.sources}
+    for item in evidence:
+        source = sources.get(item.source_id)
+        if (
+            source is None
+            or source.provider not in (SourceProvider.OSM, SourceProvider.TEST_FIXTURE)
+            or not source.storage_allowed
+            or not source.indexing_allowed
+            or item.checked_at > source.retrieved_at
+            or source.url.username is not None
+            or source.url.password is not None
+        ):
+            raise ValueError("Feature evidence needs an included permitted checked source")
+
+
 class POICard(CardDetails):
     poi: POIRecord
+    feature_evidence: Annotated[list[FeatureEvidence], Field(max_length=3)] = Field(
+        default_factory=list
+    )
+    name_is_derived: StrictBool = False
 
     @model_validator(mode="after")
     def matching_activity(self) -> Self:
         if self.activity_code != self.poi.activity_code:
             raise ValueError("Card and POI activity codes must match")
+        validate_feature_evidence(self.poi, self.feature_evidence)
+        facts = {item.field: item.value for item in self.feature_evidence}
+        for reason, field in (
+            (ReasonCode.FAMILY_PLAYGROUND_MATCH, FeatureField.FAMILY_PLAYGROUND),
+            (ReasonCode.POWER_OUTLETS_MATCH, FeatureField.POWER_OUTLETS),
+        ):
+            if reason in self.reason_codes and facts.get(field) is not True:
+                raise ValueError("A matched feature reason needs positive source evidence")
         return self
 
 
@@ -301,10 +387,18 @@ class EventCard(CardDetails):
         return self
 
 
+class ConstraintClarification(ContractModel):
+    field: ExplicitField
+    reason: ClarificationReason
+
+
 class Warning(ContractModel):
     code: WarningCode
     message: Text
     fields: list[MissingField] = Field(default_factory=list)
+    clarifications: Annotated[list[ConstraintClarification], Field(max_length=6)] = Field(
+        default_factory=list
+    )
 
 
 class SearchResponse[T: CardDetails](ContractModel):

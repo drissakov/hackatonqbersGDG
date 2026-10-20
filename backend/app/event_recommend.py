@@ -6,7 +6,11 @@ from datetime import UTC, datetime
 
 from pydantic import ValidationError
 
-from backend.app.constraints import MAX_CARD_TRAVEL_MINUTES, unsupported_requirements
+from backend.app.constraints import (
+    MAX_CARD_TRAVEL_MINUTES,
+    unsupported_requirement_fields,
+    unsupported_requirements,
+)
 from backend.app.database import DatabaseUnavailable
 from backend.app.event_constraints import evaluate_event_session
 from backend.app.event_evidence import has_source_cancellation
@@ -19,9 +23,14 @@ from backend.app.event_schemas import (
     transient_source_id,
 )
 from backend.app.explain import ExplanationService, fallback_explanation
-from backend.app.intent import IntentExtractor
+from backend.app.intent import IntentExtractor, constraint_clarifications
 from backend.app.openai_client import AIClient, ProviderError
-from backend.app.recommend import MESSAGES, ROUTE_DEADLINE_SECONDS, SHORTLIST_LIMIT
+from backend.app.recommend import (
+    MESSAGES,
+    ROUTE_DEADLINE_SECONDS,
+    SHORTLIST_LIMIT,
+    unsupported_requirement_message,
+)
 from backend.app.schemas import (
     Action,
     EventSearchRequest,
@@ -78,7 +87,17 @@ class D03Client:
         return batch.model_dump_json()
 
 
-def _empty(request, *, status, code, locale_message, provider_status=None, live="not_run"):
+def _empty(
+    request,
+    *,
+    status,
+    code,
+    locale_message,
+    provider_status=None,
+    live="not_run",
+    fields=(),
+    clarifications=(),
+):
     return TransientEventSearchResponse(
         request_id=request.request_id,
         status=status,
@@ -92,6 +111,8 @@ def _empty(request, *, status, code, locale_message, provider_status=None, live=
             Warning(
                 code="provider_unavailable" if status == "unavailable" else "missing_input",
                 message=locale_message,
+                fields=list(fields),
+                clarifications=list(clarifications),
             )
         ],
     )
@@ -145,12 +166,14 @@ class EventRecommendationService:
 
         observed = current_time()
         messages = MESSAGES[request.locale]
-        if unsupported_requirements(request.query):
+        unsupported = unsupported_requirements(request.query)
+        if unsupported:
             return _empty(
                 request,
                 status="unknown",
                 code="unsupported_fact_requirement",
-                locale_message=messages["facts"],
+                locale_message=unsupported_requirement_message(request.locale, unsupported),
+                fields=unsupported_requirement_fields(request.query),
             )
         if self.client is None:
             return _empty(
@@ -165,9 +188,8 @@ class EventRecommendationService:
                 request,
                 status="unknown",
                 code="constraint_clarification",
-                locale_message=messages["clarification"].format(
-                    fields=", ".join(extracted.clarification_fields)
-                ),
+                locale_message=messages["clarification"],
+                clarifications=constraint_clarifications(extracted),
             )
         if extracted.status != "ok" or extracted.intent is None:
             return _empty(
@@ -176,6 +198,16 @@ class EventRecommendationService:
                 code=extracted.reason or "intent_provider_unavailable",
                 locale_message=messages["unavailable"],
             )
+        intent = extracted.intent
+        unsupported = unsupported_requirements(request.query, interests=intent.interests)
+        if unsupported:
+            return _empty(
+                request,
+                status="unknown",
+                code="unsupported_fact_requirement",
+                locale_message=unsupported_requirement_message(request.locale, unsupported),
+                fields=unsupported_requirement_fields(request.query, interests=intent.interests),
+            )
         if not callable(getattr(self.client, "search_web", None)):
             return _empty(
                 request,
@@ -183,7 +215,6 @@ class EventRecommendationService:
                 code="shared_web_search_method_missing",
                 locale_message=messages["unavailable"],
             )
-        intent = extracted.intent
         resolved_request = request.model_copy(
             update={
                 "origin": intent.origin,

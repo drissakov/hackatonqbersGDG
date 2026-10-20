@@ -1,0 +1,1426 @@
+{
+  "checked_at": "2026-10-20T17:34:42.518272Z",
+  "format_version": "qadam-poi-features-v1",
+  "records": [
+    {
+      "coordinate_precision": "node",
+      "evidence": [
+        {
+          "checked_at": "2026-10-20T17:34:42.518272Z",
+          "field": "family_playground",
+          "observed_at": null,
+          "source_field": "leisure",
+          "source_id": "osm:node:5974619185",
+          "source_updated_at": "2024-02-01T14:28:00Z",
+          "source_value": "playground",
+          "source_version": 2,
+          "value": true
+        },
+        {
+          "checked_at": "2026-10-20T17:34:42.518272Z",
+          "field": "public_access",
+          "observed_at": null,
+          "source_field": "access",
+          "source_id": "osm:node:5974619185",
+          "source_updated_at": "2024-02-01T14:28:00Z",
+          "source_value": "yes",
+          "source_version": 2,
+          "value": true
+        }
+      ],
+      "name_is_derived": true,
+      "poi": {
+        "activity_code": "entertainment",
+        "address": null,
+        "description": null,
+        "external_id": "node/5974619185",
+        "id": "osm:node:5974619185",
+        "indoor": null,
+        "is_test": false,
+        "location": {
+          "latitude": 51.1471347,
+          "longitude": 71.4869137
+        },
+        "name": "Unnamed playground (OSM node/5974619185)",
+        "opening_hours_text": null,
+        "price_kzt_per_person": null,
+        "primary_source_id": "osm:node:5974619185",
+        "provenance": [
+          {
+            "external_id": "node/5974619185",
+            "fields": [
+              "location",
+              "activity_code"
+            ],
+            "observed_at": null,
+            "source_id": "osm:node:5974619185"
+          }
+        ],
+        "sources": [
+          {
+            "indexing_allowed": true,
+            "is_test": false,
+            "license": "Open Database License (ODbL) 1.0",
+            "provider": "osm",
+            "retrieved_at": "2026-10-20T17:34:42.518272Z",
+            "rights_basis_url": "https://www.openstreetmap.org/copyright",
+            "source_id": "osm:node:5974619185",
+            "storage_allowed": true,
+            "url": "https://www.openstreetmap.org/node/5974619185"
+          }
+        ],
+        "visit_minutes_estimate": null
+      }
+    },
+    {
+      "coordinate_precision": "area_representative",
+      "evidence": [
+        {
+          "checked_at": "2026-10-20T17:34:42.518272Z",
+          "field": "family_playground",
+          "observed_at": null,
+          "source_field": "leisure",
+          "source_id": "osm:way:548481893",
+          "source_updated_at": "2017-12-22T03:25:42Z",
+          "source_value": "playground",
+          "source_version": 1,
+          "value": true
+        },
+        {
+          "checked_at": "2026-10-20T17:34:42.518272Z",
+          "field": "public_access",
+          "observed_at": null,
+          "source_field": "access",
+          "source_id": "osm:way:548481893",
+          "source_updated_at": "2017-12-22T03:25:42Z",
+          "source_value": "yes",
+          "source_version": 1,
+          "value": true
+        }
+      ],
+      "name_is_derived": true,
+      "poi": {
+        "activity_code": "entertainment",
+        "address": null,
+        "description": null,
+        "external_id": "way/548481893",
+        "id": "osm:way:548481893",
+        "indoor": null,
+        "is_test": false,
+        "location": {
+          "latitude": 51.1485558,
+          "longitude": 71.48182657873181
+        },
+        "name": "Unnamed playground (OSM way/548481893)",
+        "opening_hours_text": null,
+        "price_kzt_per_person": null,
+        "primary_source_id": "osm:way:548481893",
+        "provenance": [
+          {
+            "external_id": "way/548481893",
+            "fields": [
+              "location",
+              "activity_code"
+            ],
+            "observed_at": null,
+            "source_id": "osm:way:548481893"
+          }
+        ],
+        "sources": [
+          {
+            "indexing_allowed": true,
+            "is_test": false,
+            "license": "Open Database License (ODbL) 1.0",
+            "provider": "osm",
+            "retrieved_at": "2026-10-20T17:34:42.518272Z",
+            "rights_basis_url": "https://www.openstreetmap.org/copyright",
+            "source_id": "osm:way:548481893",
+            "storage_allowed": true,
+            "url": "https://www.openstreetmap.org/way/548481893"
+          }
+        ],
+        "visit_minutes_estimate": null
+      }
+    },
+    {
+      "coordinate_precision": "area_representative",
+      "evidence": [
+        {
+          "checked_at": "2026-10-20T17:34:42.518272Z",
+          "field": "family_playground",
+          "observed_at": null,
+          "source_field": "leisure",
+          "source_id": "osm:way:556574293",
+          "source_updated_at": "2018-01-28T21:45:39Z",
+          "source_value": "playground",
+          "source_version": 1,
+          "value": true
+        },
+        {
+          "checked_at": "2026-10-20T17:34:42.518272Z",
+          "field": "public_access",
+          "observed_at": null,
+          "source_field": "access",
+          "source_id": "osm:way:556574293",
+          "source_updated_at": "2018-01-28T21:45:39Z",
+          "source_value": "yes",
+          "source_version": 1,
+          "value": true
+        }
+      ],
+      "name_is_derived": true,
+      "poi": {
+        "activity_code": "entertainment",
+        "address": null,
+        "description": null,
+        "external_id": "way/556574293",
+        "id": "osm:way:556574293",
+        "indoor": null,
+        "is_test": false,
+        "location": {
+          "latitude": 51.14741475,
+          "longitude": 71.46406405
+        },
+        "name": "Unnamed playground (OSM way/556574293)",
+        "opening_hours_text": null,
+        "price_kzt_per_person": null,
+        "primary_source_id": "osm:way:556574293",
+        "provenance": [
+          {
+            "external_id": "way/556574293",
+            "fields": [
+              "location",
+              "activity_code"
+            ],
+            "observed_at": null,
+            "source_id": "osm:way:556574293"
+          }
+        ],
+        "sources": [
+          {
+            "indexing_allowed": true,
+            "is_test": false,
+            "license": "Open Database License (ODbL) 1.0",
+            "provider": "osm",
+            "retrieved_at": "2026-10-20T17:34:42.518272Z",
+            "rights_basis_url": "https://www.openstreetmap.org/copyright",
+            "source_id": "osm:way:556574293",
+            "storage_allowed": true,
+            "url": "https://www.openstreetmap.org/way/556574293"
+          }
+        ],
+        "visit_minutes_estimate": null
+      }
+    },
+    {
+      "coordinate_precision": "area_representative",
+      "evidence": [
+        {
+          "checked_at": "2026-10-20T17:34:42.518272Z",
+          "field": "family_playground",
+          "observed_at": null,
+          "source_field": "leisure",
+          "source_id": "osm:way:556574296",
+          "source_updated_at": "2018-01-28T21:45:40Z",
+          "source_value": "playground",
+          "source_version": 1,
+          "value": true
+        },
+        {
+          "checked_at": "2026-10-20T17:34:42.518272Z",
+          "field": "public_access",
+          "observed_at": null,
+          "source_field": "access",
+          "source_id": "osm:way:556574296",
+          "source_updated_at": "2018-01-28T21:45:40Z",
+          "source_value": "yes",
+          "source_version": 1,
+          "value": true
+        }
+      ],
+      "name_is_derived": true,
+      "poi": {
+        "activity_code": "entertainment",
+        "address": null,
+        "description": null,
+        "external_id": "way/556574296",
+        "id": "osm:way:556574296",
+        "indoor": null,
+        "is_test": false,
+        "location": {
+          "latitude": 51.1484069,
+          "longitude": 71.4645812
+        },
+        "name": "Unnamed playground (OSM way/556574296)",
+        "opening_hours_text": null,
+        "price_kzt_per_person": null,
+        "primary_source_id": "osm:way:556574296",
+        "provenance": [
+          {
+            "external_id": "way/556574296",
+            "fields": [
+              "location",
+              "activity_code"
+            ],
+            "observed_at": null,
+            "source_id": "osm:way:556574296"
+          }
+        ],
+        "sources": [
+          {
+            "indexing_allowed": true,
+            "is_test": false,
+            "license": "Open Database License (ODbL) 1.0",
+            "provider": "osm",
+            "retrieved_at": "2026-10-20T17:34:42.518272Z",
+            "rights_basis_url": "https://www.openstreetmap.org/copyright",
+            "source_id": "osm:way:556574296",
+            "storage_allowed": true,
+            "url": "https://www.openstreetmap.org/way/556574296"
+          }
+        ],
+        "visit_minutes_estimate": null
+      }
+    },
+    {
+      "coordinate_precision": "area_representative",
+      "evidence": [
+        {
+          "checked_at": "2026-10-20T17:34:42.518272Z",
+          "field": "family_playground",
+          "observed_at": null,
+          "source_field": "leisure",
+          "source_id": "osm:way:630878567",
+          "source_updated_at": "2026-09-20T17:24:53Z",
+          "source_value": "playground",
+          "source_version": 2,
+          "value": true
+        },
+        {
+          "checked_at": "2026-10-20T17:34:42.518272Z",
+          "field": "public_access",
+          "observed_at": null,
+          "source_field": "access",
+          "source_id": "osm:way:630878567",
+          "source_updated_at": "2026-09-20T17:24:53Z",
+          "source_value": "yes",
+          "source_version": 2,
+          "value": true
+        }
+      ],
+      "name_is_derived": true,
+      "poi": {
+        "activity_code": "entertainment",
+        "address": null,
+        "description": null,
+        "external_id": "way/630878567",
+        "id": "osm:way:630878567",
+        "indoor": null,
+        "is_test": false,
+        "location": {
+          "latitude": 51.1491908,
+          "longitude": 71.38510416073112
+        },
+        "name": "Unnamed playground (OSM way/630878567)",
+        "opening_hours_text": null,
+        "price_kzt_per_person": null,
+        "primary_source_id": "osm:way:630878567",
+        "provenance": [
+          {
+            "external_id": "way/630878567",
+            "fields": [
+              "location",
+              "activity_code"
+            ],
+            "observed_at": null,
+            "source_id": "osm:way:630878567"
+          }
+        ],
+        "sources": [
+          {
+            "indexing_allowed": true,
+            "is_test": false,
+            "license": "Open Database License (ODbL) 1.0",
+            "provider": "osm",
+            "retrieved_at": "2026-10-20T17:34:42.518272Z",
+            "rights_basis_url": "https://www.openstreetmap.org/copyright",
+            "source_id": "osm:way:630878567",
+            "storage_allowed": true,
+            "url": "https://www.openstreetmap.org/way/630878567"
+          }
+        ],
+        "visit_minutes_estimate": null
+      }
+    },
+    {
+      "coordinate_precision": "area_representative",
+      "evidence": [
+        {
+          "checked_at": "2026-10-20T17:34:42.518272Z",
+          "field": "family_playground",
+          "observed_at": null,
+          "source_field": "leisure",
+          "source_id": "osm:way:684508280",
+          "source_updated_at": "2026-03-11T06:04:04Z",
+          "source_value": "playground",
+          "source_version": 3,
+          "value": true
+        },
+        {
+          "checked_at": "2026-10-20T17:34:42.518272Z",
+          "field": "public_access",
+          "observed_at": null,
+          "source_field": "access",
+          "source_id": "osm:way:684508280",
+          "source_updated_at": "2026-03-11T06:04:04Z",
+          "source_value": "yes",
+          "source_version": 3,
+          "value": true
+        }
+      ],
+      "name_is_derived": true,
+      "poi": {
+        "activity_code": "entertainment",
+        "address": null,
+        "description": null,
+        "external_id": "way/684508280",
+        "id": "osm:way:684508280",
+        "indoor": null,
+        "is_test": false,
+        "location": {
+          "latitude": 51.1245499,
+          "longitude": 71.59021726766605
+        },
+        "name": "Unnamed playground (OSM way/684508280)",
+        "opening_hours_text": "24/7",
+        "price_kzt_per_person": null,
+        "primary_source_id": "osm:way:684508280",
+        "provenance": [
+          {
+            "external_id": "way/684508280",
+            "fields": [
+              "location",
+              "activity_code",
+              "opening_hours_text"
+            ],
+            "observed_at": null,
+            "source_id": "osm:way:684508280"
+          }
+        ],
+        "sources": [
+          {
+            "indexing_allowed": true,
+            "is_test": false,
+            "license": "Open Database License (ODbL) 1.0",
+            "provider": "osm",
+            "retrieved_at": "2026-10-20T17:34:42.518272Z",
+            "rights_basis_url": "https://www.openstreetmap.org/copyright",
+            "source_id": "osm:way:684508280",
+            "storage_allowed": true,
+            "url": "https://www.openstreetmap.org/way/684508280"
+          }
+        ],
+        "visit_minutes_estimate": null
+      }
+    },
+    {
+      "coordinate_precision": "area_representative",
+      "evidence": [
+        {
+          "checked_at": "2026-10-20T17:34:42.518272Z",
+          "field": "family_playground",
+          "observed_at": null,
+          "source_field": "leisure",
+          "source_id": "osm:way:1134745702",
+          "source_updated_at": "2025-06-08T12:38:31Z",
+          "source_value": "playground",
+          "source_version": 2,
+          "value": true
+        },
+        {
+          "checked_at": "2026-10-20T17:34:42.518272Z",
+          "field": "public_access",
+          "observed_at": null,
+          "source_field": "access",
+          "source_id": "osm:way:1134745702",
+          "source_updated_at": "2025-06-08T12:38:31Z",
+          "source_value": "yes",
+          "source_version": 2,
+          "value": true
+        }
+      ],
+      "name_is_derived": true,
+      "poi": {
+        "activity_code": "entertainment",
+        "address": null,
+        "description": null,
+        "external_id": "way/1134745702",
+        "id": "osm:way:1134745702",
+        "indoor": null,
+        "is_test": false,
+        "location": {
+          "latitude": 51.1388224,
+          "longitude": 71.40971545049374
+        },
+        "name": "Unnamed playground (OSM way/1134745702)",
+        "opening_hours_text": null,
+        "price_kzt_per_person": null,
+        "primary_source_id": "osm:way:1134745702",
+        "provenance": [
+          {
+            "external_id": "way/1134745702",
+            "fields": [
+              "location",
+              "activity_code"
+            ],
+            "observed_at": null,
+            "source_id": "osm:way:1134745702"
+          }
+        ],
+        "sources": [
+          {
+            "indexing_allowed": true,
+            "is_test": false,
+            "license": "Open Database License (ODbL) 1.0",
+            "provider": "osm",
+            "retrieved_at": "2026-10-20T17:34:42.518272Z",
+            "rights_basis_url": "https://www.openstreetmap.org/copyright",
+            "source_id": "osm:way:1134745702",
+            "storage_allowed": true,
+            "url": "https://www.openstreetmap.org/way/1134745702"
+          }
+        ],
+        "visit_minutes_estimate": null
+      }
+    },
+    {
+      "coordinate_precision": "area_representative",
+      "evidence": [
+        {
+          "checked_at": "2026-10-20T17:34:42.518272Z",
+          "field": "family_playground",
+          "observed_at": null,
+          "source_field": "leisure",
+          "source_id": "osm:way:1353669946",
+          "source_updated_at": "2025-01-23T13:34:51Z",
+          "source_value": "playground",
+          "source_version": 1,
+          "value": true
+        },
+        {
+          "checked_at": "2026-10-20T17:34:42.518272Z",
+          "field": "public_access",
+          "observed_at": null,
+          "source_field": "access",
+          "source_id": "osm:way:1353669946",
+          "source_updated_at": "2025-01-23T13:34:51Z",
+          "source_value": "yes",
+          "source_version": 1,
+          "value": true
+        }
+      ],
+      "name_is_derived": true,
+      "poi": {
+        "activity_code": "entertainment",
+        "address": null,
+        "description": null,
+        "external_id": "way/1353669946",
+        "id": "osm:way:1353669946",
+        "indoor": null,
+        "is_test": false,
+        "location": {
+          "latitude": 51.152574400000006,
+          "longitude": 71.46638731696203
+        },
+        "name": "Unnamed playground (OSM way/1353669946)",
+        "opening_hours_text": null,
+        "price_kzt_per_person": null,
+        "primary_source_id": "osm:way:1353669946",
+        "provenance": [
+          {
+            "external_id": "way/1353669946",
+            "fields": [
+              "location",
+              "activity_code"
+            ],
+            "observed_at": null,
+            "source_id": "osm:way:1353669946"
+          }
+        ],
+        "sources": [
+          {
+            "indexing_allowed": true,
+            "is_test": false,
+            "license": "Open Database License (ODbL) 1.0",
+            "provider": "osm",
+            "retrieved_at": "2026-10-20T17:34:42.518272Z",
+            "rights_basis_url": "https://www.openstreetmap.org/copyright",
+            "source_id": "osm:way:1353669946",
+            "storage_allowed": true,
+            "url": "https://www.openstreetmap.org/way/1353669946"
+          }
+        ],
+        "visit_minutes_estimate": null
+      }
+    },
+    {
+      "coordinate_precision": "area_representative",
+      "evidence": [
+        {
+          "checked_at": "2026-10-20T17:34:42.518272Z",
+          "field": "family_playground",
+          "observed_at": null,
+          "source_field": "leisure",
+          "source_id": "osm:way:1376420317",
+          "source_updated_at": "2025-04-10T09:26:41Z",
+          "source_value": "playground",
+          "source_version": 1,
+          "value": true
+        },
+        {
+          "checked_at": "2026-10-20T17:34:42.518272Z",
+          "field": "public_access",
+          "observed_at": null,
+          "source_field": "access",
+          "source_id": "osm:way:1376420317",
+          "source_updated_at": "2025-04-10T09:26:41Z",
+          "source_value": "yes",
+          "source_version": 1,
+          "value": true
+        }
+      ],
+      "name_is_derived": true,
+      "poi": {
+        "activity_code": "entertainment",
+        "address": null,
+        "description": null,
+        "external_id": "way/1376420317",
+        "id": "osm:way:1376420317",
+        "indoor": null,
+        "is_test": false,
+        "location": {
+          "latitude": 51.18100545,
+          "longitude": 71.4085280852843
+        },
+        "name": "Unnamed playground (OSM way/1376420317)",
+        "opening_hours_text": null,
+        "price_kzt_per_person": null,
+        "primary_source_id": "osm:way:1376420317",
+        "provenance": [
+          {
+            "external_id": "way/1376420317",
+            "fields": [
+              "location",
+              "activity_code"
+            ],
+            "observed_at": null,
+            "source_id": "osm:way:1376420317"
+          }
+        ],
+        "sources": [
+          {
+            "indexing_allowed": true,
+            "is_test": false,
+            "license": "Open Database License (ODbL) 1.0",
+            "provider": "osm",
+            "retrieved_at": "2026-10-20T17:34:42.518272Z",
+            "rights_basis_url": "https://www.openstreetmap.org/copyright",
+            "source_id": "osm:way:1376420317",
+            "storage_allowed": true,
+            "url": "https://www.openstreetmap.org/way/1376420317"
+          }
+        ],
+        "visit_minutes_estimate": null
+      }
+    },
+    {
+      "coordinate_precision": "area_representative",
+      "evidence": [
+        {
+          "checked_at": "2026-10-20T17:34:42.518272Z",
+          "field": "family_playground",
+          "observed_at": null,
+          "source_field": "leisure",
+          "source_id": "osm:way:1376451147",
+          "source_updated_at": "2025-04-10T12:07:58Z",
+          "source_value": "playground",
+          "source_version": 1,
+          "value": true
+        },
+        {
+          "checked_at": "2026-10-20T17:34:42.518272Z",
+          "field": "public_access",
+          "observed_at": null,
+          "source_field": "access",
+          "source_id": "osm:way:1376451147",
+          "source_updated_at": "2025-04-10T12:07:58Z",
+          "source_value": "yes",
+          "source_version": 1,
+          "value": true
+        }
+      ],
+      "name_is_derived": true,
+      "poi": {
+        "activity_code": "entertainment",
+        "address": null,
+        "description": null,
+        "external_id": "way/1376451147",
+        "id": "osm:way:1376451147",
+        "indoor": null,
+        "is_test": false,
+        "location": {
+          "latitude": 51.16559075000001,
+          "longitude": 71.41555011138462
+        },
+        "name": "Unnamed playground (OSM way/1376451147)",
+        "opening_hours_text": null,
+        "price_kzt_per_person": null,
+        "primary_source_id": "osm:way:1376451147",
+        "provenance": [
+          {
+            "external_id": "way/1376451147",
+            "fields": [
+              "location",
+              "activity_code"
+            ],
+            "observed_at": null,
+            "source_id": "osm:way:1376451147"
+          }
+        ],
+        "sources": [
+          {
+            "indexing_allowed": true,
+            "is_test": false,
+            "license": "Open Database License (ODbL) 1.0",
+            "provider": "osm",
+            "retrieved_at": "2026-10-20T17:34:42.518272Z",
+            "rights_basis_url": "https://www.openstreetmap.org/copyright",
+            "source_id": "osm:way:1376451147",
+            "storage_allowed": true,
+            "url": "https://www.openstreetmap.org/way/1376451147"
+          }
+        ],
+        "visit_minutes_estimate": null
+      }
+    },
+    {
+      "coordinate_precision": "area_representative",
+      "evidence": [
+        {
+          "checked_at": "2026-10-20T17:34:42.518272Z",
+          "field": "family_playground",
+          "observed_at": null,
+          "source_field": "leisure",
+          "source_id": "osm:way:1431518862",
+          "source_updated_at": "2025-09-20T15:26:40Z",
+          "source_value": "playground",
+          "source_version": 1,
+          "value": true
+        },
+        {
+          "checked_at": "2026-10-20T17:34:42.518272Z",
+          "field": "public_access",
+          "observed_at": null,
+          "source_field": "access",
+          "source_id": "osm:way:1431518862",
+          "source_updated_at": "2025-09-20T15:26:40Z",
+          "source_value": "yes",
+          "source_version": 1,
+          "value": true
+        }
+      ],
+      "name_is_derived": true,
+      "poi": {
+        "activity_code": "entertainment",
+        "address": null,
+        "description": null,
+        "external_id": "way/1431518862",
+        "id": "osm:way:1431518862",
+        "indoor": null,
+        "is_test": false,
+        "location": {
+          "latitude": 51.1715829,
+          "longitude": 71.41619625934874
+        },
+        "name": "Unnamed playground (OSM way/1431518862)",
+        "opening_hours_text": null,
+        "price_kzt_per_person": null,
+        "primary_source_id": "osm:way:1431518862",
+        "provenance": [
+          {
+            "external_id": "way/1431518862",
+            "fields": [
+              "location",
+              "activity_code"
+            ],
+            "observed_at": null,
+            "source_id": "osm:way:1431518862"
+          }
+        ],
+        "sources": [
+          {
+            "indexing_allowed": true,
+            "is_test": false,
+            "license": "Open Database License (ODbL) 1.0",
+            "provider": "osm",
+            "retrieved_at": "2026-10-20T17:34:42.518272Z",
+            "rights_basis_url": "https://www.openstreetmap.org/copyright",
+            "source_id": "osm:way:1431518862",
+            "storage_allowed": true,
+            "url": "https://www.openstreetmap.org/way/1431518862"
+          }
+        ],
+        "visit_minutes_estimate": null
+      }
+    },
+    {
+      "coordinate_precision": "area_representative",
+      "evidence": [
+        {
+          "checked_at": "2026-10-20T17:34:42.518272Z",
+          "field": "family_playground",
+          "observed_at": null,
+          "source_field": "leisure",
+          "source_id": "osm:way:1539303592",
+          "source_updated_at": "2026-07-15T01:39:21Z",
+          "source_value": "playground",
+          "source_version": 1,
+          "value": true
+        }
+      ],
+      "name_is_derived": true,
+      "poi": {
+        "activity_code": "entertainment",
+        "address": null,
+        "description": null,
+        "external_id": "way/1539303592",
+        "id": "osm:way:1539303592",
+        "indoor": null,
+        "is_test": false,
+        "location": {
+          "latitude": 51.14787990000001,
+          "longitude": 71.52892473924065
+        },
+        "name": "Unnamed playground (OSM way/1539303592)",
+        "opening_hours_text": null,
+        "price_kzt_per_person": null,
+        "primary_source_id": "osm:way:1539303592",
+        "provenance": [
+          {
+            "external_id": "way/1539303592",
+            "fields": [
+              "location",
+              "activity_code"
+            ],
+            "observed_at": null,
+            "source_id": "osm:way:1539303592"
+          }
+        ],
+        "sources": [
+          {
+            "indexing_allowed": true,
+            "is_test": false,
+            "license": "Open Database License (ODbL) 1.0",
+            "provider": "osm",
+            "retrieved_at": "2026-10-20T17:34:42.518272Z",
+            "rights_basis_url": "https://www.openstreetmap.org/copyright",
+            "source_id": "osm:way:1539303592",
+            "storage_allowed": true,
+            "url": "https://www.openstreetmap.org/way/1539303592"
+          }
+        ],
+        "visit_minutes_estimate": null
+      }
+    },
+    {
+      "coordinate_precision": "area_representative",
+      "evidence": [
+        {
+          "checked_at": "2026-10-20T17:34:42.518272Z",
+          "field": "family_playground",
+          "observed_at": null,
+          "source_field": "leisure",
+          "source_id": "osm:way:1539324046",
+          "source_updated_at": "2026-07-15T03:29:57Z",
+          "source_value": "playground",
+          "source_version": 1,
+          "value": true
+        }
+      ],
+      "name_is_derived": true,
+      "poi": {
+        "activity_code": "entertainment",
+        "address": null,
+        "description": null,
+        "external_id": "way/1539324046",
+        "id": "osm:way:1539324046",
+        "indoor": null,
+        "is_test": false,
+        "location": {
+          "latitude": 51.126543749999996,
+          "longitude": 71.47961679258094
+        },
+        "name": "Unnamed playground (OSM way/1539324046)",
+        "opening_hours_text": null,
+        "price_kzt_per_person": null,
+        "primary_source_id": "osm:way:1539324046",
+        "provenance": [
+          {
+            "external_id": "way/1539324046",
+            "fields": [
+              "location",
+              "activity_code"
+            ],
+            "observed_at": null,
+            "source_id": "osm:way:1539324046"
+          }
+        ],
+        "sources": [
+          {
+            "indexing_allowed": true,
+            "is_test": false,
+            "license": "Open Database License (ODbL) 1.0",
+            "provider": "osm",
+            "retrieved_at": "2026-10-20T17:34:42.518272Z",
+            "rights_basis_url": "https://www.openstreetmap.org/copyright",
+            "source_id": "osm:way:1539324046",
+            "storage_allowed": true,
+            "url": "https://www.openstreetmap.org/way/1539324046"
+          }
+        ],
+        "visit_minutes_estimate": null
+      }
+    },
+    {
+      "coordinate_precision": "area_representative",
+      "evidence": [
+        {
+          "checked_at": "2026-10-20T17:34:42.518272Z",
+          "field": "family_playground",
+          "observed_at": null,
+          "source_field": "leisure",
+          "source_id": "osm:way:1539729832",
+          "source_updated_at": "2026-07-16T11:54:07Z",
+          "source_value": "playground",
+          "source_version": 1,
+          "value": true
+        }
+      ],
+      "name_is_derived": true,
+      "poi": {
+        "activity_code": "entertainment",
+        "address": null,
+        "description": null,
+        "external_id": "way/1539729832",
+        "id": "osm:way:1539729832",
+        "indoor": null,
+        "is_test": false,
+        "location": {
+          "latitude": 51.1610841,
+          "longitude": 71.47168700791866
+        },
+        "name": "Unnamed playground (OSM way/1539729832)",
+        "opening_hours_text": null,
+        "price_kzt_per_person": null,
+        "primary_source_id": "osm:way:1539729832",
+        "provenance": [
+          {
+            "external_id": "way/1539729832",
+            "fields": [
+              "location",
+              "activity_code"
+            ],
+            "observed_at": null,
+            "source_id": "osm:way:1539729832"
+          }
+        ],
+        "sources": [
+          {
+            "indexing_allowed": true,
+            "is_test": false,
+            "license": "Open Database License (ODbL) 1.0",
+            "provider": "osm",
+            "retrieved_at": "2026-10-20T17:34:42.518272Z",
+            "rights_basis_url": "https://www.openstreetmap.org/copyright",
+            "source_id": "osm:way:1539729832",
+            "storage_allowed": true,
+            "url": "https://www.openstreetmap.org/way/1539729832"
+          }
+        ],
+        "visit_minutes_estimate": null
+      }
+    },
+    {
+      "coordinate_precision": "area_representative",
+      "evidence": [
+        {
+          "checked_at": "2026-10-20T17:34:42.518272Z",
+          "field": "family_playground",
+          "observed_at": null,
+          "source_field": "leisure",
+          "source_id": "osm:way:1539729974",
+          "source_updated_at": "2026-07-16T11:54:07Z",
+          "source_value": "playground",
+          "source_version": 1,
+          "value": true
+        }
+      ],
+      "name_is_derived": true,
+      "poi": {
+        "activity_code": "entertainment",
+        "address": null,
+        "description": null,
+        "external_id": "way/1539729974",
+        "id": "osm:way:1539729974",
+        "indoor": null,
+        "is_test": false,
+        "location": {
+          "latitude": 51.14266525,
+          "longitude": 71.51583004014627
+        },
+        "name": "Unnamed playground (OSM way/1539729974)",
+        "opening_hours_text": null,
+        "price_kzt_per_person": null,
+        "primary_source_id": "osm:way:1539729974",
+        "provenance": [
+          {
+            "external_id": "way/1539729974",
+            "fields": [
+              "location",
+              "activity_code"
+            ],
+            "observed_at": null,
+            "source_id": "osm:way:1539729974"
+          }
+        ],
+        "sources": [
+          {
+            "indexing_allowed": true,
+            "is_test": false,
+            "license": "Open Database License (ODbL) 1.0",
+            "provider": "osm",
+            "retrieved_at": "2026-10-20T17:34:42.518272Z",
+            "rights_basis_url": "https://www.openstreetmap.org/copyright",
+            "source_id": "osm:way:1539729974",
+            "storage_allowed": true,
+            "url": "https://www.openstreetmap.org/way/1539729974"
+          }
+        ],
+        "visit_minutes_estimate": null
+      }
+    },
+    {
+      "coordinate_precision": "area_representative",
+      "evidence": [
+        {
+          "checked_at": "2026-10-20T17:34:42.518272Z",
+          "field": "family_playground",
+          "observed_at": null,
+          "source_field": "leisure",
+          "source_id": "osm:way:1539729990",
+          "source_updated_at": "2026-07-16T11:54:07Z",
+          "source_value": "playground",
+          "source_version": 1,
+          "value": true
+        }
+      ],
+      "name_is_derived": true,
+      "poi": {
+        "activity_code": "entertainment",
+        "address": null,
+        "description": null,
+        "external_id": "way/1539729990",
+        "id": "osm:way:1539729990",
+        "indoor": null,
+        "is_test": false,
+        "location": {
+          "latitude": 51.14583595,
+          "longitude": 71.50740285
+        },
+        "name": "Unnamed playground (OSM way/1539729990)",
+        "opening_hours_text": null,
+        "price_kzt_per_person": null,
+        "primary_source_id": "osm:way:1539729990",
+        "provenance": [
+          {
+            "external_id": "way/1539729990",
+            "fields": [
+              "location",
+              "activity_code"
+            ],
+            "observed_at": null,
+            "source_id": "osm:way:1539729990"
+          }
+        ],
+        "sources": [
+          {
+            "indexing_allowed": true,
+            "is_test": false,
+            "license": "Open Database License (ODbL) 1.0",
+            "provider": "osm",
+            "retrieved_at": "2026-10-20T17:34:42.518272Z",
+            "rights_basis_url": "https://www.openstreetmap.org/copyright",
+            "source_id": "osm:way:1539729990",
+            "storage_allowed": true,
+            "url": "https://www.openstreetmap.org/way/1539729990"
+          }
+        ],
+        "visit_minutes_estimate": null
+      }
+    },
+    {
+      "coordinate_precision": "area_representative",
+      "evidence": [
+        {
+          "checked_at": "2026-10-20T17:34:42.518272Z",
+          "field": "family_playground",
+          "observed_at": null,
+          "source_field": "leisure",
+          "source_id": "osm:way:1539960328",
+          "source_updated_at": "2026-07-17T07:09:22Z",
+          "source_value": "playground",
+          "source_version": 1,
+          "value": true
+        }
+      ],
+      "name_is_derived": true,
+      "poi": {
+        "activity_code": "entertainment",
+        "address": null,
+        "description": null,
+        "external_id": "way/1539960328",
+        "id": "osm:way:1539960328",
+        "indoor": null,
+        "is_test": false,
+        "location": {
+          "latitude": 51.1548564,
+          "longitude": 71.50960531812882
+        },
+        "name": "Unnamed playground (OSM way/1539960328)",
+        "opening_hours_text": null,
+        "price_kzt_per_person": null,
+        "primary_source_id": "osm:way:1539960328",
+        "provenance": [
+          {
+            "external_id": "way/1539960328",
+            "fields": [
+              "location",
+              "activity_code"
+            ],
+            "observed_at": null,
+            "source_id": "osm:way:1539960328"
+          }
+        ],
+        "sources": [
+          {
+            "indexing_allowed": true,
+            "is_test": false,
+            "license": "Open Database License (ODbL) 1.0",
+            "provider": "osm",
+            "retrieved_at": "2026-10-20T17:34:42.518272Z",
+            "rights_basis_url": "https://www.openstreetmap.org/copyright",
+            "source_id": "osm:way:1539960328",
+            "storage_allowed": true,
+            "url": "https://www.openstreetmap.org/way/1539960328"
+          }
+        ],
+        "visit_minutes_estimate": null
+      }
+    },
+    {
+      "coordinate_precision": "area_representative",
+      "evidence": [
+        {
+          "checked_at": "2026-10-20T17:34:42.518272Z",
+          "field": "family_playground",
+          "observed_at": null,
+          "source_field": "leisure",
+          "source_id": "osm:way:1546292254",
+          "source_updated_at": "2026-07-31T13:23:59Z",
+          "source_value": "playground",
+          "source_version": 1,
+          "value": true
+        }
+      ],
+      "name_is_derived": true,
+      "poi": {
+        "activity_code": "entertainment",
+        "address": null,
+        "description": null,
+        "external_id": "way/1546292254",
+        "id": "osm:way:1546292254",
+        "indoor": null,
+        "is_test": false,
+        "location": {
+          "latitude": 51.1014374,
+          "longitude": 71.44493054454472
+        },
+        "name": "Unnamed playground (OSM way/1546292254)",
+        "opening_hours_text": null,
+        "price_kzt_per_person": null,
+        "primary_source_id": "osm:way:1546292254",
+        "provenance": [
+          {
+            "external_id": "way/1546292254",
+            "fields": [
+              "location",
+              "activity_code"
+            ],
+            "observed_at": null,
+            "source_id": "osm:way:1546292254"
+          }
+        ],
+        "sources": [
+          {
+            "indexing_allowed": true,
+            "is_test": false,
+            "license": "Open Database License (ODbL) 1.0",
+            "provider": "osm",
+            "retrieved_at": "2026-10-20T17:34:42.518272Z",
+            "rights_basis_url": "https://www.openstreetmap.org/copyright",
+            "source_id": "osm:way:1546292254",
+            "storage_allowed": true,
+            "url": "https://www.openstreetmap.org/way/1546292254"
+          }
+        ],
+        "visit_minutes_estimate": null
+      }
+    },
+    {
+      "coordinate_precision": "area_representative",
+      "evidence": [
+        {
+          "checked_at": "2026-10-20T17:34:42.518272Z",
+          "field": "family_playground",
+          "observed_at": null,
+          "source_field": "leisure",
+          "source_id": "osm:way:1547970493",
+          "source_updated_at": "2026-08-07T19:12:06Z",
+          "source_value": "playground",
+          "source_version": 1,
+          "value": true
+        }
+      ],
+      "name_is_derived": true,
+      "poi": {
+        "activity_code": "entertainment",
+        "address": null,
+        "description": null,
+        "external_id": "way/1547970493",
+        "id": "osm:way:1547970493",
+        "indoor": null,
+        "is_test": false,
+        "location": {
+          "latitude": 51.040878250000006,
+          "longitude": 71.4285469006647
+        },
+        "name": "Unnamed playground (OSM way/1547970493)",
+        "opening_hours_text": null,
+        "price_kzt_per_person": null,
+        "primary_source_id": "osm:way:1547970493",
+        "provenance": [
+          {
+            "external_id": "way/1547970493",
+            "fields": [
+              "location",
+              "activity_code"
+            ],
+            "observed_at": null,
+            "source_id": "osm:way:1547970493"
+          }
+        ],
+        "sources": [
+          {
+            "indexing_allowed": true,
+            "is_test": false,
+            "license": "Open Database License (ODbL) 1.0",
+            "provider": "osm",
+            "retrieved_at": "2026-10-20T17:34:42.518272Z",
+            "rights_basis_url": "https://www.openstreetmap.org/copyright",
+            "source_id": "osm:way:1547970493",
+            "storage_allowed": true,
+            "url": "https://www.openstreetmap.org/way/1547970493"
+          }
+        ],
+        "visit_minutes_estimate": null
+      }
+    },
+    {
+      "coordinate_precision": "area_representative",
+      "evidence": [
+        {
+          "checked_at": "2026-10-20T17:34:42.518272Z",
+          "field": "family_playground",
+          "observed_at": null,
+          "source_field": "leisure",
+          "source_id": "osm:way:1549054979",
+          "source_updated_at": "2026-08-12T10:49:49Z",
+          "source_value": "playground",
+          "source_version": 1,
+          "value": true
+        }
+      ],
+      "name_is_derived": true,
+      "poi": {
+        "activity_code": "entertainment",
+        "address": null,
+        "description": null,
+        "external_id": "way/1549054979",
+        "id": "osm:way:1549054979",
+        "indoor": null,
+        "is_test": false,
+        "location": {
+          "latitude": 51.12404215,
+          "longitude": 71.41133519790512
+        },
+        "name": "Unnamed playground (OSM way/1549054979)",
+        "opening_hours_text": null,
+        "price_kzt_per_person": null,
+        "primary_source_id": "osm:way:1549054979",
+        "provenance": [
+          {
+            "external_id": "way/1549054979",
+            "fields": [
+              "location",
+              "activity_code"
+            ],
+            "observed_at": null,
+            "source_id": "osm:way:1549054979"
+          }
+        ],
+        "sources": [
+          {
+            "indexing_allowed": true,
+            "is_test": false,
+            "license": "Open Database License (ODbL) 1.0",
+            "provider": "osm",
+            "retrieved_at": "2026-10-20T17:34:42.518272Z",
+            "rights_basis_url": "https://www.openstreetmap.org/copyright",
+            "source_id": "osm:way:1549054979",
+            "storage_allowed": true,
+            "url": "https://www.openstreetmap.org/way/1549054979"
+          }
+        ],
+        "visit_minutes_estimate": null
+      }
+    },
+    {
+      "coordinate_precision": "area_representative",
+      "evidence": [
+        {
+          "checked_at": "2026-10-20T17:34:42.518272Z",
+          "field": "family_playground",
+          "observed_at": null,
+          "source_field": "leisure",
+          "source_id": "osm:way:1551295022",
+          "source_updated_at": "2026-08-21T11:52:19Z",
+          "source_value": "playground",
+          "source_version": 1,
+          "value": true
+        }
+      ],
+      "name_is_derived": true,
+      "poi": {
+        "activity_code": "entertainment",
+        "address": null,
+        "description": null,
+        "external_id": "way/1551295022",
+        "id": "osm:way:1551295022",
+        "indoor": null,
+        "is_test": false,
+        "location": {
+          "latitude": 51.14190295,
+          "longitude": 71.37003977789139
+        },
+        "name": "Unnamed playground (OSM way/1551295022)",
+        "opening_hours_text": null,
+        "price_kzt_per_person": null,
+        "primary_source_id": "osm:way:1551295022",
+        "provenance": [
+          {
+            "external_id": "way/1551295022",
+            "fields": [
+              "location",
+              "activity_code"
+            ],
+            "observed_at": null,
+            "source_id": "osm:way:1551295022"
+          }
+        ],
+        "sources": [
+          {
+            "indexing_allowed": true,
+            "is_test": false,
+            "license": "Open Database License (ODbL) 1.0",
+            "provider": "osm",
+            "retrieved_at": "2026-10-20T17:34:42.518272Z",
+            "rights_basis_url": "https://www.openstreetmap.org/copyright",
+            "source_id": "osm:way:1551295022",
+            "storage_allowed": true,
+            "url": "https://www.openstreetmap.org/way/1551295022"
+          }
+        ],
+        "visit_minutes_estimate": null
+      }
+    },
+    {
+      "coordinate_precision": "area_representative",
+      "evidence": [
+        {
+          "checked_at": "2026-10-20T17:34:42.518272Z",
+          "field": "family_playground",
+          "observed_at": null,
+          "source_field": "leisure",
+          "source_id": "osm:way:1551778177",
+          "source_updated_at": "2026-08-23T17:06:46Z",
+          "source_value": "playground",
+          "source_version": 1,
+          "value": true
+        }
+      ],
+      "name_is_derived": true,
+      "poi": {
+        "activity_code": "entertainment",
+        "address": null,
+        "description": null,
+        "external_id": "way/1551778177",
+        "id": "osm:way:1551778177",
+        "indoor": null,
+        "is_test": false,
+        "location": {
+          "latitude": 51.17150805,
+          "longitude": 71.36978053540884
+        },
+        "name": "Unnamed playground (OSM way/1551778177)",
+        "opening_hours_text": null,
+        "price_kzt_per_person": null,
+        "primary_source_id": "osm:way:1551778177",
+        "provenance": [
+          {
+            "external_id": "way/1551778177",
+            "fields": [
+              "location",
+              "activity_code"
+            ],
+            "observed_at": null,
+            "source_id": "osm:way:1551778177"
+          }
+        ],
+        "sources": [
+          {
+            "indexing_allowed": true,
+            "is_test": false,
+            "license": "Open Database License (ODbL) 1.0",
+            "provider": "osm",
+            "retrieved_at": "2026-10-20T17:34:42.518272Z",
+            "rights_basis_url": "https://www.openstreetmap.org/copyright",
+            "source_id": "osm:way:1551778177",
+            "storage_allowed": true,
+            "url": "https://www.openstreetmap.org/way/1551778177"
+          }
+        ],
+        "visit_minutes_estimate": null
+      }
+    }
+  ]
+}

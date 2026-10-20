@@ -39,6 +39,21 @@ explanations and the transient event API through the unchanged D03 normalizer;
 S04 commit and push were subsequently authorized. Remaining stage allocation
 needs coordination. No S05 work is included.
 
+## User-requested POI follow-ups (2026-10-20)
+
+- [x] POI-CONSTRAINTS / UNKNOWN-UI / CONSTRAINT-CLARIFICATIONS — preserve explicit place/event constraints, explain child/age/charging uncertainty and field corrections in kk/ru/en, and switch result language without another search.
+- [x] POI-VISIT-FALLBACK / PLAYGROUND-SEARCH — adapt short walks and source-checked playground visits, evaluate later candidates within bounded work, and recognize generic playground/family-walk requests while retaining explicit restrictions.
+- [x] POI-FEATURES implementation — validate and package a separate 22-playground source supplement, retain rights/provenance/check dates, and filter by supported facts. This completes the implemented supplement, not the original mixed family/cafe data request.
+- [x] LOCAL-SEARCH — configure ignored local OpenAI/database settings and verify real Responses, embeddings, database retrieval and browser search.
+- [ ] Mixed family/cafe data request — branch-specific customer charging evidence is still absent. The implemented catalog has no qualifying cafe; age, safety and other unsupported facts remain unknown.
+
+Commit verification: **2008 backend/ingestion tests and 461 frontend tests passed**;
+17 SQL tests require an isolated test database. Formatting, static/type checks,
+contract generation, curated validation and the frontend production build passed.
+Docker image verification is not_run because the local engine is unavailable.
+See `handoffs/POI-CONSTRAINTS-COMMIT.md`. This follow-up does not complete any
+additional S05–S08 or D03–D08 roadmap stage.
+
 ## Shared-file coordination
 
 Sabyrzhan owns root configuration, shared backend dependencies and contracts.

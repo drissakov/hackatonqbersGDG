@@ -5,6 +5,7 @@ import unavailable from '../../../contracts/examples/transient-event-unavailable
 import unknown from '../../../contracts/examples/transient-event-unknown.test.json'
 import { ApiError, parseSearchResponse, searchEvents } from './api'
 import type { TransientEventSearchResponse } from './types'
+import { withWarningDefaults } from '../test/warnings'
 
 afterEach(() => {
   vi.unstubAllGlobals()
@@ -18,7 +19,7 @@ describe('published S04 transient event boundary', () => {
       const before = structuredClone(fixture)
       const result = parseSearchResponse(fixture, 'events', 'en')
       expect(result.status).toBe(fixture.status)
-      expect(result.transient).toEqual(fixture)
+      expect(result.transient).toEqual(withWarningDefaults(fixture))
       expect(result.discovery).toBeUndefined()
       expect(result.sources).toEqual([])
       expect(fixture).toEqual(before)
@@ -71,7 +72,9 @@ describe('published S04 transient event boundary', () => {
   })
 
   it('keeps an invalid-time withheld session in its listing without promoting it to a card', () => {
-    const value = structuredClone(listing) as TransientEventSearchResponse
+    const value = withWarningDefaults(
+      structuredClone(listing),
+    ) as TransientEventSearchResponse
     const session = structuredClone(
       partial.items[0].session,
     ) as TransientEventSearchResponse['items'][number]['session']
@@ -87,7 +90,9 @@ describe('published S04 transient event boundary', () => {
   })
 
   it('rejects source checks predating observation by less than one millisecond', () => {
-    const value = structuredClone(partial) as TransientEventSearchResponse
+    const value = withWarningDefaults(
+      structuredClone(partial),
+    ) as TransientEventSearchResponse
     const session = value.items[0].session
     session.source_fetched_at = '2030-01-15T10:00:00.000999+05:00'
     session.verification_status = 'verified'
@@ -105,7 +110,9 @@ describe('published S04 transient event boundary', () => {
   })
 
   it('preserves ordered submillisecond session and verification instants', () => {
-    const value = structuredClone(partial) as TransientEventSearchResponse
+    const value = withWarningDefaults(
+      structuredClone(partial),
+    ) as TransientEventSearchResponse
     const session = value.items[0].session
     session.starts_at = '2030-01-15T19:00:00.000001+05:00'
     session.ends_at = '2030-01-15T19:00:00.000999+05:00'
@@ -232,7 +239,9 @@ describe('published S04 transient event boundary', () => {
       ],
     ]
   it.each(corruptions)('rejects %s', (_, corrupt) => {
-    const value = structuredClone(partial) as TransientEventSearchResponse
+    const value = withWarningDefaults(
+      structuredClone(partial),
+    ) as TransientEventSearchResponse
     corrupt(value)
     expect(() => parseSearchResponse(value, 'events', 'en')).toThrow(ApiError)
   })

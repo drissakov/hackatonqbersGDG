@@ -30,6 +30,7 @@ describe('live event envelope through the real frontend transport', () => {
         code: 'data_unknown',
         message: 'TEST ONLY no grounded event.',
         fields: [],
+        clarifications: [],
       },
     ]
     vi.stubGlobal(

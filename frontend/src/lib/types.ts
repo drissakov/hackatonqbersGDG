@@ -27,6 +27,10 @@ export type ReasonCode =
   | 'visit_duration_estimate'
   | 'weather_unknown'
   | 'schedule_unknown'
+  | 'family_playground_match'
+  | 'power_outlets_match'
+export type FeatureField =
+  'family_playground' | 'public_access' | 'power_outlets'
 export type WarningCode =
   | 'missing_input'
   | 'data_unknown'
@@ -42,6 +46,8 @@ export type ConstraintField =
   | 'budget_kzt_per_person'
   | 'indoor_only'
   | 'date_time'
+export type ClarificationReason =
+  'conflicting_constraints' | 'unparsed_constraint'
 export type MissingField =
   | 'origin'
   | 'available_minutes'
@@ -54,6 +60,10 @@ export type MissingField =
   | 'travel_minutes_estimate'
   | 'weather'
   | 'session_time'
+  | 'child_suitability'
+  | 'age_restrictions'
+  | 'power_outlets'
+  | 'public_access'
 export type SourceProvider =
   'osm' | 'municipal' | 'organizer' | 'twogis' | 'test_fixture' | 'other'
 
@@ -208,15 +218,33 @@ export interface CardDetails {
 
 export interface RecommendationCard extends CardDetails {
   poi: POIRecord
+  feature_evidence?: FeatureEvidence[]
+  name_is_derived?: boolean
+}
+export interface FeatureEvidence {
+  field: FeatureField
+  value: boolean
+  source_id: string
+  source_field: string
+  source_value: string
+  source_version: number
+  source_updated_at: string
+  checked_at: string
+  observed_at: string | null
 }
 export interface EventCardData extends CardDetails {
   event: EventRecord
   session: EventSession
 }
+export interface ConstraintClarification {
+  field: ConstraintField
+  reason: ClarificationReason
+}
 export interface SearchWarning {
   code: WarningCode
   message: string
   fields: MissingField[]
+  clarifications: ConstraintClarification[]
 }
 export interface SearchResponse<T extends CardDetails> {
   status: ResponseStatus

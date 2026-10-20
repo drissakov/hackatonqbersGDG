@@ -10,6 +10,31 @@
   "language": {
     "label": "Interface language"
   },
+  "constraintClarifications": {
+    "conflicting_constraints": {
+      "origin": "The starting point is ambiguous or conflicting. Select one point and make it consistent with your query.",
+      "available_minutes": "The available time is ambiguous or conflicting. Enter one total time in minutes and make it consistent with your query.",
+      "return_to_start": "The return requirement is ambiguous or conflicting. Check “Return to the starting point” and make it consistent with your query.",
+      "budget_kzt_per_person": "The budget is ambiguous or conflicting. Enter one amount per person in tenge and make it consistent with your query.",
+      "indoor_only": "The indoor requirement is ambiguous or conflicting. Check “Indoors only” and make it consistent with your query.",
+      "date_time": "The date and time are ambiguous or conflicting. Select one date and time in Astana and make it consistent with your query."
+    },
+    "unparsed_constraint": {
+      "origin": "We could not read the starting point from your query. Enter its coordinates or use the location button to find your point, then clarify your query.",
+      "available_minutes": "We could not read the available time from your query. Enter the total time as whole minutes in “Available time”, then clarify your query.",
+      "return_to_start": "We could not read whether a return is needed. Set “Return to the starting point” to your preference, then clarify your query.",
+      "budget_kzt_per_person": "We could not read the budget from your query. Enter a whole, non-negative amount in tenge in “Budget per person”, then clarify your query.",
+      "indoor_only": "We could not read the indoor requirement. Set “Indoors only” to your preference, then clarify your query.",
+      "date_time": "We could not read the date and time from your query. Fill in “Date and time in Astana”, then clarify your query."
+    },
+    "resubmit": "After correcting the preferences, run the search again."
+  },
+  "unknownReasons": {
+    "child_suitability": "We cannot confirm whether this place or event is suitable for children.",
+    "age_restrictions": "We do not have confirmed age restrictions.",
+    "power_outlets": "We cannot confirm that power outlets or device charging are available.",
+    "checkWithVenue": "Check these conditions with the venue or organizer before visiting."
+  },
   "search": {
     "title": "Plan one good outing",
     "query": "What would you like to do?",
@@ -59,6 +84,7 @@
   },
   "states": {
     "idle": "A good outing starts with what you feel like doing.",
+    "previousClarifications": "These corrections are from the previous search. Your edits have not been checked yet. Review the points below, then search again.",
     "loading": "Looking for your next stop…",
     "empty": "No matching places or events were found with these preferences.",
     "error": "The request could not be completed. Try again.",
@@ -194,7 +220,10 @@
       "travel_minutes_estimate": "Travel estimate",
       "route_status": "Route status",
       "weather": "Weather",
-      "booking_url": "Booking information"
+      "booking_url": "Booking information",
+      "family_playground": "Children’s playground",
+      "public_access": "Public access",
+      "power_outlets": "Customer power outlets"
     }
   },
   "codes": {
@@ -239,7 +268,9 @@
       "route_unknown": "Route unknown",
       "visit_duration_estimate": "Visit duration estimated",
       "weather_unknown": "Weather unknown",
-      "schedule_unknown": "Schedule incomplete"
+      "schedule_unknown": "Schedule incomplete",
+      "family_playground_match": "The source lists a children’s playground",
+      "power_outlets_match": "The source lists customer power outlets"
     },
     "warning_codes": {
       "missing_input": "More input needed",
@@ -261,7 +292,11 @@
       "visit_minutes_estimate": "Visit duration",
       "travel_minutes_estimate": "Travel time",
       "weather": "Weather",
-      "session_time": "Session timing"
+      "session_time": "Session timing",
+      "child_suitability": "Suitability for children",
+      "age_restrictions": "Age restrictions",
+      "power_outlets": "Power outlets and device charging",
+      "public_access": "Public access"
     },
     "source_provider": {
       "osm": "OpenStreetMap",
@@ -279,6 +314,11 @@
       "scheduled": "Scheduled",
       "cancelled": "Cancelled",
       "unknown": "Status unknown"
+    },
+    "feature_fields": {
+      "family_playground": "Children’s playground",
+      "public_access": "Public access",
+      "power_outlets": "Customer power outlets"
     }
   },
   "activityAction": {
@@ -318,5 +358,15 @@
     "error": "The walking route request failed. Try again.",
     "notSelected": "No destination selected.",
     "approximateDestination": "Destination is approximate; an accessible entrance has not been verified."
+  },
+  "featureEvidence": {
+    "title": "Visit conditions from sources",
+    "notice": "Checked against the source, not on site. Safety, age suitability and current availability remain unconfirmed.",
+    "yes": "Source says yes",
+    "no": "Source says no",
+    "checked": "Source checked",
+    "updated": "Source last edited",
+    "observed": "Fact observed",
+    "derivedName": "This descriptive name was composed from the feature type; the official name is unknown."
   }
 }

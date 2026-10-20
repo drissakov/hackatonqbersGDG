@@ -7,7 +7,22 @@ from pydantic import Field
 from backend.app.database import DatabaseUnavailable
 from backend.app.intent import IntentExtractor, IntentResult, form_intent
 from backend.app.openai_client import AIClient, ProviderError
-from backend.app.schemas import ContractModel, MissingField, POIRecord, RecommendationRequest
+from backend.app.playground_intent import (
+    can_expand_playground_categories,
+    has_explicit_place_name,
+    has_other_place_requirement,
+    is_generic_playground_name,
+    playground_query_kind,
+    playgrounds_excluded,
+)
+from backend.app.poi_features import FeatureCatalog
+from backend.app.schemas import (
+    ActivityCode,
+    ContractModel,
+    MissingField,
+    POIRecord,
+    RecommendationRequest,
+)
 
 
 class Candidate(ContractModel):
@@ -25,16 +40,82 @@ class RetrievalResult(ContractModel):
 
 
 class Retriever:
-    def __init__(self, repository, client: AIClient | None = None):
+    def __init__(
+        self,
+        repository,
+        client: AIClient | None = None,
+        *,
+        feature_catalog: FeatureCatalog | None = None,
+    ):
         self.repository = repository
         self.client = client
         self.extractor = IntentExtractor(client)
+        self.feature_catalog = feature_catalog
 
     async def retrieve(self, request: RecommendationRequest, *, radius_m=5000, limit=12):
         extracted = await self.extractor.extract(request)
         if extracted.status == "clarification":
             return RetrievalResult(status="clarification", intent=extracted)
         intent = extracted.intent or form_intent(request)
+        from backend.app.constraints import unsupported_requirements
+
+        playground_kind = playground_query_kind(request.query, interests=intent.interests)
+        if playground_kind:
+            updates = {}
+            if can_expand_playground_categories(request.query, intent.categories):
+                # Walking describes the outing, while playground is a destination
+                # type. Keep existing categories and every other resolved constraint.
+                updates["categories"] = list(
+                    dict.fromkeys([*intent.categories, ActivityCode.ENTERTAINMENT])
+                )
+            if not has_explicit_place_name(request.query):
+                updates["name_queries"] = [
+                    name for name in intent.name_queries if not is_generic_playground_name(name)
+                ]
+            intent = intent.model_copy(update=updates)
+            extracted = extracted.model_copy(update={"intent": intent})
+        requirements = [
+            code
+            for code in unsupported_requirements(request.query, interests=intent.interests)
+            if code in {"child_suitability", "power_outlets"}
+        ]
+        if playground_kind and "child_suitability" not in requirements:
+            requirements.append("child_suitability")
+        if requirements and self.feature_catalog is not None and extracted.status == "ok":
+            selected = self.feature_catalog.select(intent, requirements, radius_m=radius_m)
+            if "child_suitability" in requirements and (
+                playgrounds_excluded(request.query) or has_other_place_requirement(request.query)
+            ):
+                # Playground facts cannot prove a park, museum or cafe requirement,
+                # even if extraction omitted the requested place type.
+                selected = []
+            if has_explicit_place_name(request.query) and not any(
+                name.strip() for name in intent.name_queries
+            ):
+                # Losing a named-place restriction is not permission to substitute
+                # an unrelated playground from the source supplement.
+                selected = []
+            # Evaluate every eligible supplement before the route shortlist. No city
+            # retrieval LIMIT can hide a proven feature behind ordinary cafe records.
+            candidates = [
+                Candidate(
+                    id=row.poi.id,
+                    poi=row.poi,
+                    missing_fields=[],
+                    diagnostics={
+                        "selection_bases": ["source_checked_feature"],
+                        "score": 2 if row.fact("public_access") is True else 1,
+                        "curated": row,
+                    },
+                )
+                for row in selected
+            ]
+            return RetrievalResult(
+                status="ok" if candidates else "no_match",
+                candidates=candidates,
+                intent=extracted,
+                diagnostics={"feature_catalog": True, "scope_limited": True},
+            )
         vector, mode, reason = None, "lexical", "embedding_client_unavailable"
         if self.client is not None:
             try:

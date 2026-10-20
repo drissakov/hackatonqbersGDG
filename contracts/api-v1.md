@@ -260,9 +260,77 @@ server-local timezone. Event end/duration unknown means no confirmed time fit.
 
 Every search response contains exactly `status`, `items`, `warnings`, `sources`
 and `request_id`. `items` has at most three cards. A warning contains `code`,
-`message` and optional `fields` (default empty). Messages/explanations must use
+`message`, optional `fields` and optional `clarifications` (both default empty).
+Messages/explanations must use
 the requested locale. Record names may retain their source language; generated
 translations are not original source facts.
+
+### Structured unknown reasons
+
+The coordinated UI follow-up extends `MissingField` with three stable codes in
+`warnings[].fields`, without changing the envelope or `Warning` object shape:
+
+| Field | Meaning |
+| --- | --- |
+| `child_suitability` | The source data cannot confirm suitability for children |
+| `age_restrictions` | The source data cannot confirm the requested age eligibility or admission restrictions |
+| `power_outlets` | The source data cannot confirm power outlets or device charging |
+
+The unsupported-fact guard returns `unknown` with `missing_input`. A request
+about a child of a stated age may contain both child and age fields, and charging
+is independent. The same fields are available on POI and current transient-event
+responses, including conditions retained by structured intent extraction.
+
+Clients translate these codes from local dictionaries and keep them when the
+interface language changes. They must not infer codes from `message`, re-run a
+search just to translate a warning, or treat absent fields as proof of support.
+Older responses with empty or omitted `fields` retain the generic warning.
+
+Contract/corpus version remains `1.3.0`. This is an additive enum extension, but
+previous strict clients may reject new values. Deploy the updated backend and
+frontend together; current and legacy frontend schema snapshots are synchronized.
+No per-person age value or provider prose is added to the structured reasons.
+The source-checked playground supplement described below can now resolve generic
+child play for a selected record; unsupported ages and absent charging evidence
+continue to use these unknown-reason fields.
+
+### Structured constraint clarifications
+
+When an explicit input constraint needs correction, POI and current transient
+event searches return `unknown`, no cards and a `missing_input` warning with
+`clarifications`. Each entry contains only a bounded request `field` and `reason`:
+
+```json
+{
+  "code": "missing_input",
+  "message": "Clarify conflicting or unrecognized constraints.",
+  "fields": [],
+  "clarifications": [
+    {"field": "available_minutes", "reason": "conflicting_constraints"},
+    {"field": "budget_kzt_per_person", "reason": "unparsed_constraint"}
+  ]
+}
+```
+
+`field` uses the existing explicit-field vocabulary: `origin`,
+`available_minutes`, `return_to_start`, `budget_kzt_per_person`, `indoor_only`
+or `date_time`. At most six entries are allowed; producers deduplicate fields.
+`conflicting_constraints` asks the user to resolve incompatible or ambiguous
+requirements. `unparsed_constraint` means an explicit numerical time/budget
+condition could not be extracted after the bounded retry. The application must
+not silently choose a value or drop the condition. Retrieval, routing and event
+discovery do not run after an intent clarification.
+
+Clients render actionable kk/ru/en dictionary text from these codes, without
+parsing `message`, exposing query values or making another request on language
+changes. Omitted `clarifications` on older responses normalize to `[]`; explicit
+null, unknown codes or malformed entries are invalid. Existing missing-fact
+`fields` keep their separate meaning. A generic warning remains safe when an
+older response has no structured clarification metadata.
+
+Contract/corpus version remains `1.3.0`; no request, endpoint or persistent data
+changes are introduced. This optional warning property requires a coordinated
+backend/frontend release because older strict clients reject extra properties.
 
 | Status | Items | Meaning |
 | --- | --- | --- |
@@ -326,6 +394,84 @@ a source itself. Retrieval date does not prove a fact's observation date.
 2GIS runtime payloads may be used transiently only when configured/authorized;
 they do not enter persistent records or the vector index in S00. Disabling 2GIS
 must preserve a usable non-2GIS path with honest uncertainty warnings.
+
+### Source-checked POI features
+
+POI cards optionally include `feature_evidence` (default `[]`, at most three
+entries) and `name_is_derived` (default `false`). Each evidence entry contains
+`field`, strict boolean `value`, `source_id`, `source_field`, `source_value`,
+positive integer `source_version`, `source_updated_at`, `checked_at` and nullable
+`observed_at`. The current source-record format requires `observed_at=null`;
+source retrieval/check is not a physical observation.
+
+Supported feature fields are `family_playground`, `public_access` and
+`power_outlets`. Positive playground evidence is exactly `leisure=playground`.
+Public access uses explicit `access=yes/public` or `no/private`. Outlet evidence
+uses explicit `service:electricity=yes/limited/no` or `power_supply=yes/no`,
+never Wi-Fi, a grid connection or an EV tag. It does not prove device, connector,
+voltage or wireless compatibility. Source edit time must precede check time,
+which must not exceed the included source's retrieval time. Feature sources must
+belong to the same POI and have documented storage and indexing permissions.
+Runtime production loading rejects synthetic records and sources.
+
+`family_playground_match` and `power_outlets_match` reasons require matching
+positive evidence on that card. `public_access` is also a missing-field code;
+unknown access keeps a card conditional, while explicit private/no access
+excludes it. UI labels, fact dates and derived-name notices use local kk/ru/en
+dictionaries and can change language without another search.
+
+The checked-in `data/curated` supplement contains 22 OSM playgrounds (eleven
+explicit public-access records and eleven with unknown access) and zero
+qualified cafes with customer charging evidence. Its ODbL source audit stores
+source versions, timestamps, licensed projections and rights. The offline
+ingestion validator compares every published fact with this audit. Runtime
+loads only the validated packaged catalog; it performs no network refresh.
+
+Feature requirements select from all supplement records before route
+evaluation, preserving category/name/geographic and other hard constraints. No
+eligible supplement candidate yields `unknown`, not city-wide `no_match`.
+Specific age, safety, quietness and accessibility claims remain unsupported.
+Negative or optional conditions that the bounded guard cannot resolve remain
+unknown. Ordinary searches continue to use the existing indexed corpus.
+
+Direct playground queries and generic walks with a child are recognized by a
+bounded kk/ru/en raw-text policy independently of the extracted child-interest
+code. For a compatible empty/walk/entertainment category set, playground
+selection may add the entertainment destination category while retaining the
+walk activity. Explicit park, museum, cafe and other venue requirements block
+that substitution, including when extraction missed the requested venue type.
+No budget, time, origin, indoor, date or return constraint is cleared.
+
+Exact generic playground descriptors accidentally extracted as names can be
+removed only when the raw query has no explicit naming construction. Actual
+names remain filters, and losing an explicitly requested name yields unknown.
+Derived or unsourced names cannot satisfy a named-place restriction. Recognized
+playground exclusions return unknown before providers; this does not introduce
+general negative-place search. A missing source supplement does not allow a
+generic entertainment venue to stand in for a requested playground.
+
+Source-checked playgrounds have flexible suggested visits from 10 to 45 minutes,
+reserving five minutes for entry, five minutes buffer and all known requested
+route legs. Their source duration is unchanged. Unknown travel remains unknown;
+an entertainment category or name alone cannot activate this policy. Other
+non-walking activity estimates retain their existing durations.
+
+POI evaluation continues after rejected candidates until three non-rejected
+alternatives are collected or the available pool is exhausted. Conditional
+unknown cards count as alternatives. Work is bounded to twelve unique eligible
+candidate evaluations and a 54-second aggregate route deadline; each destination
+retains its 18-second route timeout. No leg is retried. A count/deadline limit
+with unexamined candidates returns unknown with no cards or partial with retained
+cards and a data-unknown warning. A completely evaluated ordinary retrieved pool
+can return no-match; an exhausted bounded feature supplement remains unknown.
+These limits describe this search's candidates, not complete city coverage.
+Event selection is unchanged.
+
+The canonical `POIRecord`, database schema and index snapshot remain unchanged.
+Contract/corpus version stays `1.3.0`; these response-only properties and enum
+values require the matching backend and frontend to be released together,
+because earlier strict clients reject new properties or enum values. No new
+endpoint, request property or production dependency is introduced.
 
 ## Persistent POI, event and session
 

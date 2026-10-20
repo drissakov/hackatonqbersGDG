@@ -5,6 +5,7 @@ import { getRoute, parseRouteResponse } from '../lib/api'
 import { formatMinutes } from '../lib/format'
 import type { RouteResponse } from '../lib/types'
 import { DestinationDetails } from './DestinationDetails'
+import { withWarningDefaults } from '../test/warnings'
 import routeFixture from '../../../contracts/examples/route-known.test.json'
 
 vi.mock('../lib/api', async () => ({
@@ -65,7 +66,9 @@ describe('selected walking route details', () => {
   it.each(['known', 'unknown', 'unavailable'] as const)(
     'keeps outbound and return-leg %s status and duration separate',
     async (status) => {
-      const response = structuredClone(routeFixture) as RouteResponse
+      const response = withWarningDefaults(
+        structuredClone(routeFixture),
+      ) as RouteResponse
       response.status = status
       response.warnings = []
       if (status === 'known') {

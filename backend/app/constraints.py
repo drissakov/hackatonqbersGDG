@@ -1,6 +1,7 @@
 """Deterministic single-destination constraints; no provider calls or inferred facts."""
 
 import re
+from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import datetime, time, timedelta
 from zoneinfo import ZoneInfo
@@ -19,6 +20,8 @@ from backend.app.schemas import (
 
 ENTRY_MINUTES = 5
 BUFFER_MINUTES = 5
+MIN_WALK_MINUTES = 10
+MIN_PLAYGROUND_MINUTES = 10
 MAX_CARD_TRAVEL_MINUTES = 10080
 # These are product recommendations, never source facts or admission guarantees.
 VISIT_MINUTES = {
@@ -56,12 +59,29 @@ def sourced_field(poi: POIRecord, field: str) -> bool:
     return field in fields and getattr(poi, field, None) is not None
 
 
-def unsupported_requirements(query: str) -> list[str]:
-    """Flag requirements that the current contract has no factual fields to evaluate.
+def _detected_requirement_codes(query: str, *, interests: Iterable[str] = ()) -> list[str]:
+    """Identify unsupported conditions, keeping age separate from child suitability.
 
-    This presence check intentionally prefers clarification over silently omitting a
-    possible requirement; it is not a general language parser or an amenity detector.
+    Audit both the original query and explicit requirements retained by extraction.
+    This is a bounded presence check, not a general language or negation parser.
     """
+    devices = (
+        r"(?:телефон\w*|смартфон\w*|ноутбу[кг]\w*|планшет\w*|гаджет\w*|аккумулятор\w*|"
+        r"(?:smart)?phones?|laptops?|tablets?|devices?|batter(?:y|ies)|cars?)"
+    )
+    charging = r"(?:(?:под)?заряд\w*|(?:под)?заряж\w*|(?:re)?charg(?:e|ing))"
+    nearby_words = r"(?:\s+[\w-]+){0,3}\s+"
+    russian_age = (
+        r"(?:\d{1,2}|одного|двух|тр[её]х|четыр[её]х|пяти|шести|семи|восьми|девяти|"
+        r"десяти|одиннадцати|двенадцати|тринадцати|четырнадцати|пятнадцати|"
+        r"шестнадцати|семнадцати|восемнадцати|один|два|три|четыре|пять|шесть|семь|"
+        r"восемь|девять|десять|одиннадцать|двенадцать|тринадцать|четырнадцать|"
+        r"пятнадцать|шестнадцать|семнадцать|восемнадцать)"
+    )
+    english_age = (
+        r"(?:\d{1,2}|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|"
+        r"thirteen|fourteen|fifteen|sixteen|seventeen|eighteen)"
+    )
     patterns = {
         "quiet": (
             r"\bтих\w*|\bтишин\w*|\bспокойн\w*|\bүнсіз\w*|\bтыныш\w*|\bшусыз\w*|"
@@ -69,10 +89,16 @@ def unsupported_requirements(query: str) -> list[str]:
         ),
         "power_outlets": (
             r"розет\w*|қуатта\w*|зарядта\w*|(?:тоқ|ток|қуат)\s+көзі|"
-            r"\b(?:под)?заряд(?:и\w*|к\w*|н\w*)|\b(?:под)?заряж\w*|"
-            r"\boutlets?\b|\bsockets?\b|\b(?:re)?charg(?:ing|ers?)\b|"
-            r"\b(?:re)?charge\s+(?:(?:my|the|a|our|your)\s+)?"
-            r"(?:laptop|phone|tablet|device|battery|car)\b"
+            r"\boutlets?\b|\bsockets?\b|\b(?:re)?chargers?\b|"
+            r"\bcharging[ -]+(?:points?|stations?|ports?|facilities)\b|"
+            r"\b(?:wireless|usb(?:[ -]c)?)[ -]+charg(?:ing|ers?)\b|"
+            r"\b(?:with|has|offers?)\s+(?:(?:free|wireless)\s+)?charging\b|"
+            r"\b(?:re)?charging\s+(?:is\s+)?(?:required|needed|available)\b|"
+            r"\b(?:с|со)\s+(?:под)?зарядк\w*\b|"
+            r"\b(?:есть|нужна|доступна)\s+(?:ли\s+)?(?:под)?зарядк\w*\b|"
+            r"\bзарядн\w*\s+(?:станц\w*|устройств\w*|точк\w*)\b|"
+            rf"\b{charging}{nearby_words}{devices}\b|"
+            rf"\b{devices}{nearby_words}{charging}\b"
         ),
         "accessibility": (
             r"доступн\w*\s+(?:сред\w*|для\s+(?:коляс\w*|инвалид\w*))|"
@@ -80,24 +106,130 @@ def unsupported_requirements(query: str) -> list[str]:
             r"\bwheelchair\w*|\baccessible\b|\baccessibility\b|\bstep[ -]free\b"
         ),
         "child_suitability": (
-            r"\bреб[её]н\w*|\bдет(?:и|ей|ям|ьми|ок|ск\w*)\b|\bмалыш\w*|"
-            r"\bмладен\w*|\bподрост\w*|\bвозраст\w*|\bсемейн\w*|"
-            r"\bбала(?:лар\w*|мен|м\w*|ға|ны|ның|дан|да|сы\w*)?\b|"
-            r"\bжас(?:қа|тағы|тан|ты)?\b|\bнәрест\w*|\bбүлдіршін\w*|\bотбас\w*|"
-            r"\b(?:child(?:ren)?|kids?|bab(?:y|ies)|toddlers?|infants?|teen(?:ager)?s?|"
-            r"minors?|famil(?:y|ies))\b|\b\w+[ -](?:year|month)[ -]olds?\b|"
+            r"\bреб[её]н\w*|\bдет(?:и|ей|ям|ьми|ок)\b|\bмалыш\w*|"
+            r"\bмладен\w*|\bподрост\w*|"
+            r"\bдля\s+(?:всей|моей|нашей)\s+семьи\b|\bс\s+семь[её]й\b|"
+            r"\bсемейн\w*\s+(?:досуг|прогулк\w*|отдых)\b|"
+            r"\bбала(?:мен|м\w*|ға|ны|ның|сы\w*|лар(?:мен|ға|ды|дың))\b|"
+            r"\bбала(?:лар)?\s+үшін\b|\bотбасымен\b|"
+            r"\bжастағы\s+бала(?:лар)?\b|\bнәрест\w*|\bбүлдіршін\w*|"
+            r"\b(?:with|for|my|our)\s+(?:[\w-]+\s+){0,4}"
+            r"(?:child(?:ren)?|kids?|bab(?:y|ies)|toddlers?|infants?|teen(?:ager)?s?)\b|"
+            r"\b(?:children|kids)\s+(?:are\s+)?(?:welcome|allowed)\b|"
+            r"\b(?:child(?:ren)?|kids?|family)[ -](?:friendly|free)\b|"
+            r"\bfor\s+(?:the\s+whole|my|our)\s+family\b|\bno\s+(?:children|kids)\b"
+        ),
+        "age_restrictions": (
+            r"\bвозрастн\w*\s+(?:огранич\w*|допуск\w*)|"
+            r"\b(?:\d{1,2}[ -]|одно|двух|тр[её]х|четыр[её]х|пяти|шести|семи|восьми|"
+            r"девяти|десяти|одиннадцати|двенадцати|тринадцати|четырнадцати|пятнадцати|"
+            r"шестнадцати|семнадцати|восемнадцати)летн\w*|"
+            r"\b(?:реб[её]н\w*|дет(?:и|ей|ям|ьми)|малыш\w*|подрост\w*)\s+"
+            r"(?:в\s+возрасте\s+)?(?:(?:от|до|старше|младше)\s+)?"
+            rf"{russian_age}\s+(?:лет|года?|месяц\w*)\b|"
+            r"\b(?:реб[её]н\w*|дет(?:и|ей|ям|ьми))\b[^.!?;]{0,40}"
+            rf"{russian_age}\s+(?:лет|года?|месяц\w*)\b|"
+            rf"\b{russian_age}\s+(?:лет|года?|месяц\w*)\b[^.!?;]{{0,40}}"
+            r"\b(?:реб[её]н\w*|дет(?:и|ей|ям|ьми))\b|"
+            r"\bжас\s+шекте\w*|\bжасқа\s+(?:лайық|сай|сәйкес|арналған)\w*|"
+            r"\b(?:жастағы|жасар)\s+бала\w*|"
+            r"\b(?:\d{1,2}|бір|екі|үш|төрт|бес|алты|жеті|сегіз|тоғыз|он)\s+"
+            r"(?:жаста(?:ғы)?|жасар|айлық)\b|"
+            r"\b\w+[ -](?:years?|months?)[ -]olds?\b|"
+            rf"\bage[sd]?\s+{english_age}\b|"
+            r"\b(?:child(?:ren)?|kids?|sons?|daughters?)\b[^.!?;]{0,40}"
+            rf"{english_age}\s+(?:years?|months?)\b|"
             r"\bage[ -]+(?:restrictions?|limits?|appropriate|suitab\w*)\b|"
             r"\ball\s+ages\b|\badults?[ -]only\b"
         ),
     }
-    return [name for name, pattern in patterns.items() if re.search(pattern, query, re.I)]
+    interests = tuple(interests)
+    texts = (query, *interests)
+    detected = {
+        name
+        for name, pattern in patterns.items()
+        if any(re.search(pattern, text, re.I) for text in texts)
+    }
+    aliases = {
+        "child suitability": "child_suitability",
+        "age restrictions": "age_restrictions",
+        "age limits": "age_restrictions",
+        "child friendly": "child_suitability",
+        "family friendly": "child_suitability",
+        "power outlets": "power_outlets",
+        "charging": "power_outlets",
+        "charging point": "power_outlets",
+    }
+    for interest in interests:
+        normalized = re.sub(r"[\s_-]+", " ", interest.casefold()).strip()
+        if normalized in aliases:
+            detected.add(aliases[normalized])
+    return [name for name in patterns if name in detected]
 
 
-def hard_reject(poi: POIRecord, intent: ResolvedIntent) -> bool:
+def unsupported_requirements(query: str, *, interests: Iterable[str] = ()) -> list[str]:
+    """Preserve the existing coarse guard groups used for uncertainty messages."""
+    detected = set(_detected_requirement_codes(query, interests=interests))
+    if "age_restrictions" in detected:
+        detected.add("child_suitability")
+    return [
+        code
+        for code in ("quiet", "power_outlets", "accessibility", "child_suitability")
+        if code in detected
+    ]
+
+
+def unsupported_requirement_fields(
+    query: str, *, interests: Iterable[str] = ()
+) -> list[MissingField]:
+    """Return stable display reasons without sending or parsing provider prose."""
+    detected = set(_detected_requirement_codes(query, interests=interests))
+    return [
+        field
+        for field in (
+            MissingField.CHILD_SUITABILITY,
+            MissingField.AGE_RESTRICTIONS,
+            MissingField.POWER_OUTLETS,
+        )
+        if field.value in detected
+    ]
+
+
+def suggested_visit_minutes(
+    poi: POIRecord,
+    intent: ResolvedIntent,
+    *,
+    known_travel_seconds: int = 0,
+    playground: bool = False,
+) -> int:
+    """Shorten suggested walks or proved playground visits within the time budget.
+
+    Unknown legs are not zero estimates: this budget is only an upper bound on
+    possible visit time. Fit evaluation still requires every requested leg.
+    The caller must derive playground from source evidence, never a category guess.
+    """
+    default = VISIT_MINUTES[poi.activity_code]
+    if (
+        poi.activity_code != ActivityCode.WALK and not playground
+    ) or intent.available_minutes is None:
+        return default
+    remaining = (
+        intent.available_minutes
+        - ENTRY_MINUTES
+        - BUFFER_MINUTES
+        - (known_travel_seconds + 59) // 60
+    )
+    minimum = MIN_PLAYGROUND_MINUTES if playground else MIN_WALK_MINUTES
+    return max(minimum, min(default, remaining))
+
+
+def hard_reject(poi: POIRecord, intent: ResolvedIntent, *, playground: bool = False) -> bool:
     """Reject proven conflicts before spending route requests on a short list."""
     if (
         intent.available_minutes is not None
-        and ENTRY_MINUTES + VISIT_MINUTES[poi.activity_code] + BUFFER_MINUTES
+        and ENTRY_MINUTES
+        + suggested_visit_minutes(poi, intent, playground=playground)
+        + BUFFER_MINUTES
         > intent.available_minutes
     ):
         return True
@@ -227,22 +359,23 @@ def evaluate_poi(
     return_route: RouteLeg | None = None,
     *,
     timezone: str = "Asia/Almaty",
+    playground: bool = False,
 ) -> FitEvaluation:
     """Evaluate one independent alternative; visit duration is our recommendation."""
     missing: list[MissingField] = []
     reasons = [ReasonCode.VISIT_DURATION_ESTIMATE]
-    rejected = hard_reject(poi, intent)
-    visit = VISIT_MINUTES[poi.activity_code]
-    if (
-        intent.origin is not None
-        and sourced_field(poi, "location")
-        and intent.available_minutes is not None
-    ):
+    rejected = hard_reject(poi, intent, playground=playground)
+    known_seconds = 0
+    if intent.origin is not None and sourced_field(poi, "location"):
         legs = [outbound, return_route] if intent.return_to_start else [outbound]
         known_seconds = sum(
             leg.duration_seconds for leg in legs if leg is not None and leg.status == "known"
         )
-        # Unknown legs cannot hide a conflict already proved by the known travel.
+    visit = suggested_visit_minutes(
+        poi, intent, known_travel_seconds=known_seconds, playground=playground
+    )
+    # Unknown legs cannot hide a conflict already proved by the known travel.
+    if intent.available_minutes is not None:
         if known_seconds + (ENTRY_MINUTES + visit + BUFFER_MINUTES) * 60 > (
             intent.available_minutes * 60
         ):

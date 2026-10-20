@@ -19,6 +19,7 @@ import type {
   RouteResponse,
   SearchRequest,
   SearchResponse,
+  SearchWarning,
   Source,
   SourcedRecord,
   TransientEventSearchResponse,
@@ -280,6 +281,61 @@ function cardIsValid(card: CardDetails, locale: Locale): boolean {
   )
 }
 
+function featureEvidenceIsValid(card: RecommendationCard): boolean {
+  const facts = card.feature_evidence ?? []
+  if (new Set(facts.map((fact) => fact.field)).size !== facts.length)
+    return false
+  const mappings: Record<string, Record<string, boolean>> = {
+    'family_playground:leisure': { playground: true },
+    'public_access:access': {
+      yes: true,
+      public: true,
+      no: false,
+      private: false,
+    },
+    'power_outlets:service:electricity': {
+      yes: true,
+      limited: true,
+      no: false,
+    },
+    'power_outlets:power_supply': { yes: true, no: false },
+  }
+  if (
+    !facts.every((fact) => {
+      const source = card.poi.sources.find(
+        (entry) => entry.source_id === fact.source_id,
+      )
+      const checked = dateTimeMicros(fact.checked_at)
+      const updated = dateTimeMicros(fact.source_updated_at)
+      const retrieved = source ? dateTimeMicros(source.retrieved_at) : null
+      const mapping = mappings[`${fact.field}:${fact.source_field}`]
+      return (
+        source !== undefined &&
+        (source.provider === 'osm' || source.provider === 'test_fixture') &&
+        publicSourceUrl(source.url) &&
+        source.storage_allowed &&
+        source.indexing_allowed &&
+        fact.observed_at === null &&
+        checked !== null &&
+        updated !== null &&
+        retrieved !== null &&
+        updated <= checked &&
+        checked <= retrieved &&
+        mapping !== undefined &&
+        Object.hasOwn(mapping, fact.source_value) &&
+        mapping[fact.source_value] === fact.value
+      )
+    })
+  )
+    return false
+  return (
+    (!card.reason_codes.includes('family_playground_match') ||
+      facts.some((fact) => fact.field === 'family_playground' && fact.value)) &&
+    (!card.reason_codes.includes('power_outlets_match') ||
+      facts.some((fact) => fact.field === 'power_outlets' && fact.value))
+  )
+}
+
 function normalizeDiscoveryFactories(discovery: EventDiscovery): void {
   discovery.events ??= []
   for (const event of discovery.events) {
@@ -291,6 +347,14 @@ function normalizeDiscoveryFactories(discovery: EventDiscovery): void {
       venue.source_urls ??= []
     }
     for (const session of event.sessions) session.verified_fields ??= []
+  }
+}
+
+/** Called only after schema validation so explicit null or malformed lists fail. */
+function normalizeWarningFactories(warnings: SearchWarning[]): void {
+  for (const warning of warnings) {
+    warning.fields ??= []
+    warning.clarifications ??= []
   }
 }
 
@@ -442,7 +506,7 @@ function parseTransientEvents(
   if (!conforms(copy, transientEventSchema, transientEventSchema, true))
     throw new ApiError('invalid_response')
   const result = copy as TransientEventSearchResponse
-  for (const warning of result.warnings) warning.fields ??= []
+  normalizeWarningFactories(result.warnings)
   const sources = new Map(
     result.sources.map((source) => [source.source_id, source]),
   )
@@ -608,8 +672,11 @@ export function parseSearchResponse(
   if (!conforms(copy, schema, schema, true))
     throw new ApiError('invalid_response')
   const result = copy as SearchResponse<RecommendationCard | EventCardData>
-  // Warning.fields uses a Pydantic default factory absent from JSON Schema.
-  for (const warning of result.warnings) warning.fields ??= []
+  // Warning lists use Pydantic default factories absent from JSON Schema.
+  normalizeWarningFactories(result.warnings)
+  for (const item of result.items) {
+    if ('poi' in item) item.feature_evidence ??= []
+  }
   const discovery =
     kind === 'events' ? (copy as EventSearchResponse).discovery : null
   if (discovery) normalizeDiscoveryFactories(discovery)
@@ -649,6 +716,7 @@ export function parseSearchResponse(
         return (
           item.activity_code === item.poi.activity_code &&
           sourcedRecordIsValid(item.poi, sources) &&
+          featureEvidenceIsValid(item) &&
           item.poi.sources.some(
             (source) => source.source_id === item.poi.primary_source_id,
           )
@@ -856,7 +924,7 @@ export function parseRouteResponse(value: unknown): RouteResponse {
     duration_seconds: null,
     provenance: null,
   }
-  for (const warning of result.warnings) warning.fields ??= []
+  normalizeWarningFactories(result.warnings)
   const legs = [result.outbound, result.return_route]
   if (
     result.outbound.status === 'not_requested' ||

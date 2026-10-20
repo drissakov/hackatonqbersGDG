@@ -49,6 +49,7 @@ def test_scaffolds_return_real_503_and_correlation_without_providers(path, local
                 "code": "provider_unavailable",
                 "message": main.UNAVAILABLE_MESSAGES[locale],
                 "fields": [],
+                "clarifications": [],
             }
         ],
     }

@@ -72,6 +72,7 @@ export function syntheticDiscoveryResponse(): EventSearchResponse {
         code: 'data_unknown',
         message: 'TEST ONLY incomplete listing.',
         fields: [],
+        clarifications: [],
       },
     ],
     sources: [],

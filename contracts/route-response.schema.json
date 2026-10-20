@@ -1,6 +1,43 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$defs": {
+    "ClarificationReason": {
+      "enum": [
+        "conflicting_constraints",
+        "unparsed_constraint"
+      ],
+      "title": "ClarificationReason",
+      "type": "string"
+    },
+    "ConstraintClarification": {
+      "additionalProperties": false,
+      "properties": {
+        "field": {
+          "$ref": "#/$defs/ExplicitField"
+        },
+        "reason": {
+          "$ref": "#/$defs/ClarificationReason"
+        }
+      },
+      "required": [
+        "field",
+        "reason"
+      ],
+      "title": "ConstraintClarification",
+      "type": "object"
+    },
+    "ExplicitField": {
+      "enum": [
+        "origin",
+        "available_minutes",
+        "return_to_start",
+        "budget_kzt_per_person",
+        "indoor_only",
+        "date_time"
+      ],
+      "title": "ExplicitField",
+      "type": "string"
+    },
     "MissingField": {
       "enum": [
         "origin",
@@ -13,7 +50,11 @@
         "visit_minutes_estimate",
         "travel_minutes_estimate",
         "weather",
-        "session_time"
+        "session_time",
+        "child_suitability",
+        "age_restrictions",
+        "power_outlets",
+        "public_access"
       ],
       "title": "MissingField",
       "type": "string"
@@ -180,6 +221,14 @@
             "$ref": "#/$defs/MissingField"
           },
           "title": "Fields",
+          "type": "array"
+        },
+        "clarifications": {
+          "items": {
+            "$ref": "#/$defs/ConstraintClarification"
+          },
+          "maxItems": 6,
+          "title": "Clarifications",
           "type": "array"
         }
       },

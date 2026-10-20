@@ -188,7 +188,7 @@ def test_http_pipeline_calls_existing_retriever_and_returns_actual_cards(path, m
     repository.retrieve_candidates.assert_awaited_once()
 
 
-def test_exhausted_shortlist_does_not_claim_unsearched_candidates_are_no_match():
+def test_fully_evaluated_pool_of_closed_places_can_be_no_match():
     records = [record(id=f"test:{i}", opening_hours_text="Mo-Su 09:00-10:00") for i in range(5)]
     router = AsyncMock()
     router.route.return_value = (
@@ -214,7 +214,8 @@ def test_exhausted_shortlist_does_not_claim_unsearched_candidates_are_no_match()
             )
         )
     )
-    assert result.status == "unknown" and not result.items
+    assert result.status == "no_match" and not result.items
+    assert router.route.await_count == len(records)
 
 
 def test_zero_candidates_with_embedding_outage_or_empty_corpus_are_not_no_match():

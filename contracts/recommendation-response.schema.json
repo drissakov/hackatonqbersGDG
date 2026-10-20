@@ -41,6 +41,31 @@
       "title": "ActivityCode",
       "type": "string"
     },
+    "ClarificationReason": {
+      "enum": [
+        "conflicting_constraints",
+        "unparsed_constraint"
+      ],
+      "title": "ClarificationReason",
+      "type": "string"
+    },
+    "ConstraintClarification": {
+      "additionalProperties": false,
+      "properties": {
+        "field": {
+          "$ref": "#/$defs/ExplicitField"
+        },
+        "reason": {
+          "$ref": "#/$defs/ClarificationReason"
+        }
+      },
+      "required": [
+        "field",
+        "reason"
+      ],
+      "title": "ConstraintClarification",
+      "type": "object"
+    },
     "Coordinates": {
       "additionalProperties": false,
       "properties": {
@@ -64,6 +89,98 @@
       "title": "Coordinates",
       "type": "object"
     },
+    "ExplicitField": {
+      "enum": [
+        "origin",
+        "available_minutes",
+        "return_to_start",
+        "budget_kzt_per_person",
+        "indoor_only",
+        "date_time"
+      ],
+      "title": "ExplicitField",
+      "type": "string"
+    },
+    "FeatureEvidence": {
+      "additionalProperties": false,
+      "description": "A checked source assertion, never an on-site or age-safety guarantee.",
+      "properties": {
+        "field": {
+          "$ref": "#/$defs/FeatureField"
+        },
+        "value": {
+          "title": "Value",
+          "type": "boolean"
+        },
+        "source_id": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Source Id",
+          "type": "string"
+        },
+        "source_field": {
+          "maxLength": 4000,
+          "minLength": 1,
+          "title": "Source Field",
+          "type": "string"
+        },
+        "source_value": {
+          "maxLength": 4000,
+          "minLength": 1,
+          "title": "Source Value",
+          "type": "string"
+        },
+        "source_version": {
+          "minimum": 1,
+          "title": "Source Version",
+          "type": "integer"
+        },
+        "source_updated_at": {
+          "format": "date-time",
+          "title": "Source Updated At",
+          "type": "string"
+        },
+        "checked_at": {
+          "format": "date-time",
+          "title": "Checked At",
+          "type": "string"
+        },
+        "observed_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Observed At"
+        }
+      },
+      "required": [
+        "field",
+        "value",
+        "source_id",
+        "source_field",
+        "source_value",
+        "source_version",
+        "source_updated_at",
+        "checked_at"
+      ],
+      "title": "FeatureEvidence",
+      "type": "object"
+    },
+    "FeatureField": {
+      "enum": [
+        "family_playground",
+        "public_access",
+        "power_outlets"
+      ],
+      "title": "FeatureField",
+      "type": "string"
+    },
     "FitStatus": {
       "enum": [
         "fits",
@@ -85,7 +202,11 @@
         "visit_minutes_estimate",
         "travel_minutes_estimate",
         "weather",
-        "session_time"
+        "session_time",
+        "child_suitability",
+        "age_restrictions",
+        "power_outlets",
+        "public_access"
       ],
       "title": "MissingField",
       "type": "string"
@@ -171,6 +292,19 @@
         },
         "poi": {
           "$ref": "#/$defs/POIRecord"
+        },
+        "feature_evidence": {
+          "items": {
+            "$ref": "#/$defs/FeatureEvidence"
+          },
+          "maxItems": 3,
+          "title": "Feature Evidence",
+          "type": "array"
+        },
+        "name_is_derived": {
+          "default": false,
+          "title": "Name Is Derived",
+          "type": "boolean"
         }
       },
       "required": [
@@ -406,7 +540,9 @@
         "route_unknown",
         "visit_duration_estimate",
         "weather_unknown",
-        "schedule_unknown"
+        "schedule_unknown",
+        "family_playground_match",
+        "power_outlets_match"
       ],
       "title": "ReasonCode",
       "type": "string"
@@ -540,6 +676,14 @@
             "$ref": "#/$defs/MissingField"
           },
           "title": "Fields",
+          "type": "array"
+        },
+        "clarifications": {
+          "items": {
+            "$ref": "#/$defs/ConstraintClarification"
+          },
+          "maxItems": 6,
+          "title": "Clarifications",
           "type": "array"
         }
       },

@@ -17,11 +17,12 @@ jobs:
           cache-dependency-path: backend/*requirements*.txt
       - run: python -m pip install -r backend/requirements-dev.txt
       - run: python -m pip check
-      - run: python -m compileall -q backend/app scripts
-      - run: python -m pytest -q
-      - run: python -m ruff check backend scripts
-      - run: python -m ruff format --check backend scripts
+      - run: python -m compileall -q backend/app scripts ingestion
+      - run: python -m pytest backend/tests ingestion/tests -q
+      - run: python -m ruff check backend scripts ingestion
+      - run: python -m ruff format --check backend scripts ingestion
       - run: python scripts/export_contracts.py --check
+      - run: python -m ingestion.curated validate
   postgres:
     runs-on: ubuntu-latest
     services:

@@ -9,6 +9,7 @@ from backend.app.database import DatabaseUnavailable
 from backend.app.event_recommend import EventRecommendationService
 from backend.app.event_schemas import TransientEventSearchResponse
 from backend.app.openai_client import OpenAIClient, ProviderError
+from backend.app.poi_features import load_feature_catalog
 from backend.app.recommend import MESSAGES, RecommendationService, empty_response
 from backend.app.repository import POIRepository
 from backend.app.schemas import (
@@ -35,7 +36,11 @@ async def recommendations(
         settings = get_settings()
         async with OpenAIClient(settings) as client:
             result = await RecommendationService(
-                repository, client, router_factory(), timezone=settings.app_timezone
+                repository,
+                client,
+                router_factory(),
+                timezone=settings.app_timezone,
+                feature_catalog=load_feature_catalog(),
             ).recommend(body)
     except (DatabaseUnavailable, ValidationError, ProviderError):
         result = empty_response(

@@ -46,7 +46,9 @@
     "route_unknown",
     "visit_duration_estimate",
     "weather_unknown",
-    "schedule_unknown"
+    "schedule_unknown",
+    "family_playground_match",
+    "power_outlets_match"
   ],
   "warning_codes": [
     "missing_input",
@@ -65,6 +67,15 @@
     "indoor_only",
     "date_time"
   ],
+  "clarification_reasons": [
+    "conflicting_constraints",
+    "unparsed_constraint"
+  ],
+  "feature_fields": [
+    "family_playground",
+    "public_access",
+    "power_outlets"
+  ],
   "missing_fields": [
     "origin",
     "available_minutes",
@@ -76,7 +87,11 @@
     "visit_minutes_estimate",
     "travel_minutes_estimate",
     "weather",
-    "session_time"
+    "session_time",
+    "child_suitability",
+    "age_restrictions",
+    "power_outlets",
+    "public_access"
   ],
   "source_provider": [
     "osm",

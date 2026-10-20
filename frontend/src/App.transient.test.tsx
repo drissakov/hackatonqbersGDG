@@ -9,6 +9,7 @@ import unavailable from '../../contracts/examples/transient-event-unavailable.te
 import unknown from '../../contracts/examples/transient-event-unknown.test.json'
 import type { TransientEventSearchResponse } from './lib/types'
 import { formatMinutes, formatMoney } from './lib/format'
+import { withWarningDefaults } from './test/warnings'
 
 beforeEach(async () => {
   vi.stubEnv('VITE_API_BASE_URL', '/api')
@@ -87,7 +88,9 @@ describe('current S04 event contract in the complete App', () => {
   )
 
   it('preserves card reasons, route snapshot, session action, missing facts and locale without duplicating the same event listing', async () => {
-    const value = structuredClone(partial) as TransientEventSearchResponse
+    const value = withWarningDefaults(
+      structuredClone(partial),
+    ) as TransientEventSearchResponse
     const card = value.items[0]
     card.route_status = 'estimated'
     card.travel_minutes_estimate = 12
@@ -107,7 +110,8 @@ describe('current S04 event contract in the complete App', () => {
     value.listings = [
       {
         ...structuredClone(
-          (listing as TransientEventSearchResponse).listings[0],
+          (withWarningDefaults(listing) as TransientEventSearchResponse)
+            .listings[0],
         ),
         status: 'discovered',
         sessions: [card.session],
@@ -169,9 +173,12 @@ describe('current S04 event contract in the complete App', () => {
   })
 
   it('keeps a session and an unrelated listing separately named and selected when their IDs match', async () => {
-    const value = structuredClone(partial) as TransientEventSearchResponse
+    const value = withWarningDefaults(
+      structuredClone(partial),
+    ) as TransientEventSearchResponse
     const event = structuredClone(
-      (listing as TransientEventSearchResponse).listings[0],
+      (withWarningDefaults(listing) as TransientEventSearchResponse)
+        .listings[0],
     )
     event.event_id = value.items[0].session.session_id
     event.title = 'SYNTHETIC TEST ONLY - A different listing'
@@ -226,10 +233,13 @@ describe('current S04 event contract in the complete App', () => {
   })
 
   it('keeps same-event schedule notes and withheld sessions inspectable without offering another alternative', async () => {
-    const value = structuredClone(partial) as TransientEventSearchResponse
+    const value = withWarningDefaults(
+      structuredClone(partial),
+    ) as TransientEventSearchResponse
     const card = value.items[0]
     const sourceListing = structuredClone(
-      (listing as TransientEventSearchResponse).listings[0],
+      (withWarningDefaults(listing) as TransientEventSearchResponse)
+        .listings[0],
     )
     const withheld = structuredClone(card.session)
     withheld.session_id = 'synthetic:withheld-session'

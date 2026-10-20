@@ -11,6 +11,7 @@ import { DiscoveredEventCard, TransientEventCard } from './DiscoveredEventCard'
 import { EventSearchSources } from './EventSearchSources'
 import type { Locale, TransientEventSearchResponse } from '../lib/types'
 import { formatMoney } from '../lib/format'
+import { withWarningDefaults } from '../test/warnings'
 import partial from '../../../contracts/examples/transient-event-partial.test.json'
 
 beforeEach(async () => {
@@ -22,7 +23,9 @@ describe('transient event discovery cards', () => {
     'labels a transient map action as a map in %s',
     async (locale) => {
       await i18n.changeLanguage(locale)
-      const value = structuredClone(partial) as TransientEventSearchResponse
+      const value = withWarningDefaults(
+        structuredClone(partial),
+      ) as TransientEventSearchResponse
       const card = value.items[0]
       card.action.code = 'open_map'
       render(

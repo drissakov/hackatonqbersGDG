@@ -22,6 +22,7 @@ import {
   syntheticDiscoveryResponse,
   syntheticSession,
 } from '../test/eventDiscovery'
+import { withWarningDefaults } from '../test/warnings'
 
 const body: SearchRequest = {
   request_id: recommendation.request_id,
@@ -228,13 +229,14 @@ describe('same-origin API transport', () => {
         vi.stubGlobal('fetch', fetch)
 
         const result = await search({ ...body, locale })
+        const expected = withWarningDefaults(envelope)
 
         expect(result).toEqual(
-          name === 'events' ? { ...envelope, discovery: null } : envelope,
+          name === 'events' ? { ...expected, discovery: null } : expected,
         )
         expect(result.items).toEqual([])
         expect(result.sources).toEqual([])
-        expect(result.warnings).toEqual(envelope.warnings)
+        expect(result.warnings).toEqual(expected.warnings)
         expect(JSON.parse(fetch.mock.calls[0][1].body).locale).toBe(locale)
         // Empty unavailable envelopes have no generated_locale. This checks
         // preservation of warning text, not automatic prose-language detection.
@@ -526,11 +528,17 @@ describe('same-origin API transport', () => {
 
 describe('v1 runtime response boundaries', () => {
   it('preserves unknown facts and all source evidence from valid fixtures', () => {
-    expect(parseSearchResponse(partial, 'recommendations', 'en')).toEqual(
-      partial,
-    )
+    const expected = withWarningDefaults(partial)
+    expect(parseSearchResponse(partial, 'recommendations', 'en')).toEqual({
+      ...expected,
+      items: expected.items.map((item) => ({
+        ...item,
+        feature_evidence: [],
+        name_is_derived: false,
+      })),
+    })
     expect(parseSearchResponse(events, 'events', 'en')).toEqual({
-      ...events,
+      ...withWarningDefaults(events),
       discovery: null,
     })
   })

@@ -64,6 +64,11 @@ recommendation fit. Render automatic deployment is disabled in
 - **Sources and uncertainty:** provenance, missing facts and conditional fit stay
   visible. Unknown prices, hours and routes stay unknown. Suggested POI visit
   durations are labelled estimates based on activity type, separate from source facts.
+- **Family source supplement:** 22 real OSM playgrounds have checked source tags,
+  versions, dates and ODbL rights. Eleven explicitly allow public access; access
+  for the other eleven stays unknown. These are source-record checks, not physical
+  safety or age guarantees. No cafe has qualified customer charging evidence yet.
+  See [the dataset and validation commands](data/curated/README.md).
 - **Location and routes:** manual coordinates and opt-in browser geolocation.
   The results map shows interactive OpenStreetMap streets without a key.
   Optional 2GIS supports map-based origin selection and separately gated server
@@ -79,8 +84,11 @@ itineraries. Only the interface language preference is stored in the browser.
 1. **Describe an activity.** Choose a place or event search, then supply a
    starting point, available minutes and any explicit constraints.
 2. **Retrieve candidates.** POI search combines lexical matching and vector
-   retrieval over the permitted corpus. Event discovery uses a separate live
-   web-search flow with transient sources.
+   retrieval over the permitted corpus. Playground requests, generic walks with
+   a child and recognized child/charging requirements use the separate, bounded
+   source supplement when supporting evidence exists;
+   category, location and other explicit constraints still apply. Event discovery
+   uses a separate live web-search flow with transient sources.
 3. **Evaluate known facts.** The backend checks the stated constraints and
    available route/session evidence. Missing facts remain unknown.
 4. **Choose one destination.** Inspect up to three alternatives, their reasons,

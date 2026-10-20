@@ -2,6 +2,10 @@ import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { LanguageSwitch } from './components/LanguageSwitch'
 import { SearchForm } from './components/SearchForm'
+import {
+  ConstraintClarificationMessages,
+  SearchWarnings,
+} from './components/SearchWarnings'
 import { ResultCard } from './components/ResultCard'
 import { EventCard } from './components/EventCard'
 import {
@@ -19,11 +23,14 @@ import {
 } from './lib/api'
 import { resolvedLocale } from './i18n'
 import type {
+  ConstraintClarification,
+  ConstraintField,
   EventSearchResponse,
   DiscoveredEvent,
   RecommendationResponse,
   ResponseStatus,
   SearchRequest,
+  SearchWarning,
 } from './lib/types'
 
 type Kind = 'recommendations' | 'events'
@@ -54,6 +61,18 @@ function eventLocation(event: DiscoveredEvent) {
 type Result =
   | { kind: 'recommendations'; response: RecommendationResponse }
   | { kind: 'events'; response: EventSearchResponse }
+
+function inputClarifications(warnings: SearchWarning[]) {
+  const fields = new Map<ConstraintField, ConstraintClarification>()
+  for (const warning of warnings) {
+    for (const { field, reason } of warning.clarifications) {
+      if (!fields.has(field) || reason === 'conflicting_constraints')
+        fields.set(field, { field, reason })
+    }
+  }
+  return [...fields.values()]
+}
+
 const DevPreview = import.meta.env.DEV
   ? lazy(() => import('./dev/DevPreview'))
   : null
@@ -73,6 +92,9 @@ export default function App() {
   const generation = useRef(0)
   const [previous, setPrevious] = useState<SearchRequest | null>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [previousClarifications, setPreviousClarifications] = useState<
+    ConstraintClarification[]
+  >([])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -94,7 +116,17 @@ export default function App() {
     setError(null)
     setPrevious(null)
     setSelectedId(null)
+    setPreviousClarifications([])
   }, [])
+
+  function changeInput() {
+    // Only bounded codes survive editing; stale search data and routes do not.
+    const clarifications = result
+      ? inputClarifications(result.response.warnings)
+      : previousClarifications
+    resetSearch()
+    setPreviousClarifications(clarifications)
+  }
 
   useEffect(() => {
     return () => {
@@ -121,6 +153,7 @@ export default function App() {
     setError(null)
     setSynthetic(false)
     setSelectedId(null)
+    setPreviousClarifications([])
     try {
       const next: Result =
         kind === 'events'
@@ -148,6 +181,7 @@ export default function App() {
     setPhase('loading')
     setError(null)
     setPrevious(null)
+    setPreviousClarifications([])
     try {
       const { loadFixture } = await import('./dev/fixtures')
       const next: Result =
@@ -280,7 +314,7 @@ export default function App() {
               </button>
             </div>
             <SearchForm
-              onInputChange={resetSearch}
+              onInputChange={changeInput}
               onSubmit={(body) => {
                 void submit(body)
               }}
@@ -314,7 +348,20 @@ export default function App() {
               {t(synthetic ? 'dev.title' : 'states.liveMode')}
             </p>
             <div className="result-content" aria-live="polite">
-              {phase === 'idle' && (
+              {phase === 'idle' && previousClarifications.length > 0 && (
+                <div className="response-state">
+                  <p className="event-notice">
+                    {t('states.previousClarifications')}
+                  </p>
+                  <ConstraintClarificationMessages
+                    clarifications={previousClarifications}
+                  />
+                  <p className="event-notice">
+                    {t('constraintClarifications.resubmit')}
+                  </p>
+                </div>
+              )}
+              {phase === 'idle' && previousClarifications.length === 0 && (
                 <div className="idle-state">
                   <div className="city-art" aria-hidden="true">
                     <div className="orbit orbit-one" />
@@ -425,18 +472,7 @@ export default function App() {
                       />
                     </>
                   ) : null}
-                  {response.warnings.length > 0 && (
-                    <ul className="warning-list">
-                      {response.warnings.map((warning, index) => (
-                        <li key={`${warning.code}-${index}`}>
-                          {t(`codes.warning_codes.${warning.code}`)}
-                          {warning.fields.length > 0
-                            ? `: ${warning.fields.map((field) => t(`codes.missing_fields.${field}`)).join(', ')}`
-                            : ''}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
+                  <SearchWarnings warnings={response.warnings} />
                   {result.kind === 'events' &&
                   result.response.discovery?.events.length === 0 &&
                   result.response.discovery.evidence ? (

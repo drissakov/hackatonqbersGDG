@@ -180,6 +180,10 @@ _MISSING_LABELS: dict[str, dict[MissingField, str]] = {
         MissingField.TRAVEL_MINUTES: "время пути",
         MissingField.WEATHER: "погоду",
         MissingField.SESSION_TIME: "расписание сеанса",
+        MissingField.CHILD_SUITABILITY: "пригодность для детей",
+        MissingField.AGE_RESTRICTIONS: "возрастные ограничения",
+        MissingField.POWER_OUTLETS: "розетки и зарядку устройств",
+        MissingField.PUBLIC_ACCESS: "публичный доступ",
     },
     "kk": {
         MissingField.ORIGIN: "жолға шығу нүктесін",
@@ -193,6 +197,10 @@ _MISSING_LABELS: dict[str, dict[MissingField, str]] = {
         MissingField.TRAVEL_MINUTES: "жол уақытын",
         MissingField.WEATHER: "ауа райын",
         MissingField.SESSION_TIME: "сеанс кестесін",
+        MissingField.CHILD_SUITABILITY: "балаларға жарамдылықты",
+        MissingField.AGE_RESTRICTIONS: "жас шектеулерін",
+        MissingField.POWER_OUTLETS: "розеткалар мен құрылғыны қуаттауды",
+        MissingField.PUBLIC_ACCESS: "жалпыға қолжетімділікті",
     },
     "en": {
         MissingField.ORIGIN: "the starting point",
@@ -206,6 +214,10 @@ _MISSING_LABELS: dict[str, dict[MissingField, str]] = {
         MissingField.TRAVEL_MINUTES: "travel time",
         MissingField.WEATHER: "the weather",
         MissingField.SESSION_TIME: "the session schedule",
+        MissingField.CHILD_SUITABILITY: "child suitability",
+        MissingField.AGE_RESTRICTIONS: "age restrictions",
+        MissingField.POWER_OUTLETS: "power outlets and device charging",
+        MissingField.PUBLIC_ACCESS: "public access",
     },
 }
 
